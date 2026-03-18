@@ -156,7 +156,7 @@ This gives the project a ready-to-run monitoring-station table and seed dataset 
 
 ## Next Steps
 
-- Add time-window filters to the observation-history endpoints
+- Add category-level rollups for filtered observation-history queries
 - Add an ingestion pipeline for new monitoring feeds
 - Add authentication and access control
 - Add container image publishing

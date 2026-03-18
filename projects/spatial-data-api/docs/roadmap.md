@@ -2,7 +2,7 @@
 
 ## Near Term
 
-- Expand observation-history support with time-window filters and category-level rollups.
+- Expand observation-history support with category-level rollups and derived summary metrics.
 - Add dashboard panels for recent observations and trend changes.
 - Publish a container image as part of CI.
 

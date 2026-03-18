@@ -1,8 +1,8 @@
 # Suggested Public Issues
 
-## 1. Add time-window filters to observation history
+## 1. Add category-level rollups to observation history
 
-Allow callers to request observations within the last 24 hours, 7 days, or a custom start and end range.
+Extend the filtered observation-history endpoints with aggregate counts and summary metrics grouped by monitoring category.
 
 ## 2. Surface recent observations in the dashboard
 
