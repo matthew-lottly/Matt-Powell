@@ -41,3 +41,8 @@ Use this when you are ready to move project folders into their own public reposi
 - [commands/publish-environmental-monitoring-api.md](commands/publish-environmental-monitoring-api.md)
 - [commands/publish-environmental-monitoring-analytics.md](commands/publish-environmental-monitoring-analytics.md)
 - [commands/publish-monitoring-data-warehouse.md](commands/publish-monitoring-data-warehouse.md)
+
+## Launch Checklist
+
+- [standalone-launch-checklist.md](standalone-launch-checklist.md)
+- [publish-main-portfolio.md](publish-main-portfolio.md)
