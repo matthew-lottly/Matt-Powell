@@ -45,9 +45,10 @@ def get_metadata(repository: Repository = Depends(get_repository)) -> ServiceMet
 def list_features(
     category: str | None = Query(default=None),
     region: str | None = Query(default=None),
+    status: str | None = Query(default=None),
     repository: Repository = Depends(get_repository),
 ) -> FeatureCollection:
-    return FeatureCollection(features=repository.list_features(category=category, region=region))
+    return FeatureCollection(features=repository.list_features(category=category, region=region, status=status))
 
 
 @router.get(

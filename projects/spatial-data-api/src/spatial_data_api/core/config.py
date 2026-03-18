@@ -9,7 +9,7 @@ DEFAULT_DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "sample_featu
 
 
 class Settings(BaseSettings):
-    app_name: str = "Spatial Data API"
+    app_name: str = "Environmental Monitoring API"
     app_env: str = "development"
     api_prefix: str = "/api/v1"
     repository_backend: Literal["file", "postgis"] = "file"

@@ -23,6 +23,7 @@ def test_postgis_repository_summary() -> None:
     summary = repository.summary()
     assert summary.total_features == 3
     assert summary.categories["hydrology"] == 1
+    assert summary.statuses["alert"] == 1
     assert "West" in summary.regions
 
 
@@ -33,7 +34,8 @@ def test_postgis_repository_feature_lookup() -> None:
     )
     repository = PostGISFeatureRepository(database_url)
 
-    feature = repository.get_feature("asset-002")
+    feature = repository.get_feature("station-002")
     assert feature is not None
-    assert feature.properties.name == "Wildfire Sensor Bravo"
+    assert feature.properties.name == "Sierra Air Quality Node"
     assert feature.properties.region == "West"
+    assert feature.properties.status == "alert"

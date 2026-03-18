@@ -1,16 +1,16 @@
-# Spatial Data API
+# Environmental Monitoring API
 
-Backend service for browsing and summarizing geospatial data through a clean, typed API.
+Backend service for monitoring stations, environmental observations, and spatial status reporting through a clean, typed API.
 
 ## Overview
 
-This project is a fresh showcase starter for a geospatial backend. It loads a sample GeoJSON dataset for local development, supports an optional PostGIS-backed repository for standalone deployment, and exposes a typed API for health checks, metadata, filtering, and feature lookup.
+This project is a geospatial backend for environmental monitoring. It loads a sample monitoring-station dataset for local development, supports an optional PostGIS-backed repository for standalone deployment, and exposes a typed API for health checks, metadata, filtering, and feature lookup.
 
 The implementation is intentionally small, but it now includes the wiring needed to run as a standalone service with Docker, environment-based configuration, and a PostGIS container.
 
 ## Why This Project Exists
 
-Geospatial work often stops at files and scripts. This project demonstrates the next step: turning spatial data into an application service with a stable interface that other tools, analysts, and products can consume.
+Environmental and operational monitoring workflows often stop at files, dashboards, and one-off scripts. This project demonstrates the next step: turning monitoring data into an application service with a stable interface that other tools, analysts, and products can consume.
 
 ## Current Features
 
@@ -18,8 +18,9 @@ Geospatial work often stops at files and scripts. This project demonstrates the 
 - Typed response models for features and metadata
 - File-backed repository for local development
 - Optional PostGIS-backed repository for standalone deployment
-- Filtering by category and region
-- Summary endpoint for quick portfolio demos
+- Filtering by category, region, and station status
+- Summary endpoint for quick monitoring rollups
+- Browser dashboard for quick visual review of service health and alert stations
 - Test coverage for the main endpoints
 - Docker and docker-compose setup
 
@@ -41,6 +42,12 @@ Geospatial work often stops at files and scripts. This project demonstrates the 
 - `GET /api/v1/features/summary`
 - `GET /api/v1/features/{feature_id}`
 
+Example monitoring domains in the sample data:
+
+- Hydrology
+- Air quality
+- Water quality
+
 ## Project Structure
 
 ```text
@@ -49,6 +56,7 @@ projects/spatial-data-api/
 |   |-- api/
 |   |-- core/
 |   |-- data/
+|   |-- dashboard/
 |   |-- database.py
 |   |-- main.py
 |   |-- repository.py
@@ -73,6 +81,8 @@ uvicorn spatial_data_api.main:app --reload --app-dir src
 ```
 
 Then open `http://127.0.0.1:8000/docs`.
+
+For a visual demo, open `http://127.0.0.1:8000/dashboard`.
 
 ### Docker with PostGIS
 
@@ -130,11 +140,11 @@ The database container loads:
 - [sql/postgis_schema.sql](sql/postgis_schema.sql)
 - [sql/sample_seed.sql](sql/sample_seed.sql)
 
-This gives the project a ready-to-run spatial table and seed dataset for local container use.
+This gives the project a ready-to-run monitoring-station table and seed dataset for local container use.
 
 ## Next Steps
 
-- Add an ingestion pipeline for new datasets
+- Add an ingestion pipeline for new monitoring feeds
 - Add authentication and access control
-- Expand tests around filtering and data validation
+- Expand tests around validation, alert states, and historical observations
 - Add CI and image publishing

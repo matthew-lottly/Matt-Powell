@@ -13,6 +13,8 @@ class FeatureProperties(BaseModel):
     name: str
     category: str
     region: str
+    status: Literal["normal", "alert", "offline"]
+    last_observation_at: str = Field(alias="lastObservationAt")
 
 
 class FeatureRecord(BaseModel):
@@ -29,6 +31,7 @@ class FeatureCollection(BaseModel):
 class FeatureSummary(BaseModel):
     total_features: int
     categories: dict[str, int]
+    statuses: dict[str, int]
     regions: list[str]
 
 

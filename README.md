@@ -47,9 +47,10 @@ Pin 4 to 6 repositories that make your range obvious without looking scattered.
 4. One analytics or data science project
 5. One optional reusable developer tool
 
-## Fresh Project Starter
+## Featured Projects
 
-This repository now includes a fresh starter project in [projects/spatial-data-api](projects/spatial-data-api) that demonstrates how I would structure a geospatial backend service for public showcase and further expansion.
+- [projects/spatial-data-api](projects/spatial-data-api): environmental monitoring backend with FastAPI, optional PostGIS, Docker support, and a browser dashboard.
+- [projects/environmental-monitoring-analytics](projects/environmental-monitoring-analytics): DuckDB-based analytics project for turning monitoring observations into operational reporting.
 
 ## Connect
 
