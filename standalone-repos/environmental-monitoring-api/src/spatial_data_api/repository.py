@@ -7,8 +7,40 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from spatial_data_api.core.config import get_settings
-from spatial_data_api.schemas import FeatureCollection, FeatureRecord, FeatureSummary, ObservationCollection, ObservationRecord
+from spatial_data_api.schemas import (
+    FeatureCollection,
+    FeatureRecord,
+    FeatureSummary,
+    ObservationCollection,
+    ObservationRecord,
+    ObservationSummary,
+)
 from spatial_data_api.database import get_engine
+
+
+def _build_observation_summary(
+    observations: list[ObservationRecord],
+    category_lookup: dict[str, str],
+) -> ObservationSummary:
+    categories: dict[str, int] = {}
+    statuses: dict[str, int] = {}
+    metrics: dict[str, int] = {}
+    timestamps = [observation.observed_at for observation in observations]
+
+    for observation in observations:
+        category = category_lookup.get(observation.feature_id, "unknown")
+        categories[category] = categories.get(category, 0) + 1
+        statuses[observation.status] = statuses.get(observation.status, 0) + 1
+        metrics[observation.metric_name] = metrics.get(observation.metric_name, 0) + 1
+
+    return ObservationSummary(
+        totalObservations=len(observations),
+        categories=dict(sorted(categories.items())),
+        statuses=dict(sorted(statuses.items())),
+        metrics=dict(sorted(metrics.items())),
+        earliestObservedAt=min(timestamps, default=None),
+        latestObservedAt=max(timestamps, default=None),
+    )
 
 
 class FeatureRepository:
@@ -76,6 +108,12 @@ class FeatureRepository:
         ]
         observations.sort(key=lambda observation: self._parse_timestamp(observation.observed_at), reverse=True)
         return observations[:limit]
+
+    def observation_summary(self, observations: list[ObservationRecord]) -> ObservationSummary:
+        category_lookup = {
+            feature.properties.feature_id: feature.properties.category for feature in self._collection.features
+        }
+        return _build_observation_summary(observations, category_lookup)
 
     def summary(self) -> FeatureSummary:
         categories: dict[str, int] = {}
@@ -226,6 +264,12 @@ class PostGISFeatureRepository:
                 {"feature_id": feature_id, "limit": limit, "start_at": start_at, "end_at": end_at},
             ).mappings().all()
         return [self._row_to_observation(dict(row)) for row in rows]
+
+    def observation_summary(self, observations: list[ObservationRecord]) -> ObservationSummary:
+        category_lookup = {
+            feature.properties.feature_id: feature.properties.category for feature in self.list_features()
+        }
+        return _build_observation_summary(observations, category_lookup)
 
     def summary(self) -> FeatureSummary:
         category_query = "SELECT category, COUNT(*) AS count FROM public.monitoring_stations GROUP BY category ORDER BY category"

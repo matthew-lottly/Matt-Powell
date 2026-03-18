@@ -68,6 +68,10 @@ def test_postgis_repository_recent_observations_with_window() -> None:
         end_at=datetime(2026, 3, 18, 12, 5, tzinfo=timezone.utc),
     )
     assert [observation.observation_id for observation in observations] == ["obs-2001", "obs-1001"]
+    summary = repository.observation_summary(observations)
+    assert summary.total_observations == 2
+    assert summary.categories == {"air_quality": 1, "hydrology": 1}
+    assert summary.latest_observed_at == "2026-03-18T12:05:00Z"
 
 
 def test_postgis_repository_feature_observations() -> None:
@@ -79,5 +83,8 @@ def test_postgis_repository_feature_observations() -> None:
 
     observations = repository.list_feature_observations("station-001", limit=5)
     assert len(observations) == 2
+    summary = repository.observation_summary(observations)
+    assert summary.categories == {"hydrology": 2}
+    assert summary.metrics == {"river_stage_ft": 2}
     assert observations[0].metric_name == "river_stage_ft"
     assert observations[1].observation_id == "obs-1002"

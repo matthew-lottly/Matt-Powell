@@ -1,12 +1,12 @@
 # Suggested Public Issues
 
-## 1. Add category-level rollups to observation history
+## 1. Highlight recent alert observations in the dashboard
 
-Extend the filtered observation-history endpoints with aggregate counts and summary metrics grouped by monitoring category.
+Add a dashboard panel that emphasizes the newest alert readings, notable status changes, and trend direction for recent observations.
 
-## 2. Surface recent observations in the dashboard
+## 2. Publish a container image from CI
 
-Add a dashboard panel that highlights the latest alert observations and recent status changes for monitored stations.
+Extend the CI pipeline so pushes to the main branch build and publish a container image for the standalone API repository.
 
 ## 3. Add threshold configuration per station
 

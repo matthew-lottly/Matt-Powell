@@ -81,6 +81,9 @@ def test_recent_observations() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert len(payload["observations"]) == 3
+    assert payload["summary"]["totalObservations"] == 3
+    assert payload["summary"]["categories"]["air_quality"] == 2
+    assert payload["summary"]["metrics"] == {"pm25": 2, "river_stage_ft": 1}
     assert payload["observations"][0]["observationId"] == "obs-2001"
     assert payload["observations"][0]["status"] == "alert"
 
@@ -93,6 +96,8 @@ def test_recent_observations_with_time_window() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert [item["observationId"] for item in payload["observations"]] == ["obs-2001", "obs-1001"]
+    assert payload["summary"]["latestObservedAt"] == "2026-03-18T12:05:00Z"
+    assert payload["summary"]["earliestObservedAt"] == "2026-03-18T12:00:00Z"
 
 
 def test_feature_observations() -> None:
@@ -100,6 +105,8 @@ def test_feature_observations() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert [item["observationId"] for item in payload["observations"]] == ["obs-1001", "obs-1002"]
+    assert payload["summary"]["categories"] == {"hydrology": 2}
+    assert payload["summary"]["statuses"] == {"normal": 2}
     assert payload["observations"][0]["metricName"] == "river_stage_ft"
 
 

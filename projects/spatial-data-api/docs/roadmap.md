@@ -2,15 +2,15 @@
 
 ## Near Term
 
-- Expand observation-history support with category-level rollups and derived summary metrics.
 - Add dashboard panels for recent observations and trend changes.
 - Publish a container image as part of CI.
+- Add export-ready summaries for operations teams.
 
 ## Next
 
 - Add authenticated write endpoints for ingestion from upstream monitoring feeds.
 - Add station configuration and threshold management.
-- Add export-ready summaries for operations teams.
+- Add derived alert rules that use configured station thresholds.
 
 ## Longer Term
 

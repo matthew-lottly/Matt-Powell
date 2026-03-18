@@ -80,9 +80,8 @@ def get_recent_observations(
     end_at: datetime | None = Query(default=None),
     repository: Repository = Depends(get_repository),
 ) -> ObservationCollection:
-    return ObservationCollection(
-        observations=repository.list_recent_observations(limit=limit, start_at=start_at, end_at=end_at)
-    )
+    observations = repository.list_recent_observations(limit=limit, start_at=start_at, end_at=end_at)
+    return ObservationCollection(observations=observations, summary=repository.observation_summary(observations))
 
 
 @router.get(
@@ -112,11 +111,10 @@ def get_feature_observations(
     feature = repository.get_feature(feature_id)
     if feature is None:
         raise HTTPException(status_code=404, detail="Feature not found")
-    return ObservationCollection(
-        observations=repository.list_feature_observations(
-            feature_id=feature_id,
-            limit=limit,
-            start_at=start_at,
-            end_at=end_at,
-        )
+    observations = repository.list_feature_observations(
+        feature_id=feature_id,
+        limit=limit,
+        start_at=start_at,
+        end_at=end_at,
     )
+    return ObservationCollection(observations=observations, summary=repository.observation_summary(observations))

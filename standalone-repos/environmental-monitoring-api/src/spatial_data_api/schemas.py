@@ -38,8 +38,18 @@ class ObservationRecord(BaseModel):
     status: Literal["normal", "alert", "offline"]
 
 
+class ObservationSummary(BaseModel):
+    total_observations: int = Field(alias="totalObservations")
+    categories: dict[str, int]
+    statuses: dict[str, int]
+    metrics: dict[str, int]
+    earliest_observed_at: str | None = Field(default=None, alias="earliestObservedAt")
+    latest_observed_at: str | None = Field(default=None, alias="latestObservedAt")
+
+
 class ObservationCollection(BaseModel):
     observations: list[ObservationRecord]
+    summary: ObservationSummary | None = None
 
 
 class FeatureSummary(BaseModel):
