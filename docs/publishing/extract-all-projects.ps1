@@ -6,7 +6,8 @@ param(
 $plans = @(
     @{ Name = "environmental-monitoring-api"; Source = "D:\GitHub\projects\spatial-data-api"; Exclude = @(".pytest_cache", "__pycache__", ".venv") },
     @{ Name = "environmental-monitoring-analytics"; Source = "D:\GitHub\projects\environmental-monitoring-analytics"; Exclude = @(".pytest_cache", "__pycache__", ".venv") },
-    @{ Name = "monitoring-data-warehouse"; Source = "D:\GitHub\projects\monitoring-data-warehouse"; Exclude = @(".pytest_cache", "__pycache__", ".venv", "monitoring_warehouse.duckdb") }
+    @{ Name = "monitoring-data-warehouse"; Source = "D:\GitHub\projects\monitoring-data-warehouse"; Exclude = @(".pytest_cache", "__pycache__", ".venv", "monitoring_warehouse.duckdb") },
+    @{ Name = "experience-builder-station-brief-widget"; Source = "D:\GitHub\projects\experience-builder-station-brief-widget"; Exclude = @("node_modules", "dist") }
 )
 
 New-Item -ItemType Directory -Path $DestinationRoot -Force | Out-Null

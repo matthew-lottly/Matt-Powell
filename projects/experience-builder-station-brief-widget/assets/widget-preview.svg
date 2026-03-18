@@ -1,0 +1,36 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="720" fill="#EFE8DA"/>
+  <rect x="48" y="40" width="1104" height="136" rx="28" fill="#FFF8EF" stroke="#E5D9C5"/>
+  <text x="84" y="84" fill="#6B6B62" font-family="Georgia, serif" font-size="16" letter-spacing="3">ARCGIS UI DEMO</text>
+  <text x="84" y="136" fill="#1F2725" font-family="Georgia, serif" font-size="44">Experience Builder Station Brief Widget</text>
+  <rect x="84" y="188" width="140" height="34" rx="17" fill="#E2ECF1"/><text x="116" y="210" fill="#49616D" font-family="Georgia, serif" font-size="15">TypeScript</text>
+  <rect x="236" y="188" width="110" height="34" rx="17" fill="#F0E6D2"/><text x="268" y="210" fill="#8E6731" font-family="Georgia, serif" font-size="15">React</text>
+  <rect x="358" y="188" width="92" height="34" rx="17" fill="#E2EFE0"/><text x="389" y="210" fill="#677C48" font-family="Georgia, serif" font-size="15">GIS UI</text>
+  <rect x="48" y="200" width="1104" height="96" rx="24" fill="#FFF8EF" stroke="#E5D9C5" opacity="0.01"/>
+  <rect x="48" y="240" width="256" height="104" rx="24" fill="#FFF8EF" stroke="#E5D9C5"/>
+  <rect x="320" y="240" width="256" height="104" rx="24" fill="#FFF8EF" stroke="#E5D9C5"/>
+  <rect x="592" y="240" width="256" height="104" rx="24" fill="#FFF8EF" stroke="#E5D9C5"/>
+  <rect x="864" y="240" width="288" height="104" rx="24" fill="#FFF8EF" stroke="#E5D9C5"/>
+  <text x="76" y="274" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">STATIONS</text><text x="76" y="320" fill="#1F2725" font-family="Georgia, serif" font-size="40">5</text>
+  <text x="348" y="274" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">ALERT</text><text x="348" y="320" fill="#1F2725" font-family="Georgia, serif" font-size="40">3</text>
+  <text x="620" y="274" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">OFFLINE</text><text x="620" y="320" fill="#1F2725" font-family="Georgia, serif" font-size="40">1</text>
+  <text x="892" y="274" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">AVG SCORE</text><text x="892" y="320" fill="#1F2725" font-family="Georgia, serif" font-size="40">0.59</text>
+  <rect x="48" y="370" width="536" height="302" rx="28" fill="#FFF8EF" stroke="#E5D9C5"/>
+  <rect x="616" y="370" width="536" height="302" rx="28" fill="#FFF8EF" stroke="#E5D9C5"/>
+  <text x="80" y="412" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">SELECTION</text>
+  <text x="80" y="444" fill="#1F2725" font-family="Georgia, serif" font-size="28">Stations</text>
+  <rect x="80" y="472" width="472" height="70" rx="18" fill="#F7F0E2" stroke="#DCC9AA"/>
+  <text x="104" y="505" fill="#1F2725" font-family="Georgia, serif" font-size="22">Sierra Air Quality Node</text>
+  <text x="104" y="530" fill="#6B6B62" font-family="Georgia, serif" font-size="15">air quality · West</text>
+  <rect x="452" y="491" width="76" height="28" rx="14" fill="#F3D8D3"/><text x="473" y="510" fill="#BA5044" font-family="Georgia, serif" font-size="14">alert</text>
+  <rect x="80" y="554" width="472" height="70" rx="18" fill="#FCF8F0" stroke="#E5D9C5"/>
+  <text x="104" y="587" fill="#1F2725" font-family="Georgia, serif" font-size="22">Columbia Basin Sensor</text>
+  <text x="104" y="612" fill="#6B6B62" font-family="Georgia, serif" font-size="15">hydrology · West</text>
+  <text x="648" y="412" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">STATION DETAIL</text>
+  <text x="648" y="444" fill="#1F2725" font-family="Georgia, serif" font-size="28">Sierra Air Quality Node</text>
+  <rect x="972" y="417" width="76" height="28" rx="14" fill="#F3D8D3"/><text x="993" y="436" fill="#BA5044" font-family="Georgia, serif" font-size="14">alert</text>
+  <text x="648" y="500" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">REGION</text><text x="648" y="532" fill="#1F2725" font-family="Georgia, serif" font-size="24">West</text>
+  <text x="820" y="500" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">CATEGORY</text><text x="820" y="532" fill="#1F2725" font-family="Georgia, serif" font-size="24">air quality</text>
+  <text x="648" y="590" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">READING</text><text x="648" y="622" fill="#1F2725" font-family="Georgia, serif" font-size="24">79.3 AQI</text>
+  <text x="820" y="590" fill="#6B6B62" font-family="Georgia, serif" font-size="14" letter-spacing="2">OWNER</text><text x="820" y="622" fill="#1F2725" font-family="Georgia, serif" font-size="24">Air Program</text>
+</svg>

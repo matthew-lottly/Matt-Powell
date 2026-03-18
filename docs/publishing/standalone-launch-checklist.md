@@ -7,8 +7,9 @@ Use this file when you are ready to publish the extracted repositories under [st
 1. `environmental-monitoring-api`
 2. `environmental-monitoring-analytics`
 3. `monitoring-data-warehouse`
+4. `experience-builder-station-brief-widget`
 
-This order puts the strongest flagship repo live first, then adds analytics depth, then closes with warehouse and data-modeling depth.
+This order puts the strongest flagship repo live first, adds analytics depth, closes the backend/data story with warehouse modeling, and then adds the frontend GIS lane.
 
 ## Before You Start
 
@@ -114,17 +115,49 @@ git push -u origin main
 2. Confirm the workflow appears under Actions.
 3. Pin this repo third on your GitHub profile.
 
-## After All Three Are Live
+## Repository 4: experience-builder-station-brief-widget
+
+### Create On GitHub
+
+- Name: `experience-builder-station-brief-widget`
+- Visibility: Public
+
+### About Box
+
+- Description: React and TypeScript ArcGIS Experience Builder style widget prototype for filtering, summaries, and station detail interaction.
+- Website: `https://lottly-ai.com/`
+- Topics: `react`, `typescript`, `arcgis`, `experience-builder`, `gis`, `frontend`, `geospatial`
+
+### Push Commands
+
+```powershell
+Set-Location d:\GitHub\standalone-repos\experience-builder-station-brief-widget
+git init
+git add .
+git commit -m "Initial standalone release"
+git branch -M main
+git remote add origin https://github.com/matthew-lottly/experience-builder-station-brief-widget.git
+git push -u origin main
+```
+
+### After Push
+
+1. Confirm the preview asset renders in the README.
+2. Confirm the workflow appears under Actions.
+3. Pin this repo fourth on your GitHub profile.
+
+## After All Four Are Live
 
 1. Pin repositories in this order:
    - `environmental-monitoring-api`
    - `environmental-monitoring-analytics`
    - `monitoring-data-warehouse`
+   - `experience-builder-station-brief-widget`
    - `Matt-Powell`
 2. Set the About section for `Matt-Powell`:
-   - Description: `Portfolio repository for backend, GIS, database, and analytics engineering work.`
+   - Description: `Portfolio repository for backend, GIS, frontend, database, and analytics engineering work.`
    - Website: `https://lottly-ai.com/`
-   - Topics: `portfolio`, `software-engineering`, `gis`, `geospatial`, `python`, `sql`, `data-engineering`, `backend`
+   - Topics: `portfolio`, `software-engineering`, `gis`, `geospatial`, `frontend`, `python`, `sql`, `data-engineering`, `backend`
 3. Review your pinned repos from the perspective of someone who knows nothing about your background and check that the order reads as one coherent story.
 
 ## If A Remote Already Exists
