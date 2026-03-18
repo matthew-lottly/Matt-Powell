@@ -2,6 +2,8 @@
 
 Use this file to finish the GitHub-side metadata after the repositories have been pushed.
 
+For direct copy/paste text while editing the About boxes, use [github-about-copy-paste.md](github-about-copy-paste.md).
+
 ## Current Live Status
 
 Verified on GitHub on 2026-03-18:
