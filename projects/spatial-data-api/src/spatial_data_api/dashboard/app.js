@@ -43,6 +43,37 @@ function renderStations(features) {
   }
 }
 
+function formatObservationValue(observation) {
+  return `${observation.value} ${observation.unit}`;
+}
+
+function renderObservations(observations, features) {
+  const target = document.getElementById("recent-observations");
+  target.innerHTML = "";
+
+  const featureNames = new Map(features.map((feature) => [feature.properties.featureId, feature.properties.name]));
+
+  for (const observation of observations) {
+    const card = document.createElement("article");
+    const stationName = featureNames.get(observation.featureId) ?? observation.featureId;
+    card.className = "observation-card-item";
+    card.innerHTML = `
+      <div class="observation-topline">
+        <div>
+          <h4>${stationName}</h4>
+          <p class="observation-copy">${observation.metricName.replaceAll("_", " ")} · ${observation.observedAt}</p>
+        </div>
+        <div class="observation-value">${formatObservationValue(observation)}</div>
+      </div>
+      <div class="station-meta">
+        <span class="meta-chip">${observation.status}</span>
+        <span class="meta-chip">${observation.featureId}</span>
+      </div>
+    `;
+    target.appendChild(card);
+  }
+}
+
 function projectPoint([longitude, latitude]) {
   const x = ((longitude + 130) / 70) * 640;
   const y = ((52 - latitude) / 27) * 320;
@@ -81,12 +112,13 @@ function renderMap(features) {
 
 async function initDashboard() {
   try {
-    const [health, metadata, summary, allStations, alerts] = await Promise.all([
+    const [health, metadata, summary, allStations, alerts, recentObservations] = await Promise.all([
       fetchJson("/health/ready"),
       fetchJson("/api/v1/metadata"),
       fetchJson("/api/v1/features/summary"),
       fetchJson("/api/v1/features"),
       fetchJson("/api/v1/features?status=alert"),
+      fetchJson("/api/v1/observations/recent?limit=5"),
     ]);
 
     document.getElementById("health-indicator").textContent = health.ready ? "Ready" : "Degraded";
@@ -101,6 +133,7 @@ async function initDashboard() {
     renderRows("category-breakdown", Object.entries(summary.categories));
     renderMap(allStations.features);
     renderStations(alerts.features);
+    renderObservations(recentObservations.observations, allStations.features);
   } catch (error) {
     document.getElementById("health-indicator").textContent = "Unavailable";
     document.getElementById("health-indicator").classList.add("alert");

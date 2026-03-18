@@ -14,7 +14,7 @@
           <h1>Environmental Monitoring Dashboard</h1>
           <p class="hero-copy">
             A lightweight operations view backed by the Environmental Monitoring API. It surfaces readiness,
-            monitoring status, category coverage, and current alert stations.
+            monitoring status, category coverage, current alert stations, and recent observations.
           </p>
         </div>
         <div class="hero-panel">
@@ -65,6 +65,17 @@
             <p class="section-copy">Stations that deserve the fastest analyst attention.</p>
           </div>
           <div id="alert-stations" class="station-grid"></div>
+        </article>
+
+        <article class="content-card observation-card">
+          <div class="section-head compact">
+            <div>
+              <p class="eyebrow">Recent Data</p>
+              <h3>Latest Observations</h3>
+            </div>
+            <p class="section-copy">Newest readings returned by the live observation-history endpoint.</p>
+          </div>
+          <div id="recent-observations" class="observation-list"></div>
         </article>
 
         <article class="content-card">

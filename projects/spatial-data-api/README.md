@@ -23,7 +23,7 @@ Environmental and operational monitoring workflows often stop at files, dashboar
 - Filtering by category, region, and station status
 - Summary endpoint for quick monitoring rollups
 - Recent-observation and per-station observation-history endpoints
-- Browser dashboard for quick visual review of service health and alert stations
+- Browser dashboard for quick visual review of service health, alert stations, and recent readings
 - Test coverage for the main endpoints
 - Docker and docker-compose setup
 

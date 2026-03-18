@@ -166,6 +166,10 @@ body {
   grid-row: span 2;
 }
 
+.observation-card {
+  grid-column: span 2;
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;
@@ -183,6 +187,11 @@ body {
   gap: 14px;
 }
 
+.observation-list {
+  display: grid;
+  gap: 12px;
+}
+
 .station-card {
   padding: 16px;
   border-radius: 18px;
@@ -198,6 +207,41 @@ body {
 .station-card h4 {
   font-size: 1.12rem;
   margin-bottom: 8px;
+}
+
+.observation-card-item {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 250, 242, 0.94), rgba(246, 239, 227, 0.94));
+  border: 1px solid var(--line);
+}
+
+.observation-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.observation-topline h4,
+.observation-card-item p {
+  margin: 0;
+}
+
+.observation-topline h4 {
+  font-size: 1rem;
+}
+
+.observation-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.observation-copy {
+  color: var(--muted);
+  margin-bottom: 10px;
 }
 
 .station-meta {
@@ -294,6 +338,10 @@ body {
   }
 
   .map-card {
+    grid-column: auto;
+  }
+
+  .observation-card {
     grid-column: auto;
   }
 

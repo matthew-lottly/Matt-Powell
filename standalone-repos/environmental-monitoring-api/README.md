@@ -28,7 +28,7 @@ Environmental monitoring work often stops at spreadsheets, maps, and one-off scr
 - Filtering by category, region, and station status
 - Summary endpoint for quick monitoring rollups
 - Recent-observation and per-station observation-history endpoints
-- Browser dashboard for quick visual review of service health, station status, and alert locations
+- Browser dashboard for quick visual review of service health, station status, alert locations, and recent readings
 - Test coverage for the main endpoints
 - Docker and docker-compose setup
 
