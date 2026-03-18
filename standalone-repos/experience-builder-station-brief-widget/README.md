@@ -4,6 +4,8 @@ Public-safe TypeScript and React prototype of an ArcGIS Experience Builder style
 
 ![Widget preview](assets/widget-preview.svg)
 
+![Live widget screenshot](assets/widget-live-screenshot.png)
+
 ## Snapshot
 
 - Lane: GIS application development
@@ -14,6 +16,8 @@ Public-safe TypeScript and React prototype of an ArcGIS Experience Builder style
 ## Why This Project Exists
 
 My public portfolio already showed backend, analytics, and database work. This project closes the remaining gap by demonstrating the kind of TypeScript and React interface work that maps closely to ArcGIS Experience Builder widget development, while staying safe to publish publicly.
+
+It is designed to read as the frontend companion to the monitoring API and analytics repos rather than a disconnected UI demo.
 
 ## What It Demonstrates
 

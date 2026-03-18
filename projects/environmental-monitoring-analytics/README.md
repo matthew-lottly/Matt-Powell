@@ -4,9 +4,13 @@ Analytics project for turning monitoring station observations into concise opera
 
 ![Report preview](assets/report-preview.svg)
 
+![HTML report screenshot](assets/report-live-screenshot.png)
+
 ## Overview
 
 This project complements the Environmental Monitoring API by focusing on the analytics lane of the portfolio. It uses DuckDB to query a flat observation dataset, calculate alert-oriented metrics, and generate both a markdown operations brief and an HTML summary with visual regional alert bars.
+
+It is intentionally small and fast to run so a reviewer can move from raw data to a presentable operations brief in a few minutes.
 
 ## What It Demonstrates
 

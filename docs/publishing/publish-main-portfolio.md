@@ -10,9 +10,9 @@ Use this file to push the main `Matt-Powell` portfolio repository after the READ
 
 ## GitHub About Box
 
-- Description: `Portfolio repository for backend, GIS, database, and analytics engineering work.`
+- Description: `Portfolio repository for backend, GIS, frontend, database, and analytics engineering work.`
 - Website: `https://lottly-ai.com/`
-- Topics: `portfolio`, `software-engineering`, `gis`, `geospatial`, `python`, `sql`, `data-engineering`, `backend`
+- Topics: `portfolio`, `software-engineering`, `gis`, `geospatial`, `frontend`, `python`, `sql`, `data-engineering`, `backend`
 
 ## Push Commands
 
@@ -35,10 +35,10 @@ git push -u origin main
 1. Confirm [README.md](../README.md) renders correctly on GitHub.
 2. Add the About box settings above in the GitHub repository sidebar.
 3. Confirm the workflow badges and relative project links render correctly.
-4. Pin `Matt-Powell` fourth, after the three standalone repositories are live.
+4. Pin `Matt-Powell` fifth, after the four standalone repositories are live.
 
 ## Recommended Sequence
 
 1. Push `Matt-Powell` first so the portfolio hub is live.
-2. Publish the three standalone repositories using [standalone-launch-checklist.md](standalone-launch-checklist.md).
-3. Revisit the pinned repositories and About sections after all four repositories are public.
+2. Publish the four standalone repositories using [standalone-launch-checklist.md](standalone-launch-checklist.md).
+3. Revisit the pinned repositories and About sections after all five repositories are public.
