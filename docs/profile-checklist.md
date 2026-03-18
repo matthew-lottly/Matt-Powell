@@ -1,6 +1,6 @@
-# Profile Checklist
+# Portfolio Checklist
 
-Use this before making the account public-facing.
+Use this before making the portfolio repository public-facing.
 
 ## Identity
 
@@ -10,7 +10,7 @@ Use this before making the account public-facing.
 - Bio explains your throughline in one sentence
 - Location and contact details are appropriate for public visibility
 
-## Profile README
+## Repository README
 
 - First line states what you do clearly
 - Summary connects software, GIS, databases, and analytics

@@ -1,0 +1,44 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "asset-001",
+        "name": "River Gauge Alpha",
+        "category": "hydrology",
+        "region": "Midwest"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-93.265, 44.977]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "asset-002",
+        "name": "Wildfire Sensor Bravo",
+        "category": "hazards",
+        "region": "West"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-121.494, 38.581]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "asset-003",
+        "name": "Transit Stop Cluster",
+        "category": "transportation",
+        "region": "Northeast"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-71.0589, 42.3601]
+      }
+    }
+  ]
+}
