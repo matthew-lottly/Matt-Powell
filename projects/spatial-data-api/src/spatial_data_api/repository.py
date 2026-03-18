@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
@@ -46,21 +47,34 @@ class FeatureRepository:
             None,
         )
 
-    def list_recent_observations(self, limit: int = 5) -> list[ObservationRecord]:
-        observations = sorted(
-            self._observations.observations,
-            key=lambda observation: observation.observed_at,
-            reverse=True,
-        )
+    def list_recent_observations(
+        self,
+        limit: int = 5,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]:
+        observations = [
+            observation
+            for observation in self._observations.observations
+            if self._matches_time_window(observation, start_at=start_at, end_at=end_at)
+        ]
+        observations.sort(key=lambda observation: self._parse_timestamp(observation.observed_at), reverse=True)
         return observations[:limit]
 
-    def list_feature_observations(self, feature_id: str, limit: int = 10) -> list[ObservationRecord]:
+    def list_feature_observations(
+        self,
+        feature_id: str,
+        limit: int = 10,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]:
         observations = [
             observation
             for observation in self._observations.observations
             if observation.feature_id == feature_id
+            and self._matches_time_window(observation, start_at=start_at, end_at=end_at)
         ]
-        observations.sort(key=lambda observation: observation.observed_at, reverse=True)
+        observations.sort(key=lambda observation: self._parse_timestamp(observation.observed_at), reverse=True)
         return observations[:limit]
 
     def summary(self) -> FeatureSummary:
@@ -83,6 +97,23 @@ class FeatureRepository:
 
     def data_source_name(self) -> str:
         return self.data_path.name
+
+    @staticmethod
+    def _parse_timestamp(value: str) -> datetime:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+    def _matches_time_window(
+        self,
+        observation: ObservationRecord,
+        start_at: datetime | None,
+        end_at: datetime | None,
+    ) -> bool:
+        observed_at = self._parse_timestamp(observation.observed_at)
+        if start_at is not None and observed_at < start_at:
+            return False
+        if end_at is not None and observed_at > end_at:
+            return False
+        return True
 
 
 class PostGISFeatureRepository:
@@ -116,7 +147,7 @@ class PostGISFeatureRepository:
                 text(query),
                 {"category": category, "region": region, "status": status},
             ).mappings().all()
-        return [self._row_to_feature(row) for row in rows]
+        return [self._row_to_feature(dict(row)) for row in rows]
 
     def get_feature(self, feature_id: str) -> FeatureRecord | None:
         query = """
@@ -136,9 +167,14 @@ class PostGISFeatureRepository:
             row = connection.execute(text(query), {"feature_id": feature_id}).mappings().first()
         if row is None:
             return None
-        return self._row_to_feature(row)
+        return self._row_to_feature(dict(row))
 
-    def list_recent_observations(self, limit: int = 5) -> list[ObservationRecord]:
+    def list_recent_observations(
+        self,
+        limit: int = 5,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]:
         query = """
         SELECT
             observation_id,
@@ -149,14 +185,25 @@ class PostGISFeatureRepository:
             unit,
             status
         FROM public.monitoring_observations
+        WHERE (:start_at IS NULL OR observed_at >= :start_at)
+          AND (:end_at IS NULL OR observed_at <= :end_at)
         ORDER BY observed_at DESC, observation_id DESC
         LIMIT :limit
         """
         with self.engine.connect() as connection:
-            rows = connection.execute(text(query), {"limit": limit}).mappings().all()
-        return [self._row_to_observation(row) for row in rows]
+            rows = connection.execute(
+                text(query),
+                {"limit": limit, "start_at": start_at, "end_at": end_at},
+            ).mappings().all()
+        return [self._row_to_observation(dict(row)) for row in rows]
 
-    def list_feature_observations(self, feature_id: str, limit: int = 10) -> list[ObservationRecord]:
+    def list_feature_observations(
+        self,
+        feature_id: str,
+        limit: int = 10,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]:
         query = """
         SELECT
             observation_id,
@@ -168,12 +215,17 @@ class PostGISFeatureRepository:
             status
         FROM public.monitoring_observations
         WHERE feature_id = :feature_id
+          AND (:start_at IS NULL OR observed_at >= :start_at)
+          AND (:end_at IS NULL OR observed_at <= :end_at)
         ORDER BY observed_at DESC, observation_id DESC
         LIMIT :limit
         """
         with self.engine.connect() as connection:
-            rows = connection.execute(text(query), {"feature_id": feature_id, "limit": limit}).mappings().all()
-        return [self._row_to_observation(row) for row in rows]
+            rows = connection.execute(
+                text(query),
+                {"feature_id": feature_id, "limit": limit, "start_at": start_at, "end_at": end_at},
+            ).mappings().all()
+        return [self._row_to_observation(dict(row)) for row in rows]
 
     def summary(self) -> FeatureSummary:
         category_query = "SELECT category, COUNT(*) AS count FROM public.monitoring_stations GROUP BY category ORDER BY category"
@@ -206,7 +258,7 @@ class PostGISFeatureRepository:
         return "monitoring_stations"
 
     @staticmethod
-    def _row_to_feature(row: dict) -> FeatureRecord:
+    def _row_to_feature(row: dict[str, object]) -> FeatureRecord:
         return FeatureRecord.model_validate(
             {
                 "type": "Feature",
@@ -226,7 +278,7 @@ class PostGISFeatureRepository:
         )
 
     @staticmethod
-    def _row_to_observation(row: dict) -> ObservationRecord:
+    def _row_to_observation(row: dict[str, object]) -> ObservationRecord:
         return ObservationRecord.model_validate(
             {
                 "observationId": row["observation_id"],

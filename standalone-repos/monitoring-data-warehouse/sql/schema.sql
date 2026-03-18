@@ -36,3 +36,12 @@ CREATE TABLE IF NOT EXISTS mart_alert_station_daily (
     alert_count INTEGER NOT NULL,
     max_alert_score DOUBLE NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS mart_region_status_daily (
+    observation_date TEXT NOT NULL,
+    region_name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    observation_count INTEGER NOT NULL,
+    avg_alert_score DOUBLE NOT NULL,
+    max_alert_score DOUBLE NOT NULL
+);

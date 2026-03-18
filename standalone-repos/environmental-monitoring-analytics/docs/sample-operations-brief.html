@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Monitoring Operations Brief</title>
+    <style>
+      body { font-family: Georgia, "Times New Roman", serif; margin: 0; background: #f6f2e8; color: #1f2a25; }
+      main { max-width: 960px; margin: 0 auto; padding: 32px 20px 48px; }
+      .hero, .card { background: rgba(255,255,255,0.82); border: 1px solid rgba(31,42,37,0.08); border-radius: 22px; padding: 24px; box-shadow: 0 18px 40px rgba(47,56,50,0.08); }
+      .hero { margin-bottom: 18px; }
+      .eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.76rem; color: #5f6d66; margin: 0 0 10px; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 18px; }
+      .metric { font-size: 2rem; margin: 8px 0; }
+      .bars, .alerts { display: grid; gap: 12px; }
+      .bar-label { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95rem; }
+      .bar-track { height: 12px; border-radius: 999px; background: rgba(73,97,109,0.12); overflow: hidden; }
+      .bar-fill { height: 100%; background: linear-gradient(90deg, #49616d, #d4a85f); }
+      .two-col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+      ul { margin: 0; padding-left: 18px; }
+      li { margin-bottom: 10px; }
+      @media (max-width: 800px) { .grid, .two-col { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">Generated Sample</p>
+        <h1>Monitoring Operations Brief</h1>
+        <p>HTML summary for environmental monitoring alerts, regional pressure, and latest notable stations.</p>
+      </section>
+      <section class="grid">
+        <article class="card"><p class="eyebrow">Observations</p><div class="metric">7</div><p>Total observations processed.</p></article>
+        <article class="card"><p class="eyebrow">Alert Rate</p><div class="metric">57.14%</div><p>Observations currently flagged as alerts.</p></article>
+        <article class="card"><p class="eyebrow">Avg Alert Score</p><div class="metric">0.58</div><p>Average alert score across the dataset.</p></article>
+      </section>
+      <section class="two-col">
+        <article class="card">
+          <p class="eyebrow">Regional Alert Load</p>
+          <div class="bars">
+            <div><div class="bar-label"><span>West</span><strong>2</strong></div><div class="bar-track"><div class="bar-fill" style="width: 100%"></div></div></div>
+            <div><div class="bar-label"><span>Midwest</span><strong>1</strong></div><div class="bar-track"><div class="bar-fill" style="width: 50%"></div></div></div>
+            <div><div class="bar-label"><span>South</span><strong>1</strong></div><div class="bar-track"><div class="bar-fill" style="width: 50%"></div></div></div>
+          </div>
+        </article>
+        <article class="card">
+          <p class="eyebrow">Latest Alert Stations</p>
+          <ul class="alerts">
+            <li>Sierra Air Quality Node (West, air_quality) at 2026-03-18T13:05:00Z with alert score 0.88</li>
+            <li>Mississippi River Gauge (Midwest, hydrology) at 2026-03-18T13:00:00Z with alert score 0.81</li>
+            <li>Sierra Air Quality Node (West, air_quality) at 2026-03-18T12:05:00Z with alert score 0.91</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

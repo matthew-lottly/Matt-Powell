@@ -80,12 +80,32 @@ def test_recent_observations() -> None:
     assert payload["observations"][0]["status"] == "alert"
 
 
+def test_recent_observations_with_time_window() -> None:
+    response = client.get(
+        "/api/v1/observations/recent",
+        params={"start_at": "2026-03-18T12:00:00Z", "end_at": "2026-03-18T12:05:00Z"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["observationId"] for item in payload["observations"]] == ["obs-2001", "obs-1001"]
+
+
 def test_feature_observations() -> None:
     response = client.get("/api/v1/features/station-001/observations", params={"limit": 2})
     assert response.status_code == 200
     payload = response.json()
     assert [item["observationId"] for item in payload["observations"]] == ["obs-1001", "obs-1002"]
     assert payload["observations"][0]["metricName"] == "river_stage_ft"
+
+
+def test_feature_observations_with_end_at() -> None:
+    response = client.get(
+        "/api/v1/features/station-003/observations",
+        params={"end_at": "2026-03-17T21:00:00Z"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["observationId"] for item in payload["observations"]] == ["obs-3002"]
 
 
 def test_feature_observations_not_found() -> None:

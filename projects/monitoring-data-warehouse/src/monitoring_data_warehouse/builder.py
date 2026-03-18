@@ -50,12 +50,14 @@ def build_warehouse(database_path: Path | None = None) -> dict:
         "dim_category": _scalar(connection, "SELECT COUNT(*) FROM dim_category"),
         "fact_observation": _scalar(connection, "SELECT COUNT(*) FROM fact_observation"),
         "mart_alert_station_daily": _scalar(connection, "SELECT COUNT(*) FROM mart_alert_station_daily"),
+        "mart_region_status_daily": _scalar(connection, "SELECT COUNT(*) FROM mart_region_status_daily"),
     }
 
     quality = {
         "null_station_keys": _scalar(connection, "SELECT COUNT(*) FROM fact_observation WHERE station_key IS NULL"),
         "null_region_keys": _scalar(connection, "SELECT COUNT(*) FROM fact_observation WHERE region_key IS NULL"),
         "alert_records": _scalar(connection, "SELECT COUNT(*) FROM fact_observation WHERE status = 'alert'"),
+        "distinct_observation_dates": _scalar(connection, "SELECT COUNT(DISTINCT observation_date) FROM mart_region_status_daily"),
     }
     connection.close()
     return {"counts": counts, "quality": quality, "warehouse_path": str(db_path)}

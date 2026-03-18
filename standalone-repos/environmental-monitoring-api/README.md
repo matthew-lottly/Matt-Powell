@@ -52,6 +52,8 @@ Environmental monitoring work often stops at spreadsheets, maps, and one-off scr
 - `GET /api/v1/observations/recent`
 - `GET /api/v1/features/{feature_id}/observations`
 
+Observation endpoints accept optional `start_at` and `end_at` ISO timestamps for time-window filtering.
+
 Example monitoring domains in the sample data:
 
 - Hydrology

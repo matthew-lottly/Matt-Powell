@@ -8,7 +8,7 @@ The analytics project is intentionally simple: a lightweight reporting pipeline 
 
 1. Load the CSV observation file into an in-memory DuckDB view.
 2. Run SQL queries for alert counts, alert rate, regional pressure, and latest alerts.
-3. Format the results into a markdown operations brief.
+3. Format the results into a markdown operations brief and an HTML summary.
 
 ## Key Design Choice
 
@@ -18,5 +18,5 @@ The project is SQL-first and output-oriented. It is meant to show concise analyt
 
 - Small enough to review quickly
 - Demonstrates DuckDB and SQL fluency
-- Produces a concrete artifact instead of abstract code only
+- Produces concrete markdown and HTML artifacts instead of abstract code only
 - Complements the API and warehouse projects as a downstream analytics lane

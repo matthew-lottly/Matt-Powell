@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from spatial_data_api.core.config import get_settings
@@ -74,9 +76,13 @@ def get_feature_summary(repository: Repository = Depends(get_repository)) -> Fea
 )
 def get_recent_observations(
     limit: int = Query(default=5, ge=1, le=50),
+    start_at: datetime | None = Query(default=None),
+    end_at: datetime | None = Query(default=None),
     repository: Repository = Depends(get_repository),
 ) -> ObservationCollection:
-    return ObservationCollection(observations=repository.list_recent_observations(limit=limit))
+    return ObservationCollection(
+        observations=repository.list_recent_observations(limit=limit, start_at=start_at, end_at=end_at)
+    )
 
 
 @router.get(
@@ -99,9 +105,18 @@ def get_feature(feature_id: str, repository: Repository = Depends(get_repository
 def get_feature_observations(
     feature_id: str,
     limit: int = Query(default=10, ge=1, le=100),
+    start_at: datetime | None = Query(default=None),
+    end_at: datetime | None = Query(default=None),
     repository: Repository = Depends(get_repository),
 ) -> ObservationCollection:
     feature = repository.get_feature(feature_id)
     if feature is None:
         raise HTTPException(status_code=404, detail="Feature not found")
-    return ObservationCollection(observations=repository.list_feature_observations(feature_id=feature_id, limit=limit))
+    return ObservationCollection(
+        observations=repository.list_feature_observations(
+            feature_id=feature_id,
+            limit=limit,
+            start_at=start_at,
+            end_at=end_at,
+        )
+    )

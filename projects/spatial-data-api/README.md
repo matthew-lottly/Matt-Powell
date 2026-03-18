@@ -47,6 +47,8 @@ Environmental and operational monitoring workflows often stop at files, dashboar
 - `GET /api/v1/observations/recent`
 - `GET /api/v1/features/{feature_id}/observations`
 
+Observation endpoints accept optional `start_at` and `end_at` ISO timestamps for time-window filtering.
+
 Example monitoring domains in the sample data:
 
 - Hydrology

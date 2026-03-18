@@ -1,12 +1,12 @@
 # Environmental Monitoring Analytics
 
-Analytics project for turning monitoring station observations into concise operational reporting.
+Analytics project for turning monitoring station observations into concise operational reporting and shareable HTML summaries.
 
 ![Report preview](assets/report-preview.svg)
 
 ## Overview
 
-This project complements the Environmental Monitoring API by focusing on the analytics lane of the portfolio. It uses DuckDB to query a flat observation dataset, calculate alert-oriented metrics, and generate a markdown operations brief.
+This project complements the Environmental Monitoring API by focusing on the analytics lane of the portfolio. It uses DuckDB to query a flat observation dataset, calculate alert-oriented metrics, and generate both a markdown operations brief and an HTML summary with visual regional alert bars.
 
 ## What It Demonstrates
 
@@ -55,14 +55,15 @@ python -m environmental_monitoring_analytics.reporting
 - Average alert score
 - Regional alert breakdown
 - Latest alert stations section in markdown
+- Exportable HTML brief with visual summary blocks and regional alert bars
 
 See [docs/sample-operations-brief.md](docs/sample-operations-brief.md) for a sample generated brief.
+See [docs/sample-operations-brief.html](docs/sample-operations-brief.html) for a sample generated HTML brief.
 See [docs/architecture.md](docs/architecture.md) for the reporting flow overview.
 
 ## Next Steps
 
 - Add trend analysis over time windows
-- Add charts or exported HTML reporting
 - Connect the analytics dataset to the API project as a downstream consumer
 
 ## Publication

@@ -34,6 +34,7 @@ Warehouse work is often hard to show publicly because the most valuable parts ar
 - `dim_category`
 - `fact_observation`
 - `mart_alert_station_daily`
+- `mart_region_status_daily`
 
 ## Quick Start
 
@@ -67,10 +68,11 @@ monitoring-data-warehouse/
 
 - A local DuckDB warehouse file
 - Row-count and quality-check summary
-- A sample daily alert mart
+- Sample daily alert and regional status marts
 
 See [docs/model-notes.md](docs/model-notes.md) for the modeling rationale behind the warehouse shape.
 See [docs/architecture.md](docs/architecture.md) for the warehouse build flow.
+See [docs/schema-diagram.md](docs/schema-diagram.md) for a quick view of the warehouse structure.
 
 ## Next Steps
 

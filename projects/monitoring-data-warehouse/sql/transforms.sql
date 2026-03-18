@@ -3,6 +3,7 @@ DELETE FROM dim_region;
 DELETE FROM dim_category;
 DELETE FROM fact_observation;
 DELETE FROM mart_alert_station_daily;
+DELETE FROM mart_region_status_daily;
 
 INSERT INTO dim_region
 SELECT
@@ -64,3 +65,15 @@ JOIN dim_region AS rg ON rg.region_name = r.region
 JOIN dim_category AS c ON c.category_name = r.category
 WHERE r.status = 'alert'
 GROUP BY 1, 2, 3, 4, 5;
+
+INSERT INTO mart_region_status_daily
+SELECT
+    SUBSTR(r.observed_at, 1, 10) AS observation_date,
+    rg.region_name,
+    r.status,
+    COUNT(*) AS observation_count,
+    ROUND(AVG(r.alert_score), 2) AS avg_alert_score,
+    MAX(r.alert_score) AS max_alert_score
+FROM staging_readings AS r
+JOIN dim_region AS rg ON rg.region_name = r.region
+GROUP BY 1, 2, 3;
