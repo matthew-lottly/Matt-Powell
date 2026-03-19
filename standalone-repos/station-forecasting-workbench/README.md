@@ -27,6 +27,7 @@ This project frames data science as a forecasting workflow rather than just desc
 The default command writes `outputs/station_forecast_report.json` with:
 
 - experiment run metadata and split configuration
+- a persisted `outputs/run_registry.json` entry for each export
 - station feature profiles
 - model leaderboard entries and validation MAE by station
 - selected forecast model per series
@@ -35,7 +36,6 @@ The default command writes `outputs/station_forecast_report.json` with:
 
 ## Next Upgrade Path
 
-- add a lightweight run registry across multiple report files
 - compare richer feature sets, not just model families
 - plug in external experiment tracking once the repo needs persisted run history
 

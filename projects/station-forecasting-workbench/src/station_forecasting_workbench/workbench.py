@@ -11,6 +11,7 @@ from typing import Any, Sequence
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "forecast_histories.json"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs"
+DEFAULT_REGISTRY_NAME = "run_registry.json"
 DEFAULT_VALIDATION_HORIZON = 1
 DEFAULT_TEST_HORIZON = 1
 DEFAULT_PROJECTION_HORIZON = 3
@@ -104,6 +105,17 @@ def _split_series(values: list[float], validation_horizon: int, test_horizon: in
     return train, validation, test
 
 
+def _update_run_registry(output_dir: Path, registry_name: str, run_entry: dict[str, Any]) -> Path:
+    registry_path = output_dir / registry_name
+    if registry_path.exists():
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    else:
+        registry = {"runs": []}
+    registry.setdefault("runs", []).append(run_entry)
+    registry_path.write_text(json.dumps(registry, indent=2), encoding="utf-8")
+    return registry_path
+
+
 def build_forecast_report(
     data_path: Path = DEFAULT_DATA_PATH,
     validation_horizon: int = DEFAULT_VALIDATION_HORIZON,
@@ -111,6 +123,7 @@ def build_forecast_report(
     projection_horizon: int = DEFAULT_PROJECTION_HORIZON,
     report_name: str = "Station Forecasting Workbench",
     run_label: str = "baseline-model-review",
+    registry_name: str = DEFAULT_REGISTRY_NAME,
 ) -> dict[str, Any]:
     histories = load_histories(data_path)
     forecasts = []
@@ -173,6 +186,7 @@ def build_forecast_report(
         "experiment": {
             "runLabel": run_label,
             "generatedAt": datetime.now(UTC).isoformat(),
+            "registryFile": registry_name,
             "candidateModelCount": 4,
             "validationHorizon": validation_horizon,
             "testHorizon": test_horizon,
@@ -200,11 +214,37 @@ def build_forecast_report(
 def export_forecast_report(
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     report_name: str = "Station Forecasting Workbench",
+    run_label: str = "baseline-model-review",
+    validation_horizon: int = DEFAULT_VALIDATION_HORIZON,
+    test_horizon: int = DEFAULT_TEST_HORIZON,
+    projection_horizon: int = DEFAULT_PROJECTION_HORIZON,
+    registry_name: str = DEFAULT_REGISTRY_NAME,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    report = build_forecast_report(report_name=report_name)
+    report = build_forecast_report(
+        report_name=report_name,
+        run_label=run_label,
+        validation_horizon=validation_horizon,
+        test_horizon=test_horizon,
+        projection_horizon=projection_horizon,
+        registry_name=registry_name,
+    )
     output_path = output_dir / "station_forecast_report.json"
     output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    _update_run_registry(
+        output_dir,
+        registry_name,
+        {
+            "runLabel": report["experiment"]["runLabel"],
+            "generatedAt": report["experiment"]["generatedAt"],
+            "reportName": report["reportName"],
+            "reportFile": output_path.name,
+            "seriesCount": report["summary"]["seriesCount"],
+            "averageValidationMae": report["summary"]["averageValidationMae"],
+            "averageTestMae": report["summary"]["averageTestMae"],
+            "modelWins": report["summary"]["modelWins"],
+        },
+    )
     return output_path
 
 
@@ -213,6 +253,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Directory for generated JSON output.")
     parser.add_argument("--report-name", default="Station Forecasting Workbench", help="Display name embedded in the output report.")
     parser.add_argument("--run-label", default="baseline-model-review", help="Label stored with the experiment-style report output.")
+    parser.add_argument("--registry-name", default=DEFAULT_REGISTRY_NAME, help="Name of the JSON file used to store appended run metadata.")
     parser.add_argument("--validation-horizon", type=int, default=DEFAULT_VALIDATION_HORIZON, help="Number of validation steps used for model selection.")
     parser.add_argument("--test-horizon", type=int, default=DEFAULT_TEST_HORIZON, help="Number of test steps used for post-selection evaluation.")
     parser.add_argument("--projection-horizon", type=int, default=DEFAULT_PROJECTION_HORIZON, help="Number of future steps projected by the selected model.")
@@ -221,17 +262,15 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    output_dir = args.output_dir
-    output_dir.mkdir(parents=True, exist_ok=True)
-    report = build_forecast_report(
+    output_path = export_forecast_report(
+        output_dir=args.output_dir,
+        report_name=args.report_name,
+        run_label=args.run_label,
         validation_horizon=args.validation_horizon,
         test_horizon=args.test_horizon,
         projection_horizon=args.projection_horizon,
-        report_name=args.report_name,
-        run_label=args.run_label,
+        registry_name=args.registry_name,
     )
-    output_path = output_dir / "station_forecast_report.json"
-    output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"Wrote station forecast report to {output_path}")
 
 

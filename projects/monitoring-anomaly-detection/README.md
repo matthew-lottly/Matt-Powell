@@ -64,6 +64,7 @@ pytest
 The default command writes `outputs/anomaly_report.json` with:
 
 - experiment run metadata and detector thresholds
+- a persisted `outputs/run_registry.json` entry for each export
 - station baselines
 - detector leaderboard entries and labeled-event metrics
 - ranked scored events

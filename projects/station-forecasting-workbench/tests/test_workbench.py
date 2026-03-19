@@ -17,6 +17,7 @@ def test_build_forecast_report() -> None:
     report = build_forecast_report(PROJECT_ROOT / "data" / "forecast_histories.json")
 
     assert report["experiment"]["runLabel"] == "baseline-model-review"
+    assert report["experiment"]["registryFile"] == "run_registry.json"
     assert report["summary"]["seriesCount"] == 3
     assert report["summary"]["validationHorizon"] == 1
     assert report["summary"]["testHorizon"] == 1
@@ -42,3 +43,8 @@ def test_export_forecast_report(tmp_path: Path) -> None:
     content = output_path.read_text(encoding="utf-8")
     assert "Forecast Review" in content
     assert "baseline-model-review" in content
+    registry_path = tmp_path / "run_registry.json"
+    assert registry_path.exists()
+    registry = registry_path.read_text(encoding="utf-8")
+    assert "Forecast Review" in registry
+    assert "station_forecast_report.json" in registry

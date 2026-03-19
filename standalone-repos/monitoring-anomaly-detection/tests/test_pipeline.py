@@ -19,6 +19,7 @@ def test_build_anomaly_report() -> None:
     report = build_anomaly_report(PROJECT_ROOT / "data" / "station_observations.csv")
 
     assert report["experiment"]["runLabel"] == "detector-comparison-pass"
+    assert report["experiment"]["registryFile"] == "run_registry.json"
     assert report["summary"]["stationCount"] == 3
     assert report["summary"]["knownEventCount"] == 4
     assert report["summary"]["selectedAlertCount"] >= 3
@@ -37,3 +38,8 @@ def test_export_anomaly_report(tmp_path: Path) -> None:
     assert "Telemetry Watch" in content
     assert "detector-comparison-pass" in content
     assert "anomaly_report.json" in str(output_path)
+    registry_path = tmp_path / "run_registry.json"
+    assert registry_path.exists()
+    registry = registry_path.read_text(encoding="utf-8")
+    assert "Telemetry Watch" in registry
+    assert "anomaly_report.json" in registry

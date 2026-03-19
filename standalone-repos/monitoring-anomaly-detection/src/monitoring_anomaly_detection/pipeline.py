@@ -13,6 +13,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "station_observations.csv"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs"
+DEFAULT_REGISTRY_NAME = "run_registry.json"
 DEFAULT_WARMUP_WINDOW = 3
 DETECTOR_THRESHOLDS = {
     "global_zscore": 1.35,
@@ -94,11 +95,23 @@ def _evaluate_detector(events: list[dict[str, Any]], detector_name: str) -> dict
     }
 
 
+def _update_run_registry(output_dir: Path, registry_name: str, run_entry: dict[str, Any]) -> Path:
+    registry_path = output_dir / registry_name
+    if registry_path.exists():
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    else:
+        registry = {"runs": []}
+    registry.setdefault("runs", []).append(run_entry)
+    registry_path.write_text(json.dumps(registry, indent=2), encoding="utf-8")
+    return registry_path
+
+
 def build_anomaly_report(
     data_path: Path = DEFAULT_DATA_PATH,
     report_name: str = "Monitoring Anomaly Detection",
     run_label: str = "detector-comparison-pass",
     warmup_window: int = DEFAULT_WARMUP_WINDOW,
+    registry_name: str = DEFAULT_REGISTRY_NAME,
 ) -> dict[str, Any]:
     observations = load_observations(data_path)
     grouped_values: dict[str, list[float]] = defaultdict(list)
@@ -178,6 +191,7 @@ def build_anomaly_report(
         "experiment": {
             "runLabel": run_label,
             "generatedAt": datetime.now(UTC).isoformat(),
+            "registryFile": registry_name,
             "warmupWindow": warmup_window,
             "detectorCount": len(DETECTOR_THRESHOLDS),
             "thresholds": DETECTOR_THRESHOLDS,
@@ -208,11 +222,33 @@ def build_anomaly_report(
 def export_anomaly_report(
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     report_name: str = "Monitoring Anomaly Detection",
+    run_label: str = "detector-comparison-pass",
+    warmup_window: int = DEFAULT_WARMUP_WINDOW,
+    registry_name: str = DEFAULT_REGISTRY_NAME,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    report = build_anomaly_report(report_name=report_name)
+    report = build_anomaly_report(
+        report_name=report_name,
+        run_label=run_label,
+        warmup_window=warmup_window,
+        registry_name=registry_name,
+    )
     output_path = output_dir / "anomaly_report.json"
     output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    _update_run_registry(
+        output_dir,
+        registry_name,
+        {
+            "runLabel": report["experiment"]["runLabel"],
+            "generatedAt": report["experiment"]["generatedAt"],
+            "reportName": report["reportName"],
+            "reportFile": output_path.name,
+            "stationCount": report["summary"]["stationCount"],
+            "selectedDetector": report["summary"]["selectedDetector"],
+            "selectedDetectorF1": report["summary"]["selectedDetectorF1"],
+            "selectedAlertCount": report["summary"]["selectedAlertCount"],
+        },
+    )
     return output_path
 
 
@@ -221,17 +257,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Directory for generated JSON output.")
     parser.add_argument("--report-name", default="Monitoring Anomaly Detection", help="Display name embedded in the output report.")
     parser.add_argument("--run-label", default="detector-comparison-pass", help="Label stored with the experiment-style report output.")
+    parser.add_argument("--registry-name", default=DEFAULT_REGISTRY_NAME, help="Name of the JSON file used to store appended run metadata.")
     parser.add_argument("--warmup-window", type=int, default=DEFAULT_WARMUP_WINDOW, help="Number of historical observations required before scoring a station event.")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    output_dir = args.output_dir
-    output_dir.mkdir(parents=True, exist_ok=True)
-    report = build_anomaly_report(report_name=args.report_name, run_label=args.run_label, warmup_window=args.warmup_window)
-    output_path = output_dir / "anomaly_report.json"
-    output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    output_path = export_anomaly_report(
+        output_dir=args.output_dir,
+        report_name=args.report_name,
+        run_label=args.run_label,
+        warmup_window=args.warmup_window,
+        registry_name=args.registry_name,
+    )
     print(f"Wrote anomaly report to {output_path}")
 
 
