@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Station forecasting workbench preview</title>
+  <desc id="desc">Concept preview of holdout evaluation, baseline forecasts, and projected station values.</desc>
+  <rect width="1200" height="720" fill="#f3eee7"/>
+  <rect x="48" y="40" width="1104" height="132" rx="28" fill="#fbfaf8" stroke="#d9cbb9"/>
+  <text x="84" y="84" fill="#6f6458" font-family="Georgia, serif" font-size="16" letter-spacing="3">DATA SCIENCE LANE</text>
+  <text x="84" y="134" fill="#221b15" font-family="Georgia, serif" font-size="42">Station Forecasting Workbench</text>
+  <text x="84" y="170" fill="#72675d" font-family="Georgia, serif" font-size="18">Baseline forecasting, holdout evaluation, and next-step projections.</text>
+  <rect x="48" y="212" width="340" height="112" rx="24" fill="#fbfaf8" stroke="#d9cbb9"/>
+  <rect x="410" y="212" width="340" height="112" rx="24" fill="#fbfaf8" stroke="#d9cbb9"/>
+  <rect x="772" y="212" width="340" height="112" rx="24" fill="#fbfaf8" stroke="#d9cbb9"/>
+  <text x="78" y="248" fill="#7a6f63" font-family="Georgia, serif" font-size="14" letter-spacing="2">TRAINING</text>
+  <text x="78" y="294" fill="#221b15" font-family="Georgia, serif" font-size="38">6 steps</text>
+  <text x="440" y="248" fill="#7a6f63" font-family="Georgia, serif" font-size="14" letter-spacing="2">HOLDOUT MAE</text>
+  <text x="440" y="294" fill="#221b15" font-family="Georgia, serif" font-size="38">0.83</text>
+  <text x="802" y="248" fill="#7a6f63" font-family="Georgia, serif" font-size="14" letter-spacing="2">FORECASTS</text>
+  <text x="802" y="294" fill="#221b15" font-family="Georgia, serif" font-size="38">3</text>
+  <rect x="48" y="356" width="1104" height="316" rx="28" fill="#fbfaf8" stroke="#d9cbb9"/>
+  <polyline points="92,576 188,548 284,524 380,492 476,470 572,438 668,420" fill="none" stroke="#8d5b3e" stroke-width="8"/>
+  <polyline points="572,438 668,434 764,430" fill="none" stroke="#284f74" stroke-width="8" stroke-dasharray="14 10"/>
+  <text x="812" y="420" fill="#7a6f63" font-family="Georgia, serif" font-size="14" letter-spacing="2">FORECAST NOTES</text>
+  <text x="812" y="454" fill="#221b15" font-family="Georgia, serif" font-size="28">Trailing Average Baseline</text>
+  <text x="812" y="508" fill="#221b15" font-family="Georgia, serif" font-size="20">West air projected to remain elevated</text>
+  <text x="812" y="544" fill="#221b15" font-family="Georgia, serif" font-size="20">Central flow stabilizes around recent average</text>
+  <text x="812" y="580" fill="#221b15" font-family="Georgia, serif" font-size="20">East temperature remains narrow-band</text>
+</svg>

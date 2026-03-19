@@ -12,6 +12,9 @@ Use this when you are ready to move project folders into their own public reposi
 6. `postgis-service-blueprint`
 7. `open-web-map-operations-dashboard`
 8. `raster-monitoring-pipeline`
+9. `monitoring-anomaly-detection`
+10. `environmental-time-series-lab`
+11. `station-forecasting-workbench`
 
 ## Why This Order
 
@@ -23,6 +26,7 @@ Use this when you are ready to move project folders into their own public reposi
 - The PostGIS service blueprint adds a distinct open spatial publishing lane between raw GIS data and delivery endpoints.
 - The open web map dashboard adds the open-stack frontend consumer for those spatial services.
 - The raster monitoring pipeline rounds out the portfolio with a public-safe raster analysis lane.
+- The data science repos make the portfolio visibly broader than GIS alone by showing anomaly detection, time-series analysis, and forecasting workflows.
 
 ## Proposed Repo Names
 
@@ -34,6 +38,9 @@ Use this when you are ready to move project folders into their own public reposi
 - `postgis-service-blueprint`
 - `open-web-map-operations-dashboard`
 - `raster-monitoring-pipeline`
+- `monitoring-anomaly-detection`
+- `environmental-time-series-lab`
+- `station-forecasting-workbench`
 
 ## Shared Publication Checklist
 

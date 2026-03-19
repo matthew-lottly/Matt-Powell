@@ -1,5 +1,11 @@
 {
   "python.analysis.extraPaths": [
+    "./projects/monitoring-anomaly-detection/src",
+    "./standalone-repos/monitoring-anomaly-detection/src",
+    "./projects/environmental-time-series-lab/src",
+    "./standalone-repos/environmental-time-series-lab/src",
+    "./projects/station-forecasting-workbench/src",
+    "./standalone-repos/station-forecasting-workbench/src",
     "./projects/postgis-service-blueprint/src",
     "./standalone-repos/postgis-service-blueprint/src",
     "./projects/qgis-operations-workbench/src",

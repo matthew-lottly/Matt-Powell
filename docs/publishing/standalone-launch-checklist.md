@@ -12,8 +12,11 @@ Use this file when you are ready to publish the extracted repositories under [st
 6. `postgis-service-blueprint`
 7. `open-web-map-operations-dashboard`
 8. `raster-monitoring-pipeline`
+9. `monitoring-anomaly-detection`
+10. `environmental-time-series-lab`
+11. `station-forecasting-workbench`
 
-This order puts the strongest flagship repo live first, adds analytics depth, closes the backend/data story with warehouse modeling, adds the frontend GIS lane, broadens the public stack with a desktop QGIS workflow repo, adds an open spatial publishing repo, adds an open web map client, and then rounds out the set with a raster analysis lane.
+This order puts the strongest flagship repo live first, adds analytics depth, closes the backend/data story with warehouse modeling, adds the frontend GIS lane, broadens the public stack with a desktop QGIS workflow repo, adds an open spatial publishing repo, adds an open web map client, rounds out the GIS set with a raster analysis lane, and then adds explicit data science repos for anomaly detection, time-series analysis, and forecasting.
 
 ## Before You Start
 
@@ -274,7 +277,82 @@ git push -u origin main
 2. Confirm the workflow appears under Actions.
 3. Swap it into the pinned set when you want the raster analysis lane visible on the profile.
 
-## After All Eight Are Live
+## Repository 9: monitoring-anomaly-detection
+
+### Create On GitHub
+
+- Name: `monitoring-anomaly-detection`
+- Visibility: Public
+
+### About Box
+
+- Description: Python anomaly-detection pipeline for monitoring telemetry, sensor drift, and alert triage.
+- Website: `https://lottly-ai.com/`
+- Topics: `python`, `data-science`, `anomaly-detection`, `time-series`, `analytics`, `gis`, `monitoring`
+
+### Push Commands
+
+```powershell
+Set-Location d:\GitHub\standalone-repos\monitoring-anomaly-detection
+git init
+git add .
+git commit -m "Initial standalone release"
+git branch -M main
+git remote add origin https://github.com/matthew-lottly/monitoring-anomaly-detection.git
+git push -u origin main
+```
+
+## Repository 10: environmental-time-series-lab
+
+### Create On GitHub
+
+- Name: `environmental-time-series-lab`
+- Visibility: Public
+
+### About Box
+
+- Description: Python time-series analysis lab for trend profiling, rolling summaries, and monitoring signal review.
+- Website: `https://lottly-ai.com/`
+- Topics: `python`, `data-science`, `time-series`, `analytics`, `trend-analysis`, `monitoring`, `gis`
+
+### Push Commands
+
+```powershell
+Set-Location d:\GitHub\standalone-repos\environmental-time-series-lab
+git init
+git add .
+git commit -m "Initial standalone release"
+git branch -M main
+git remote add origin https://github.com/matthew-lottly/environmental-time-series-lab.git
+git push -u origin main
+```
+
+## Repository 11: station-forecasting-workbench
+
+### Create On GitHub
+
+- Name: `station-forecasting-workbench`
+- Visibility: Public
+
+### About Box
+
+- Description: Python forecasting workbench for station demand baselines, holdout evaluation, and next-step projections.
+- Website: `https://lottly-ai.com/`
+- Topics: `python`, `data-science`, `forecasting`, `time-series`, `analytics`, `monitoring`, `gis`
+
+### Push Commands
+
+```powershell
+Set-Location d:\GitHub\standalone-repos\station-forecasting-workbench
+git init
+git add .
+git commit -m "Initial standalone release"
+git branch -M main
+git remote add origin https://github.com/matthew-lottly/station-forecasting-workbench.git
+git push -u origin main
+```
+
+## After All Eleven Are Live
 
 1. Pin repositories in this order:
    - `environmental-monitoring-api`

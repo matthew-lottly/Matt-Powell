@@ -182,6 +182,66 @@ Topics
 rasterio, gdal, python, remote-sensing, gis, geospatial, analytics
 ```
 
+## monitoring-anomaly-detection
+
+Description
+
+```text
+Python anomaly-detection pipeline for monitoring telemetry, sensor drift, and alert triage.
+```
+
+Website
+
+```text
+https://lottly-ai.com/
+```
+
+Topics
+
+```text
+python, data-science, anomaly-detection, time-series, analytics, gis, monitoring
+```
+
+## environmental-time-series-lab
+
+Description
+
+```text
+Python time-series analysis lab for trend profiling, rolling summaries, and monitoring signal review.
+```
+
+Website
+
+```text
+https://lottly-ai.com/
+```
+
+Topics
+
+```text
+python, data-science, time-series, analytics, trend-analysis, monitoring, gis
+```
+
+## station-forecasting-workbench
+
+Description
+
+```text
+Python forecasting workbench for station demand baselines, holdout evaluation, and next-step projections.
+```
+
+Website
+
+```text
+https://lottly-ai.com/
+```
+
+Topics
+
+```text
+python, data-science, forecasting, time-series, analytics, monitoring, gis
+```
+
 ## Pin Order
 
 ```text

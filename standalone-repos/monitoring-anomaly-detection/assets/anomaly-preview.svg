@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Monitoring anomaly detection preview</title>
+  <desc id="desc">Concept preview of anomaly counts, station baselines, and ranked deviations.</desc>
+  <rect width="1200" height="720" fill="#f4f0e8"/>
+  <rect x="48" y="40" width="1104" height="132" rx="28" fill="#fbfaf7" stroke="#d5c9b7"/>
+  <text x="84" y="84" fill="#6c6458" font-family="Georgia, serif" font-size="16" letter-spacing="3">DATA SCIENCE LANE</text>
+  <text x="84" y="134" fill="#201b16" font-family="Georgia, serif" font-size="42">Monitoring Anomaly Detection</text>
+  <text x="84" y="170" fill="#6f675d" font-family="Georgia, serif" font-size="18">Operational scoring for spikes, drift, and unusual telemetry behavior.</text>
+  <rect x="48" y="212" width="246" height="112" rx="24" fill="#fbfaf7" stroke="#d5c9b7"/>
+  <rect x="316" y="212" width="246" height="112" rx="24" fill="#fbfaf7" stroke="#d5c9b7"/>
+  <rect x="584" y="212" width="246" height="112" rx="24" fill="#fbfaf7" stroke="#d5c9b7"/>
+  <text x="78" y="248" fill="#796d60" font-family="Georgia, serif" font-size="14" letter-spacing="2">OBSERVATIONS</text>
+  <text x="78" y="294" fill="#201b16" font-family="Georgia, serif" font-size="38">18</text>
+  <text x="346" y="248" fill="#796d60" font-family="Georgia, serif" font-size="14" letter-spacing="2">ANOMALIES</text>
+  <text x="346" y="294" fill="#201b16" font-family="Georgia, serif" font-size="38">4</text>
+  <text x="614" y="248" fill="#796d60" font-family="Georgia, serif" font-size="14" letter-spacing="2">STATIONS</text>
+  <text x="614" y="294" fill="#201b16" font-family="Georgia, serif" font-size="38">3</text>
+  <rect x="48" y="356" width="512" height="316" rx="28" fill="#fbfaf7" stroke="#d5c9b7"/>
+  <rect x="592" y="356" width="560" height="316" rx="28" fill="#fbfaf7" stroke="#d5c9b7"/>
+  <text x="82" y="398" fill="#796d60" font-family="Georgia, serif" font-size="14" letter-spacing="2">BASELINES</text>
+  <text x="82" y="430" fill="#201b16" font-family="Georgia, serif" font-size="28">Station Drift Profile</text>
+  <polyline points="92,602 164,560 236,548 308,438 380,460 452,500 524,416" fill="none" stroke="#a85a46" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="624" y="398" fill="#796d60" font-family="Georgia, serif" font-size="14" letter-spacing="2">TOP EVENTS</text>
+  <text x="624" y="430" fill="#201b16" font-family="Georgia, serif" font-size="28">Anomaly Queue</text>
+  <rect x="624" y="462" width="492" height="76" rx="18" fill="#f3e4d9" stroke="#d5c9b7"/>
+  <text x="650" y="498" fill="#201b16" font-family="Georgia, serif" font-size="20">station-west-air-001 · PM2.5 spike</text>
+  <text x="650" y="522" fill="#796d60" font-family="Georgia, serif" font-size="14">Deviation score 2.34 with sustained increase over baseline</text>
+  <rect x="624" y="552" width="492" height="76" rx="18" fill="#f3e4d9" stroke="#d5c9b7"/>
+  <text x="650" y="588" fill="#201b16" font-family="Georgia, serif" font-size="20">station-central-flow-010 · discharge dip</text>
+  <text x="650" y="612" fill="#796d60" font-family="Georgia, serif" font-size="14">Deviation score 1.82 with negative residual pattern</text>
+</svg>

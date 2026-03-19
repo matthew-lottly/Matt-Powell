@@ -11,6 +11,42 @@
       ]
     },
     {
+      "root": "projects/monitoring-anomaly-detection",
+      "extraPaths": [
+        "src"
+      ]
+    },
+    {
+      "root": "standalone-repos/monitoring-anomaly-detection",
+      "extraPaths": [
+        "src"
+      ]
+    },
+    {
+      "root": "projects/environmental-time-series-lab",
+      "extraPaths": [
+        "src"
+      ]
+    },
+    {
+      "root": "standalone-repos/environmental-time-series-lab",
+      "extraPaths": [
+        "src"
+      ]
+    },
+    {
+      "root": "projects/station-forecasting-workbench",
+      "extraPaths": [
+        "src"
+      ]
+    },
+    {
+      "root": "standalone-repos/station-forecasting-workbench",
+      "extraPaths": [
+        "src"
+      ]
+    },
+    {
       "root": "standalone-repos/environmental-monitoring-api",
       "extraPaths": [
         "src"
