@@ -21,11 +21,10 @@ Completed recently:
 
 ## environmental-monitoring-analytics
 
-- [#2 Support API-derived input snapshots for reporting](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/2)
-
 Completed recently:
 
 - [#1 Add time-window trend analysis to the operations brief](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/1)
+- [#2 Support API-derived input snapshots for reporting](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/2)
 
 ## monitoring-data-warehouse
 
@@ -43,5 +42,5 @@ Completed recently:
 - The standalone repositories now each have an initial issue backlog.
 - The API lane now ships filtered observation rollup summaries in the observation endpoints.
 - The standalone API dashboard now highlights recent alert readings and recent status changes, and issue `environmental-monitoring-api#1` is closed.
-- The analytics lane now ships rolling recent-vs-previous window trend analysis in the generated operations brief, and issue `environmental-monitoring-analytics#1` is closed.
+- The analytics lane now ships rolling recent-vs-previous window trend analysis and API-derived snapshot input support, and issues `environmental-monitoring-analytics#1` and `environmental-monitoring-analytics#2` are closed.
 - GitHub profile pinning still needs to be set manually in the GitHub UI.
