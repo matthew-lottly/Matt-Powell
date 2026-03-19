@@ -8,6 +8,10 @@ export const defaultConfig: WidgetConfig = {
   defaultRegion: null,
   alertThreshold: 0.75,
   defaultStatuses: ["alert", "normal", "offline"],
+  dataSource: "mock",
+  apiBaseUrl: "http://127.0.0.1:8000",
+  comparisonMode: false,
+  comparisonStationId: null,
 };
 
 

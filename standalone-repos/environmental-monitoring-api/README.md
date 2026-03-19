@@ -26,9 +26,11 @@ Environmental monitoring work often stops at spreadsheets, maps, and one-off scr
 - File-backed repository for local development
 - Optional PostGIS-backed repository for standalone deployment
 - Filtering by category, region, and station status
+- Bounding-box filtering for map-driven station queries
 - Per-station threshold configuration for derived alert logic
 - Summary endpoint for quick monitoring rollups
 - Recent-observation and per-station observation-history endpoints with filtered summary rollups
+- Observation export endpoint that can emit analyst-friendly JSON snapshot bundles or CSV extracts with threshold metadata
 - Browser dashboard for quick visual review of service health, station status, alert locations, recent alert readings, and status changes
 - Test coverage for the main endpoints
 - Docker and docker-compose setup
@@ -53,12 +55,15 @@ Environmental monitoring work often stops at spreadsheets, maps, and one-off scr
 - `GET /api/v1/features/{feature_id}`
 - `POST /api/v1/stations/{feature_id}/thresholds`
 - `GET /api/v1/observations/recent`
+- `GET /api/v1/observations/export`
 - `GET /api/v1/features/{feature_id}/observations`
 
 Observation endpoints accept optional `start_at` and `end_at` ISO timestamps for time-window filtering.
+The feature listing endpoint also accepts `min_longitude`, `min_latitude`, `max_longitude`, and `max_latitude` so map views can request only stations within the current extent.
 Observation responses also include a summary block with total observations, category counts, status counts, metric counts, and earliest/latest timestamps for the filtered result set.
 Threshold updates let the API derive station alert state from the latest observation while falling back to the seeded sample status when no threshold override exists.
 The operations summary endpoint returns live station counts, alert rate, a regional alert breakdown, and the five most recent alert observations, with optional time-window filters for the observation-driven sections.
+The export endpoint returns either a JSON bundle with features, observations, filtered thresholds, and applied filters, or a CSV extract for analyst workflows.
 
 Example monitoring domains in the sample data:
 

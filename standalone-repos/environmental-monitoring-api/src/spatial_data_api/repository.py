@@ -1,7 +1,10 @@
+import csv
+import io
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+from typing import Protocol
 
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -13,6 +16,9 @@ from spatial_data_api.schemas import (
     FeatureRecord,
     FeatureSummary,
     ObservationCollection,
+    ObservationExportBundle,
+    ObservationExportFilters,
+    ObservationExportSource,
     ObservationRecord,
     ObservationSummary,
     OperationsSummary,
@@ -56,6 +62,34 @@ def _default_thresholds() -> dict[str, StationThreshold]:
     }
 
 
+def _normalize_bbox(
+    min_longitude: float | None,
+    min_latitude: float | None,
+    max_longitude: float | None,
+    max_latitude: float | None,
+) -> tuple[float, float, float, float] | None:
+    values = (min_longitude, min_latitude, max_longitude, max_latitude)
+    if all(value is None for value in values):
+        return None
+    if any(value is None for value in values):
+        raise ValueError("All bounding-box coordinates must be provided together")
+    assert min_longitude is not None
+    assert min_latitude is not None
+    assert max_longitude is not None
+    assert max_latitude is not None
+    if min_longitude >= max_longitude or min_latitude >= max_latitude:
+        raise ValueError("Bounding-box minimums must be less than maximums")
+    return (min_longitude, min_latitude, max_longitude, max_latitude)
+
+
+def _feature_in_bbox(feature: FeatureRecord, bbox: tuple[float, float, float, float] | None) -> bool:
+    if bbox is None:
+        return True
+    longitude, latitude = feature.geometry.coordinates[:2]
+    min_longitude, min_latitude, max_longitude, max_latitude = bbox
+    return min_longitude <= longitude <= max_longitude and min_latitude <= latitude <= max_latitude
+
+
 class FeatureRepository:
     def __init__(self, data_path: Path):
         self.data_path = data_path
@@ -78,6 +112,7 @@ class FeatureRepository:
         category: str | None = None,
         region: str | None = None,
         status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
     ) -> list[FeatureRecord]:
         features = [self._apply_feature_status(feature) for feature in self._collection.features]
         if category:
@@ -86,6 +121,8 @@ class FeatureRepository:
             features = [feature for feature in features if feature.properties.region.lower() == region.lower()]
         if status:
             features = [feature for feature in features if feature.properties.status.lower() == status.lower()]
+        if bbox is not None:
+            features = [feature for feature in features if _feature_in_bbox(feature, bbox)]
         return features
 
     def get_feature(self, feature_id: str) -> FeatureRecord | None:
@@ -113,11 +150,7 @@ class FeatureRepository:
         start_at: datetime | None = None,
         end_at: datetime | None = None,
     ) -> list[ObservationRecord]:
-        observations = [
-            observation
-            for observation in self._observations.observations
-            if self._matches_time_window(observation, start_at=start_at, end_at=end_at)
-        ]
+        observations = self._filter_observations(start_at=start_at, end_at=end_at)
         observations.sort(key=lambda observation: self._parse_timestamp(observation.observed_at), reverse=True)
         return observations[:limit]
 
@@ -128,14 +161,113 @@ class FeatureRepository:
         start_at: datetime | None = None,
         end_at: datetime | None = None,
     ) -> list[ObservationRecord]:
-        observations = [
-            observation
-            for observation in self._observations.observations
-            if observation.feature_id == feature_id
-            and self._matches_time_window(observation, start_at=start_at, end_at=end_at)
-        ]
+        observations = self._filter_observations(feature_ids={feature_id}, start_at=start_at, end_at=end_at)
         observations.sort(key=lambda observation: self._parse_timestamp(observation.observed_at), reverse=True)
         return observations[:limit]
+
+    def list_thresholds(self, feature_ids: set[str] | None = None) -> list[StationThreshold]:
+        thresholds = self._thresholds.values()
+        if feature_ids is not None:
+            thresholds = [threshold for threshold in thresholds if threshold.feature_id in feature_ids]
+        return sorted(thresholds, key=lambda threshold: threshold.feature_id)
+
+    def export_observations(
+        self,
+        category: str | None = None,
+        region: str | None = None,
+        status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> ObservationExportBundle:
+        features = self.list_features(category=category, region=region, status=status, bbox=bbox)
+        feature_ids = {feature.properties.feature_id for feature in features}
+        observations = self._filter_observations(feature_ids=feature_ids, start_at=start_at, end_at=end_at)
+        observations.sort(key=lambda observation: self._parse_timestamp(observation.observed_at), reverse=True)
+        return ObservationExportBundle(
+            source=ObservationExportSource(
+                name="environmental-monitoring-api",
+                exportedAt=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                dataSource=self.data_source_name(),
+            ),
+            filters=ObservationExportFilters(
+                category=category,
+                region=region,
+                status=status,
+                startAt=start_at.isoformat().replace("+00:00", "Z") if start_at is not None else None,
+                endAt=end_at.isoformat().replace("+00:00", "Z") if end_at is not None else None,
+                bbox=list(bbox) if bbox is not None else None,
+            ),
+            features=FeatureCollection(features=features),
+            observations=ObservationCollection(
+                observations=observations,
+                summary=self.observation_summary(observations),
+            ),
+            thresholds=self.list_thresholds(feature_ids),
+        )
+
+    def export_observations_csv(
+        self,
+        category: str | None = None,
+        region: str | None = None,
+        status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> str:
+        bundle = self.export_observations(
+            category=category,
+            region=region,
+            status=status,
+            bbox=bbox,
+            start_at=start_at,
+            end_at=end_at,
+        )
+        feature_lookup = {
+            feature.properties.feature_id: feature
+            for feature in bundle.features.features
+        }
+        threshold_lookup = {threshold.feature_id: threshold for threshold in bundle.thresholds}
+
+        buffer = io.StringIO()
+        writer = csv.DictWriter(
+            buffer,
+            fieldnames=[
+                "observation_id",
+                "feature_id",
+                "station_name",
+                "category",
+                "region",
+                "observed_at",
+                "metric_name",
+                "value",
+                "unit",
+                "status",
+                "min_threshold",
+                "max_threshold",
+            ],
+        )
+        writer.writeheader()
+        for observation in bundle.observations.observations:
+            feature = feature_lookup.get(observation.feature_id)
+            threshold = threshold_lookup.get(observation.feature_id)
+            writer.writerow(
+                {
+                    "observation_id": observation.observation_id,
+                    "feature_id": observation.feature_id,
+                    "station_name": feature.properties.name if feature is not None else "",
+                    "category": feature.properties.category if feature is not None else "",
+                    "region": feature.properties.region if feature is not None else "",
+                    "observed_at": observation.observed_at,
+                    "metric_name": observation.metric_name,
+                    "value": observation.value,
+                    "unit": observation.unit,
+                    "status": observation.status,
+                    "min_threshold": threshold.min_value if threshold is not None else "",
+                    "max_threshold": threshold.max_value if threshold is not None else "",
+                }
+            )
+        return buffer.getvalue()
 
     def observation_summary(self, observations: list[ObservationRecord]) -> ObservationSummary:
         category_lookup = {
@@ -311,6 +443,19 @@ class FeatureRepository:
             return False
         return True
 
+    def _filter_observations(
+        self,
+        feature_ids: set[str] | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]:
+        return [
+            observation
+            for observation in self._observations.observations
+            if (feature_ids is None or observation.feature_id in feature_ids)
+            and self._matches_time_window(observation, start_at=start_at, end_at=end_at)
+        ]
+
 
 class PostGISFeatureRepository:
     def __init__(self, database_url: str):
@@ -322,6 +467,7 @@ class PostGISFeatureRepository:
         category: str | None = None,
         region: str | None = None,
         status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
     ) -> list[FeatureRecord]:
         query = """
         SELECT
@@ -336,12 +482,26 @@ class PostGISFeatureRepository:
         FROM public.monitoring_stations
         WHERE (:category IS NULL OR category = :category)
           AND (:region IS NULL OR region = :region)
+          AND (
+            :min_longitude IS NULL
+            OR ST_X(geometry) BETWEEN :min_longitude AND :max_longitude
+          )
+          AND (
+            :min_latitude IS NULL
+            OR ST_Y(geometry) BETWEEN :min_latitude AND :max_latitude
+          )
         ORDER BY feature_id
         """
+        bbox_params = {
+            "min_longitude": bbox[0] if bbox is not None else None,
+            "min_latitude": bbox[1] if bbox is not None else None,
+            "max_longitude": bbox[2] if bbox is not None else None,
+            "max_latitude": bbox[3] if bbox is not None else None,
+        }
         with self.engine.connect() as connection:
             rows = connection.execute(
                 text(query),
-                {"category": category, "region": region},
+                {"category": category, "region": region, **bbox_params},
             ).mappings().all()
         features = [self._apply_feature_status(self._row_to_feature(dict(row))) for row in rows]
         if status:
@@ -441,6 +601,113 @@ class PostGISFeatureRepository:
             feature.properties.feature_id: feature.properties.category for feature in self.list_features()
         }
         return _build_observation_summary(observations, category_lookup)
+
+    def list_thresholds(self, feature_ids: set[str] | None = None) -> list[StationThreshold]:
+        thresholds = self._thresholds.values()
+        if feature_ids is not None:
+            thresholds = [threshold for threshold in thresholds if threshold.feature_id in feature_ids]
+        return sorted(thresholds, key=lambda threshold: threshold.feature_id)
+
+    def export_observations(
+        self,
+        category: str | None = None,
+        region: str | None = None,
+        status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> ObservationExportBundle:
+        features = self.list_features(category=category, region=region, status=status, bbox=bbox)
+        feature_ids = {feature.properties.feature_id for feature in features}
+        observations = [
+            observation
+            for observation in self._list_observations(start_at=start_at, end_at=end_at)
+            if observation.feature_id in feature_ids
+        ]
+        return ObservationExportBundle(
+            source=ObservationExportSource(
+                name="environmental-monitoring-api",
+                exportedAt=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                dataSource=self.data_source_name(),
+            ),
+            filters=ObservationExportFilters(
+                category=category,
+                region=region,
+                status=status,
+                startAt=start_at.isoformat().replace("+00:00", "Z") if start_at is not None else None,
+                endAt=end_at.isoformat().replace("+00:00", "Z") if end_at is not None else None,
+                bbox=list(bbox) if bbox is not None else None,
+            ),
+            features=FeatureCollection(features=features),
+            observations=ObservationCollection(
+                observations=observations,
+                summary=self.observation_summary(observations),
+            ),
+            thresholds=self.list_thresholds(feature_ids),
+        )
+
+    def export_observations_csv(
+        self,
+        category: str | None = None,
+        region: str | None = None,
+        status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> str:
+        bundle = self.export_observations(
+            category=category,
+            region=region,
+            status=status,
+            bbox=bbox,
+            start_at=start_at,
+            end_at=end_at,
+        )
+        feature_lookup = {
+            feature.properties.feature_id: feature
+            for feature in bundle.features.features
+        }
+        threshold_lookup = {threshold.feature_id: threshold for threshold in bundle.thresholds}
+
+        buffer = io.StringIO()
+        writer = csv.DictWriter(
+            buffer,
+            fieldnames=[
+                "observation_id",
+                "feature_id",
+                "station_name",
+                "category",
+                "region",
+                "observed_at",
+                "metric_name",
+                "value",
+                "unit",
+                "status",
+                "min_threshold",
+                "max_threshold",
+            ],
+        )
+        writer.writeheader()
+        for observation in bundle.observations.observations:
+            feature = feature_lookup.get(observation.feature_id)
+            threshold = threshold_lookup.get(observation.feature_id)
+            writer.writerow(
+                {
+                    "observation_id": observation.observation_id,
+                    "feature_id": observation.feature_id,
+                    "station_name": feature.properties.name if feature is not None else "",
+                    "category": feature.properties.category if feature is not None else "",
+                    "region": feature.properties.region if feature is not None else "",
+                    "observed_at": observation.observed_at,
+                    "metric_name": observation.metric_name,
+                    "value": observation.value,
+                    "unit": observation.unit,
+                    "status": observation.status,
+                    "min_threshold": threshold.min_value if threshold is not None else "",
+                    "max_threshold": threshold.max_value if threshold is not None else "",
+                }
+            )
+        return buffer.getvalue()
 
     def operations_summary(
         self,
@@ -646,7 +913,67 @@ class PostGISFeatureRepository:
         )
 
 
-Repository = FeatureRepository | PostGISFeatureRepository
+class Repository(Protocol):
+    def is_ready(self) -> bool: ...
+
+    def data_source_name(self) -> str: ...
+
+    def list_features(
+        self,
+        category: str | None = None,
+        region: str | None = None,
+        status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+    ) -> list[FeatureRecord]: ...
+
+    def summary(self) -> FeatureSummary: ...
+
+    def operations_summary(
+        self,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> OperationsSummary: ...
+
+    def list_recent_observations(
+        self,
+        limit: int = 5,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]: ...
+
+    def observation_summary(self, observations: list[ObservationRecord]) -> ObservationSummary: ...
+
+    def export_observations(
+        self,
+        category: str | None = None,
+        region: str | None = None,
+        status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> ObservationExportBundle: ...
+
+    def export_observations_csv(
+        self,
+        category: str | None = None,
+        region: str | None = None,
+        status: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> str: ...
+
+    def get_feature(self, feature_id: str) -> FeatureRecord | None: ...
+
+    def list_feature_observations(
+        self,
+        feature_id: str,
+        limit: int = 10,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]: ...
+
+    def update_threshold(self, feature_id: str, threshold: StationThresholdUpdate) -> StationThreshold: ...
 
 
 @lru_cache

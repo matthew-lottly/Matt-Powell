@@ -24,6 +24,8 @@ It is intentionally small and fast to run so a reviewer can move from raw data t
 - SQL-first analytics with DuckDB
 - Repeatable reporting from raw observation data
 - Operational metrics for alert rates and regional coverage
+- Threshold-aware report classification for API-derived snapshot bundles
+- Station-level anomaly detection for sudden operational shifts
 - A reporting workflow that emphasizes analysis instead of API design
 
 ## Why This Project Exists
@@ -82,6 +84,7 @@ The default command uses the checked-in CSV sample. The optional `--input` path 
 - Time-window trend analysis with recent vs previous alert-rate comparison
 - Parameterized date-window comparisons for operational review periods
 - Category alert breakdown with status mix and top-alert stations
+- Anomaly watch section for abrupt status, score, or reading shifts
 - Latest alert stations section in markdown
 - Exportable HTML brief with visual summary blocks, regional alert bars, and category deep-dive cards
 - Support for API-derived JSON snapshot input in addition to the local CSV sample
@@ -109,7 +112,7 @@ $bundle | ConvertTo-Json -Depth 8 | Set-Content data/api_observation_snapshot.js
 python -m environmental_monitoring_analytics.reporting --input data/api_observation_snapshot.json
 ```
 
-The included [data/api_observation_snapshot.json](data/api_observation_snapshot.json) file is a checked-in example of that bundle shape.
+The included [data/api_observation_snapshot.json](data/api_observation_snapshot.json) file is a checked-in example of that bundle shape, including optional threshold metadata used to reclassify alert state from the raw readings.
 
 ## Next Steps
 

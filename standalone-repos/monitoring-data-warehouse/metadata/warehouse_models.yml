@@ -4,9 +4,33 @@ sources:
   - name: staging_readings
     description: Raw operational monitoring readings loaded from the station CSV extract.
     loaded_at_field: observed_at
+    sla:
+      freshness:
+        query: |
+          SELECT MAX(strptime(observed_at, '%Y-%m-%dT%H:%M:%SZ'))
+          FROM staging_readings
+        max_lag_hours_from_freshest: 0
+      completeness:
+        required_fields:
+          - station_id
+          - station_name
+          - observed_at
+          - status
   - name: staging_station_attribute_history
     description: Station ownership and response-tier history used for the slowly changing dimension example.
     loaded_at_field: effective_from
+    sla:
+      freshness:
+        query: |
+          SELECT MAX(strptime(COALESCE(effective_to, effective_from), '%Y-%m-%dT%H:%M:%SZ'))
+          FROM staging_station_attribute_history
+        max_lag_hours_from_freshest: 432
+      completeness:
+        required_fields:
+          - station_id
+          - station_name
+          - owner_team
+          - effective_from
 
 models:
   - name: dim_station

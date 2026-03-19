@@ -1,7 +1,9 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 
+import spatial_data_api.schemas as api_schemas
 from spatial_data_api.core.config import get_settings
 from spatial_data_api.repository import Repository, get_repository
 from spatial_data_api.schemas import (
@@ -19,6 +21,26 @@ from spatial_data_api.schemas import (
 
 settings = get_settings()
 router = APIRouter()
+
+
+def _build_bbox(
+    min_longitude: float | None,
+    min_latitude: float | None,
+    max_longitude: float | None,
+    max_latitude: float | None,
+) -> tuple[float, float, float, float] | None:
+    values = (min_longitude, min_latitude, max_longitude, max_latitude)
+    if all(value is None for value in values):
+        return None
+    if any(value is None for value in values):
+        raise HTTPException(status_code=422, detail="All bounding-box coordinates must be provided together")
+    assert min_longitude is not None
+    assert min_latitude is not None
+    assert max_longitude is not None
+    assert max_latitude is not None
+    if min_longitude >= max_longitude or min_latitude >= max_latitude:
+        raise HTTPException(status_code=422, detail="Bounding-box minimums must be less than maximums")
+    return (min_longitude, min_latitude, max_longitude, max_latitude)
 
 
 def build_health_status(repository: Repository) -> HealthStatus:
@@ -58,9 +80,14 @@ def list_features(
     category: str | None = Query(default=None),
     region: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    min_longitude: float | None = Query(default=None, alias="min_longitude"),
+    min_latitude: float | None = Query(default=None, alias="min_latitude"),
+    max_longitude: float | None = Query(default=None, alias="max_longitude"),
+    max_latitude: float | None = Query(default=None, alias="max_latitude"),
     repository: Repository = Depends(get_repository),
 ) -> FeatureCollection:
-    return FeatureCollection(features=repository.list_features(category=category, region=region, status=status))
+    bbox = _build_bbox(min_longitude, min_latitude, max_longitude, max_latitude)
+    return FeatureCollection(features=repository.list_features(category=category, region=region, status=status, bbox=bbox))
 
 
 @router.get(
@@ -98,6 +125,48 @@ def get_recent_observations(
 ) -> ObservationCollection:
     observations = repository.list_recent_observations(limit=limit, start_at=start_at, end_at=end_at)
     return ObservationCollection(observations=observations, summary=repository.observation_summary(observations))
+
+
+@router.get(
+    f"{settings.api_prefix}/observations/export",
+    response_model=api_schemas.ObservationExportBundle,
+    tags=["observations"],
+)
+def export_observations(
+    format: str = Query(default="json", pattern="^(json|csv)$"),
+    category: str | None = Query(default=None),
+    region: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    min_longitude: float | None = Query(default=None, alias="min_longitude"),
+    min_latitude: float | None = Query(default=None, alias="min_latitude"),
+    max_longitude: float | None = Query(default=None, alias="max_longitude"),
+    max_latitude: float | None = Query(default=None, alias="max_latitude"),
+    start_at: datetime | None = Query(default=None),
+    end_at: datetime | None = Query(default=None),
+    repository: Repository = Depends(get_repository),
+) -> api_schemas.ObservationExportBundle | PlainTextResponse:
+    bbox = _build_bbox(min_longitude, min_latitude, max_longitude, max_latitude)
+    if format == "csv":
+        return PlainTextResponse(
+            repository.export_observations_csv(
+                category=category,
+                region=region,
+                status=status,
+                bbox=bbox,
+                start_at=start_at,
+                end_at=end_at,
+            ),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="monitoring-observations.csv"'},
+        )
+    return repository.export_observations(
+        category=category,
+        region=region,
+        status=status,
+        bbox=bbox,
+        start_at=start_at,
+        end_at=end_at,
+    )
 
 
 @router.get(

@@ -4,9 +4,17 @@ Database-engineering project for modeling, building, and validating a monitoring
 
 ![Warehouse preview](assets/warehouse-preview.svg)
 
+## Snapshot
+
+- Lane: Database engineering
+- Domain: Environmental monitoring
+- Stack: DuckDB, SQL, Python
+- Includes: dimensional model, fact table, alert mart, quality checks, model metadata, tests
+- Includes: dimensional model, fact table, alert mart, quality checks, source SLA validation, CI-ready build artifact
+
 ## Overview
 
-This project represents the database-engineering lane of the portfolio. It starts from raw station observations, builds a small warehouse model with dimensions and facts, and runs validation queries that are closer to platform engineering than analytics notebooks.
+This project represents the database-engineering lane of the portfolio. It starts from raw station observations, builds a small warehouse model with dimensions and facts, and runs validation queries that are closer to platform engineering than notebook analysis.
 
 ## What It Demonstrates
 
@@ -14,8 +22,13 @@ This project represents the database-engineering lane of the portfolio. It start
 - Dimension and fact table modeling
 - Repeatable SQL execution against DuckDB
 - Data quality checks for operational datasets
+- Freshness and completeness SLA validation driven from metadata
 - dbt-style model dependency metadata and executable data contracts
 - A portfolio lane focused on database structure and reliability
+
+## Why This Project Exists
+
+Warehouse work is often hard to show publicly because the most valuable parts are schema choices, transformation discipline, and data quality controls. This repository isolates those concerns in a small, reviewable build.
 
 ## Warehouse Model
 
@@ -34,10 +47,32 @@ pip install -e .[dev]
 python -m monitoring_data_warehouse.builder
 ```
 
+## Why It Is Useful In A Portfolio
+
+- Shows dimensional modeling instead of only application code
+- Demonstrates transform execution and validation from raw data to marts
+- Gives a reviewer a clear database-engineering example that is separate from analytics and API work
+
+## Project Structure
+
+```text
+monitoring-data-warehouse/
+|-- data/
+|-- sql/
+|-- src/monitoring_data_warehouse/
+|   |-- __init__.py
+|   `-- builder.py
+|-- tests/
+|   `-- test_builder.py
+|-- pyproject.toml
+`-- README.md
+```
+
 ## Outputs
 
 - A local DuckDB warehouse file
 - Row-count and quality-check summary
+- A JSON warehouse-build artifact for CI upload and review
 - A slowly changing dimension example for station ownership and response tier
 - Sample daily alert and regional status marts
 - A manifest-backed model catalog and contract check summary
@@ -55,4 +90,9 @@ See [docs/schema-diagram.md](docs/schema-diagram.md) for a quick view of the war
 
 ## Publication
 
-See [PUBLISHING.md](PUBLISHING.md) for the standalone repository plan.
+- License: [LICENSE](LICENSE)
+- Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
+
+## Repository Notes
+
+This copy is intended to be publishable as its own repository. CI is included in [.github/workflows/ci.yml](.github/workflows/ci.yml).

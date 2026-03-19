@@ -80,6 +80,13 @@ body {
   gap: 10px;
 }
 
+.runtime-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
 .badge,
 .status-chip {
   display: inline-flex;
@@ -93,6 +100,14 @@ body {
 .badge { background: rgba(74, 99, 112, 0.1); color: var(--slate); }
 
 .widget-shell { display: grid; gap: 18px; }
+
+.runtime-banner {
+  border: 1px solid rgba(186, 80, 68, 0.18);
+  background: rgba(186, 80, 68, 0.08);
+  color: var(--alert);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
 
 .widget-header {
   display: flex;
@@ -347,6 +362,24 @@ input[type="checkbox"] {
   gap: 16px 20px;
 }
 
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.comparison-card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.comparison-empty {
+  display: grid;
+  place-items: center;
+}
+
 .detail-grid.compact {
   align-items: start;
 }
@@ -416,7 +449,8 @@ input[type="checkbox"] {
   .overview-grid,
   .summary-grid,
   .widget-grid,
-  .detail-grid {
+  .detail-grid,
+  .comparison-grid {
     grid-template-columns: 1fr;
     display: grid;
   }

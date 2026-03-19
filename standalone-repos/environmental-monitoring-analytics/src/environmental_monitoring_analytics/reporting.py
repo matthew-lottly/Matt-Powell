@@ -31,6 +31,41 @@ STATUS_ALERT_SCORES = {
 }
 
 
+def _derive_status_from_threshold(status: str, reading_value: float, threshold: dict[str, object] | None) -> str:
+    if status == "offline" or threshold is None:
+        return status
+
+    min_value = threshold.get("min_value")
+    max_value = threshold.get("max_value")
+    if min_value is not None and reading_value < float(min_value):
+        return "alert"
+    if max_value is not None and reading_value > float(max_value):
+        return "alert"
+    return "normal"
+
+
+def _derive_alert_score(
+    status: str,
+    reading_value: float,
+    threshold: dict[str, object] | None,
+    raw_alert_score: float | None,
+) -> float:
+    if threshold is None:
+        return raw_alert_score if raw_alert_score is not None else _fallback_alert_score(status)
+
+    min_value = threshold.get("min_value")
+    max_value = threshold.get("max_value")
+    if max_value is not None:
+        ratio = reading_value / float(max_value)
+        return round(max(ratio, 0.0), 2)
+    if min_value is not None:
+        if reading_value <= 0:
+            return 1.0
+        ratio = float(min_value) / reading_value
+        return round(max(ratio, 0.0), 2)
+    return raw_alert_score if raw_alert_score is not None else _fallback_alert_score(status)
+
+
 def _data_path(data_path: Path | None = None, csv_path: Path | None = None) -> Path:
     return data_path or csv_path or DATA_PATH
 
@@ -89,6 +124,30 @@ def _extract_observations(payload: object) -> list[dict[str, object]]:
     return [item for item in raw_observations if isinstance(item, dict)]
 
 
+def _extract_threshold_lookup(payload: object) -> dict[str, dict[str, object]]:
+    if not isinstance(payload, dict):
+        return {}
+
+    raw_thresholds = payload.get("thresholds", [])
+    if not isinstance(raw_thresholds, list):
+        return {}
+
+    thresholds: dict[str, dict[str, object]] = {}
+    for threshold in raw_thresholds:
+        if not isinstance(threshold, dict):
+            continue
+        feature_id = _coalesce(threshold.get("featureId"), threshold.get("feature_id"))
+        metric_name = _coalesce(threshold.get("metricName"), threshold.get("metric_name"))
+        if feature_id is None or metric_name is None:
+            continue
+        thresholds[str(feature_id)] = {
+            "metric_name": str(metric_name),
+            "min_value": threshold.get("minValue", threshold.get("min_value")),
+            "max_value": threshold.get("maxValue", threshold.get("max_value")),
+        }
+    return thresholds
+
+
 def _fallback_alert_score(status: str) -> float:
     return STATUS_ALERT_SCORES.get(status.lower(), 0.0)
 
@@ -97,6 +156,7 @@ def _normalize_snapshot_rows(data_path: Path) -> list[dict[str, object]]:
     payload = json.loads(data_path.read_text(encoding="utf-8"))
     feature_lookup = _extract_feature_lookup(payload)
     observations = _extract_observations(payload)
+    threshold_lookup = _extract_threshold_lookup(payload)
 
     rows: list[dict[str, object]] = []
     for observation in observations:
@@ -108,6 +168,7 @@ def _normalize_snapshot_rows(data_path: Path) -> list[dict[str, object]]:
         )
         observed_at = _coalesce(observation.get("observed_at"), observation.get("observedAt"))
         status = _coalesce(observation.get("status"), "normal")
+        metric_name = _coalesce(observation.get("metricName"), observation.get("metric_name"))
         reading_value = _coalesce(
             observation.get("reading_value"),
             observation.get("readingValue"),
@@ -115,6 +176,17 @@ def _normalize_snapshot_rows(data_path: Path) -> list[dict[str, object]]:
         )
         alert_score = _coalesce(observation.get("alert_score"), observation.get("alertScore"))
         feature_details = feature_lookup.get(str(station_id), {})
+        threshold = threshold_lookup.get(str(station_id))
+
+        numeric_reading = float(reading_value) if reading_value is not None else None
+        numeric_alert_score = float(alert_score) if alert_score is not None else None
+        if threshold is not None and metric_name != threshold.get("metric_name"):
+            threshold = None
+        if numeric_reading is None:
+            raise ValueError(f"Input snapshot {data_path.name} is missing required fields: reading_value")
+
+        normalized_status = _derive_status_from_threshold(str(status), numeric_reading, threshold)
+        normalized_alert_score = _derive_alert_score(normalized_status, numeric_reading, threshold, numeric_alert_score)
 
         row = {
             "station_id": station_id,
@@ -126,9 +198,9 @@ def _normalize_snapshot_rows(data_path: Path) -> list[dict[str, object]]:
             "category": _coalesce(observation.get("category"), feature_details.get("category")),
             "region": _coalesce(observation.get("region"), feature_details.get("region")),
             "observed_at": observed_at,
-            "status": status,
-            "alert_score": alert_score if alert_score is not None else _fallback_alert_score(str(status)),
-            "reading_value": reading_value,
+            "status": normalized_status,
+            "alert_score": normalized_alert_score,
+            "reading_value": numeric_reading,
         }
 
         missing_fields = [column for column, value in row.items() if value is None]
@@ -298,6 +370,74 @@ def _category_breakdown(connection: duckdb.DuckDBPyConnection, clause: str) -> l
     return categories
 
 
+def _detect_anomalies(connection: duckdb.DuckDBPyConnection, clause: str) -> list[dict[str, object]]:
+        rows = connection.execute(
+                f"""
+                WITH ranked AS (
+                    SELECT
+                        station_id,
+                        station_name,
+                        category,
+                        region,
+                        observed_at,
+                        observed_ts,
+                        status,
+                        alert_score,
+                        reading_value,
+                        LAG(status) OVER (PARTITION BY station_id ORDER BY observed_ts) AS previous_status,
+                        LAG(alert_score) OVER (PARTITION BY station_id ORDER BY observed_ts) AS previous_alert_score,
+                        LAG(reading_value) OVER (PARTITION BY station_id ORDER BY observed_ts) AS previous_reading_value
+                    FROM observations
+                )
+                SELECT
+                    station_id,
+                    station_name,
+                    category,
+                    region,
+                    observed_at,
+                    status,
+                    previous_status,
+                    ROUND(alert_score - previous_alert_score, 2) AS alert_score_delta,
+                    ROUND(reading_value - previous_reading_value, 2) AS reading_delta
+                FROM ranked
+                WHERE previous_status IS NOT NULL
+                    AND {clause}
+                    AND (
+                        status <> previous_status
+                        OR ABS(alert_score - previous_alert_score) >= 0.25
+                        OR ABS(reading_value - previous_reading_value) >= 2.0
+                    )
+                ORDER BY ABS(alert_score - previous_alert_score) DESC, observed_ts DESC
+                LIMIT 5
+                """
+        ).fetchall()
+
+        anomalies: list[dict[str, object]] = []
+        for station_id, station_name, category, region, observed_at, status, previous_status, alert_score_delta, reading_delta in rows:
+                reasons: list[str] = []
+                if status != previous_status:
+                        reasons.append(f"status shifted from {previous_status} to {status}")
+                if abs(alert_score_delta) >= 0.25:
+                        reasons.append(f"alert score moved by {alert_score_delta:+.2f}")
+                if abs(reading_delta) >= 2.0:
+                        reasons.append(f"reading changed by {reading_delta:+.2f}")
+                anomalies.append(
+                        {
+                                "station_id": station_id,
+                                "station_name": station_name,
+                                "category": category,
+                                "region": region,
+                                "observed_at": observed_at,
+                                "status": status,
+                                "previous_status": previous_status,
+                                "alert_score_delta": alert_score_delta,
+                                "reading_delta": reading_delta,
+                                "reason": "; ".join(reasons),
+                        }
+                )
+        return anomalies
+
+
 def compute_summary(
     data_path: Path | None = None,
     csv_path: Path | None = None,
@@ -402,6 +542,7 @@ def compute_summary(
         previous_window = _window_summary(connection, previous_clause)
         regional_trends = _regional_changes(connection, recent_clause, previous_clause)
         category_breakdown = _category_breakdown(connection, report_clause)
+        anomalies = _detect_anomalies(connection, report_clause)
         connection.close()
 
         average_delta = round(
@@ -419,6 +560,7 @@ def compute_summary(
             "latest_alerts": latest_alerts,
             "report_period": report_period,
             "category_breakdown": category_breakdown,
+            "anomalies": anomalies,
             "time_window_trends": {
                 **trend_metadata,
                 "recent": recent_window,
@@ -460,6 +602,10 @@ def build_markdown_report(
         )
         for entry in summary["category_breakdown"]
     ) or "- No category observations in the selected report period"
+    anomaly_lines = "\n".join(
+        f"- {entry['station_name']} ({entry['region']}, {entry['category']}) at {entry['observed_at']}: {entry['reason']}"
+        for entry in summary["anomalies"]
+    ) or "- No anomalies detected in the selected report period"
     report_period_lines = (
         "\n".join(
             [
@@ -506,6 +652,10 @@ def build_markdown_report(
 ## Category Alert Breakdown
 
 {category_lines}
+
+## Anomaly Watch
+
+{anomaly_lines}
 
 ## Regional Trend Shift
 
@@ -568,6 +718,10 @@ def build_html_report(
         """.strip()
         for entry in summary["category_breakdown"]
     )
+    anomaly_cards = "\n".join(
+        f"<li><strong>{escape(entry['station_name'])}</strong> ({escape(entry['region'])}, {escape(entry['category'])}) at {escape(entry['observed_at'])}: {escape(entry['reason'])}</li>"
+        for entry in summary["anomalies"]
+    ) or "<li>No anomalies detected in the selected report period.</li>"
 
     report_period_block = ""
     if report_period is not None:
@@ -654,6 +808,16 @@ def build_html_report(
           <ul class="alerts">{latest_cards}</ul>
         </article>
       </section>
+            <section class="trend-grid">
+                <article class="card">
+                    <p class="eyebrow">Anomaly Watch</p>
+                    <ul class="alerts">{anomaly_cards}</ul>
+                </article>
+                <article class="card">
+                    <p class="eyebrow">Regional Trend Shift</p>
+                    <ul class="alerts">{trend_cards}</ul>
+                </article>
+            </section>
       <section class="category-grid">
         {category_cards}
       </section>

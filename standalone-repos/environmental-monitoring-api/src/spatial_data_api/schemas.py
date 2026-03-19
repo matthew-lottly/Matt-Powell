@@ -70,6 +70,29 @@ class StationThreshold(StationThresholdUpdate):
     feature_id: str = Field(alias="featureId")
 
 
+class ObservationExportSource(BaseModel):
+    name: str
+    exported_at: str = Field(alias="exportedAt")
+    data_source: str = Field(alias="dataSource")
+
+
+class ObservationExportFilters(BaseModel):
+    category: str | None = None
+    region: str | None = None
+    status: str | None = None
+    start_at: str | None = Field(default=None, alias="startAt")
+    end_at: str | None = Field(default=None, alias="endAt")
+    bbox: list[float] | None = None
+
+
+class ObservationExportBundle(BaseModel):
+    source: ObservationExportSource
+    filters: ObservationExportFilters
+    features: FeatureCollection
+    observations: ObservationCollection
+    thresholds: list[StationThreshold]
+
+
 class OperationsSummaryRegionalAlert(BaseModel):
     region: str
     alert_features: int = Field(alias="alertFeatures")

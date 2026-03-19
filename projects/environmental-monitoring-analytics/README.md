@@ -6,9 +6,16 @@ Analytics project for turning monitoring station observations into concise opera
 
 ![HTML report screenshot](assets/report-live-screenshot.png)
 
+## Snapshot
+
+- Lane: Analytics
+- Domain: Environmental monitoring
+- Stack: DuckDB, SQL, Python
+- Includes: operational brief generation, sample reporting output, tests
+
 ## Overview
 
-This project complements the Environmental Monitoring API by focusing on the analytics lane of the portfolio. It uses DuckDB to query a flat observation dataset, calculate alert-oriented metrics, and generate both a markdown operations brief and an HTML summary with visual regional alert bars and category deep dives.
+This project focuses on the analytics lane of the portfolio. It uses DuckDB to query a flat observation dataset, calculate alert-oriented metrics, and generate both a markdown operations brief and an HTML summary with visual regional alert bars and category deep dives.
 
 It is intentionally small and fast to run so a reviewer can move from raw data to a presentable operations brief in a few minutes.
 
@@ -17,7 +24,13 @@ It is intentionally small and fast to run so a reviewer can move from raw data t
 - SQL-first analytics with DuckDB
 - Repeatable reporting from raw observation data
 - Operational metrics for alert rates and regional coverage
-- A second portfolio lane that emphasizes analysis instead of API design
+- Threshold-aware report classification for API-derived snapshot bundles
+- Station-level anomaly detection for sudden operational shifts
+- A reporting workflow that emphasizes analysis instead of API design
+
+## Why This Project Exists
+
+Many data portfolios stop at notebooks. This repository shows a tighter reporting pattern: take raw operational data, compute the key monitoring signals, and produce a concise artifact that can be regenerated consistently.
 
 ## Dataset
 
@@ -34,7 +47,7 @@ The sample dataset models station observations with:
 ## Project Structure
 
 ```text
-projects/environmental-monitoring-analytics/
+environmental-monitoring-analytics/
 |-- data/
 |-- src/environmental_monitoring_analytics/
 |   |-- __init__.py
@@ -56,6 +69,12 @@ python -m environmental_monitoring_analytics.reporting --start-date 2026-03-18 -
 
 The default command uses the checked-in CSV sample. The optional `--input` path also accepts an API-derived JSON snapshot bundle. Use `--start-date` and `--end-date` together to compare a custom inclusive date window against the immediately preceding window of the same length.
 
+## Why It Is Useful In A Portfolio
+
+- Shows SQL and Python working together without requiring a full warehouse or web stack
+- Demonstrates repeatable reporting rather than exploratory-only analysis
+- Gives reviewers a small project they can run quickly and understand end to end
+
 ## Current Outputs
 
 - Total observation count
@@ -65,6 +84,7 @@ The default command uses the checked-in CSV sample. The optional `--input` path 
 - Time-window trend analysis with recent vs previous alert-rate comparison
 - Parameterized date-window comparisons for operational review periods
 - Category alert breakdown with status mix and top-alert stations
+- Anomaly watch section for abrupt status, score, or reading shifts
 - Latest alert stations section in markdown
 - Exportable HTML brief with visual summary blocks, regional alert bars, and category deep-dive cards
 - Support for API-derived JSON snapshot input in addition to the local CSV sample
@@ -92,7 +112,7 @@ $bundle | ConvertTo-Json -Depth 8 | Set-Content data/api_observation_snapshot.js
 python -m environmental_monitoring_analytics.reporting --input data/api_observation_snapshot.json
 ```
 
-The included [data/api_observation_snapshot.json](data/api_observation_snapshot.json) file is a checked-in example of that bundle shape.
+The included [data/api_observation_snapshot.json](data/api_observation_snapshot.json) file is a checked-in example of that bundle shape, including optional threshold metadata used to reclassify alert state from the raw readings.
 
 ## Next Steps
 
@@ -101,4 +121,9 @@ The included [data/api_observation_snapshot.json](data/api_observation_snapshot.
 
 ## Publication
 
-See [PUBLISHING.md](PUBLISHING.md) for the standalone repository plan.
+- License: [LICENSE](LICENSE)
+- Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
+
+## Repository Notes
+
+This copy is intended to be publishable as its own repository. CI is included in [.github/workflows/ci.yml](.github/workflows/ci.yml).

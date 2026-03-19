@@ -1,3 +1,7 @@
+"""Pyright import resolution in the parent workspace does not model this nested src layout."""
+
+# pyright: reportMissingImports=false
+
 from collections.abc import Generator
 
 import pytest
@@ -72,6 +76,27 @@ def test_list_features_by_status() -> None:
     payload = response.json()
     assert len(payload["features"]) == 1
     assert payload["features"][0]["properties"]["name"] == "Sierra Air Quality Node"
+
+
+def test_list_features_by_bounding_box() -> None:
+    response = client.get(
+        "/api/v1/features",
+        params={
+            "min_longitude": -123.0,
+            "min_latitude": 37.0,
+            "max_longitude": -120.0,
+            "max_latitude": 40.0,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert [feature["properties"]["featureId"] for feature in payload["features"]] == ["station-002"]
+
+
+def test_list_features_rejects_partial_bounding_box() -> None:
+    response = client.get("/api/v1/features", params={"min_longitude": -123.0})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "All bounding-box coordinates must be provided together"
 
 
 def test_feature_summary() -> None:
@@ -178,6 +203,46 @@ def test_recent_observations_with_time_window() -> None:
     assert [item["observationId"] for item in payload["observations"]] == ["obs-2001", "obs-1001"]
     assert payload["summary"]["latestObservedAt"] == "2026-03-18T12:05:00Z"
     assert payload["summary"]["earliestObservedAt"] == "2026-03-18T12:00:00Z"
+
+
+def test_export_observations_json_bundle() -> None:
+    response = client.get(
+        "/api/v1/observations/export",
+        params={
+            "region": "West",
+            "min_longitude": -123.0,
+            "min_latitude": 37.0,
+            "max_longitude": -120.0,
+            "max_latitude": 40.0,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"]["name"] == "environmental-monitoring-api"
+    assert payload["filters"]["region"] == "West"
+    assert payload["filters"]["bbox"] == [-123.0, 37.0, -120.0, 40.0]
+    assert [feature["properties"]["featureId"] for feature in payload["features"]["features"]] == ["station-002"]
+    assert payload["observations"]["summary"]["totalObservations"] == 2
+    assert payload["thresholds"] == [
+        {
+            "featureId": "station-002",
+            "metricName": "pm25",
+            "minValue": None,
+            "maxValue": 35.0,
+        }
+    ]
+
+
+def test_export_observations_csv() -> None:
+    response = client.get(
+        "/api/v1/observations/export",
+        params={"format": "csv", "start_at": "2026-03-18T12:00:00Z"},
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    lines = response.text.strip().splitlines()
+    assert lines[0] == "observation_id,feature_id,station_name,category,region,observed_at,metric_name,value,unit,status,min_threshold,max_threshold"
+    assert any("obs-2001,station-002,Sierra Air Quality Node,air_quality,West,2026-03-18T12:05:00Z,pm25,41.8,ug/m3,alert,,35.0" == line for line in lines)
 
 
 def test_feature_observations() -> None:

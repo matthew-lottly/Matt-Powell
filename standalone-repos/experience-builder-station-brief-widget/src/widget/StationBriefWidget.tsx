@@ -7,6 +7,8 @@ import type { StationRecord, StationStatus, WidgetConfig } from "./types";
 interface StationBriefWidgetProps {
   stations: StationRecord[];
   config: WidgetConfig;
+  isLoading: boolean;
+  loadError: string | null;
   onConfigChange: (nextConfig: WidgetConfig) => void;
 }
 
@@ -14,11 +16,12 @@ interface StationBriefWidgetProps {
 const ALL_STATUSES: StationStatus[] = ["alert", "normal", "offline"];
 
 
-export function StationBriefWidget({ stations, config, onConfigChange }: StationBriefWidgetProps) {
+export function StationBriefWidget({ stations, config, isLoading, loadError, onConfigChange }: StationBriefWidgetProps) {
   const regions = useMemo(() => regionsForStations(stations), [stations]);
   const [region, setRegion] = useState(config.defaultRegion ?? "All");
   const [selectedStatuses, setSelectedStatuses] = useState<StationStatus[]>(config.defaultStatuses);
   const [selectedId, setSelectedId] = useState(stations[0]?.id ?? "");
+  const [comparisonId, setComparisonId] = useState(config.comparisonStationId ?? "");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
@@ -29,6 +32,10 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
     setSelectedStatuses(config.defaultStatuses.length === 0 ? ALL_STATUSES : config.defaultStatuses);
   }, [config.defaultStatuses]);
 
+  useEffect(() => {
+    setComparisonId(config.comparisonStationId ?? "");
+  }, [config.comparisonStationId]);
+
   const filteredStations = useMemo(
     () => filterStations(stations, region, selectedStatuses),
     [stations, region, selectedStatuses],
@@ -36,6 +43,10 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
   const summary = useMemo(() => summarizeStations(filteredStations), [filteredStations]);
   const thresholdStations = filteredStations.filter((station) => station.alertScore >= config.alertThreshold);
   const selectedStation = filteredStations.find((station) => station.id === selectedId) ?? filteredStations[0] ?? null;
+  const comparisonCandidates = filteredStations.filter((station) => station.id !== selectedStation?.id);
+  const comparisonStation = config.comparisonMode
+    ? comparisonCandidates.find((station) => station.id === comparisonId) ?? comparisonCandidates[0] ?? null
+    : null;
 
   useEffect(() => {
     if (filteredStations.length === 0) {
@@ -47,6 +58,22 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
       setSelectedId(filteredStations[0].id);
     }
   }, [filteredStations, selectedStation]);
+
+  useEffect(() => {
+    if (!config.comparisonMode) {
+      setComparisonId("");
+      return;
+    }
+    if (comparisonCandidates.length === 0) {
+      setComparisonId("");
+      return;
+    }
+    if (!comparisonStation) {
+      const nextComparisonId = comparisonCandidates[0].id;
+      setComparisonId(nextComparisonId);
+      updateConfig("comparisonStationId", nextComparisonId);
+    }
+  }, [comparisonCandidates, comparisonStation, config.comparisonMode]);
 
   function updateConfig<K extends keyof WidgetConfig>(key: K, value: WidgetConfig[K]) {
     onConfigChange({ ...config, [key]: value });
@@ -61,6 +88,52 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
     updateConfig("defaultStatuses", normalizedStatuses);
   }
 
+  function renderStationDetailCard(station: StationRecord, heading: string) {
+    return (
+      <article className="comparison-card">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">{heading}</p>
+            <h3>{station.name}</h3>
+          </div>
+          <span className={`status-chip ${station.status}`}>{station.status}</span>
+        </div>
+        <div className="detail-grid">
+          <div>
+            <p className="detail-label">Region</p>
+            <strong>{station.region}</strong>
+          </div>
+          <div>
+            <p className="detail-label">Category</p>
+            <strong>{station.category.replaceAll("_", " ")}</strong>
+          </div>
+          <div>
+            <p className="detail-label">Last Observed</p>
+            <strong>{station.lastObservedAt}</strong>
+          </div>
+          <div>
+            <p className="detail-label">Reading</p>
+            <strong>{station.readingValue} {station.unit}</strong>
+          </div>
+          {config.showOwner ? (
+            <div>
+              <p className="detail-label">Owner</p>
+              <strong>{station.owner}</strong>
+            </div>
+          ) : null}
+          <div>
+            <p className="detail-label">Alert Score</p>
+            <strong>{station.alertScore}</strong>
+          </div>
+        </div>
+        <div className="history-preview">
+          <p className="detail-label">Latest History Note</p>
+          <p className="section-copy">{station.observations[0]?.note ?? "No observations available."}</p>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <section className="widget-shell">
       <div className="widget-header">
@@ -68,6 +141,10 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
           <p className="eyebrow">Widget Surface</p>
           <h2>{config.title}</h2>
           <p className="section-copy">{config.subtitle}</p>
+          <div className="runtime-badges">
+            <span className="badge">{config.dataSource === "live" ? "Live API" : "Mock Snapshot"}</span>
+            {isLoading ? <span className="badge">Refreshing</span> : null}
+          </div>
         </div>
         <div className="widget-controls">
           <label className="control-block">
@@ -98,6 +175,12 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
           </fieldset>
         </div>
       </div>
+
+      {loadError ? (
+        <div className="runtime-banner" role="status">
+          Live API load failed: {loadError}. Showing the built-in mock snapshot instead.
+        </div>
+      ) : null}
 
       <div className="summary-grid">
         <article className="summary-card accent-sand">
@@ -190,6 +273,19 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
               </label>
             </div>
             <div>
+              <label className="control-block">
+                <span>Data Source</span>
+                <select
+                  aria-label="Data Source"
+                  value={config.dataSource}
+                  onChange={(event) => updateConfig("dataSource", event.target.value as WidgetConfig["dataSource"])}
+                >
+                  <option value="mock">Mock Snapshot</option>
+                  <option value="live">Live API</option>
+                </select>
+              </label>
+            </div>
+            <div>
               <label className="toggle-block">
                 <span>Show Owner</span>
                 <input
@@ -199,12 +295,55 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
                 />
               </label>
             </div>
+            <div>
+              <label className="toggle-block">
+                <span>Comparison Mode</span>
+                <input
+                  aria-label="Comparison Mode"
+                  type="checkbox"
+                  checked={config.comparisonMode}
+                  onChange={(event) => updateConfig("comparisonMode", event.target.checked)}
+                />
+              </label>
+            </div>
             <div className="config-span-two">
               <label className="control-block">
                 <span>Subtitle</span>
                 <input value={config.subtitle} onChange={(event) => updateConfig("subtitle", event.target.value)} />
               </label>
             </div>
+            <div className="config-span-two">
+              <label className="control-block">
+                <span>API Base URL</span>
+                <input
+                  aria-label="API Base URL"
+                  value={config.apiBaseUrl}
+                  onChange={(event) => updateConfig("apiBaseUrl", event.target.value)}
+                />
+              </label>
+            </div>
+            {config.comparisonMode ? (
+              <div className="config-span-two">
+                <label className="control-block">
+                  <span>Comparison Station</span>
+                  <select
+                    aria-label="Comparison Station"
+                    value={comparisonStation?.id ?? ""}
+                    onChange={(event) => {
+                      setComparisonId(event.target.value);
+                      updateConfig("comparisonStationId", event.target.value || null);
+                    }}
+                  >
+                    {comparisonCandidates.length === 0 ? <option value="">No comparison stations</option> : null}
+                    {comparisonCandidates.map((station) => (
+                      <option key={station.id} value={station.id}>
+                        {station.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
             <div className="config-span-two">
               <p className="detail-label">Persisted Statuses</p>
               <strong>{selectedStatuses.join(", ")}</strong>
@@ -255,10 +394,10 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
               <div className="panel-head">
                 <div>
                   <p className="eyebrow">Station Detail</p>
-                  <h3>{selectedStation.name}</h3>
+                  <h3>{config.comparisonMode ? "Side-by-Side Comparison" : selectedStation.name}</h3>
                 </div>
                 <div className="panel-actions">
-                  <span className={`status-chip ${selectedStation.status}`}>{selectedStation.status}</span>
+                  {!config.comparisonMode ? <span className={`status-chip ${selectedStation.status}`}>{selectedStation.status}</span> : null}
                   <button
                     type="button"
                     className="history-button"
@@ -269,38 +408,20 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
                   </button>
                 </div>
               </div>
-              <div className="detail-grid">
-                <div>
-                  <p className="detail-label">Region</p>
-                  <strong>{selectedStation.region}</strong>
+              {config.comparisonMode ? (
+                <div className="comparison-grid">
+                  {renderStationDetailCard(selectedStation, "Primary Station")}
+                  {comparisonStation ? (
+                    renderStationDetailCard(comparisonStation, "Comparison Station")
+                  ) : (
+                    <article className="comparison-card comparison-empty">
+                      <p className="section-copy">No second station matches the current filters.</p>
+                    </article>
+                  )}
                 </div>
-                <div>
-                  <p className="detail-label">Category</p>
-                  <strong>{selectedStation.category.replaceAll("_", " ")}</strong>
-                </div>
-                <div>
-                  <p className="detail-label">Last Observed</p>
-                  <strong>{selectedStation.lastObservedAt}</strong>
-                </div>
-                <div>
-                  <p className="detail-label">Reading</p>
-                  <strong>{selectedStation.readingValue} {selectedStation.unit}</strong>
-                </div>
-                {config.showOwner ? (
-                  <div>
-                    <p className="detail-label">Owner</p>
-                    <strong>{selectedStation.owner}</strong>
-                  </div>
-                ) : null}
-                <div>
-                  <p className="detail-label">Alert Score</p>
-                  <strong>{selectedStation.alertScore}</strong>
-                </div>
-              </div>
-              <div className="history-preview">
-                <p className="detail-label">Latest History Note</p>
-                <p className="section-copy">{selectedStation.observations[0]?.note}</p>
-              </div>
+              ) : (
+                renderStationDetailCard(selectedStation, "Station Detail")
+              )}
             </>
           ) : (
             <p className="section-copy">No station matches the current filters.</p>
