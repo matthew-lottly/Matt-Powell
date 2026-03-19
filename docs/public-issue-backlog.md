@@ -27,19 +27,17 @@ Completed recently:
 
 ## monitoring-data-warehouse
 
-- [#2 Document PostgreSQL partitioning and retention strategy for migration](https://github.com/matthew-lottly/monitoring-data-warehouse/issues/2)
-
 Completed recently:
 
 - [#1 Add a slowly changing dimension example for station attributes](https://github.com/matthew-lottly/monitoring-data-warehouse/issues/1)
+- [#2 Document PostgreSQL partitioning and retention strategy for migration](https://github.com/matthew-lottly/monitoring-data-warehouse/issues/2)
 
 ## experience-builder-station-brief-widget
-
-- [#2 Add an interaction walkthrough asset for the widget demo](https://github.com/matthew-lottly/experience-builder-station-brief-widget/issues/2)
 
 Completed recently:
 
 - [#1 Persist mock widget configuration across reloads](https://github.com/matthew-lottly/experience-builder-station-brief-widget/issues/1)
+- [#2 Add an interaction walkthrough asset for the widget demo](https://github.com/matthew-lottly/experience-builder-station-brief-widget/issues/2)
 
 ## Current State
 
@@ -47,6 +45,6 @@ Completed recently:
 - The standalone repositories now each have an initial issue backlog.
 - The API lane now ships filtered observation rollup summaries in the observation endpoints, a dashboard that highlights recent alert readings and recent status changes, and a CI workflow that publishes a public container image. Issues `environmental-monitoring-api#1` and `environmental-monitoring-api#2` are closed.
 - The analytics lane now ships rolling recent-vs-previous window trend analysis and API-derived snapshot input support, and issues `environmental-monitoring-analytics#1` and `environmental-monitoring-analytics#2` are closed.
-- The widget lane now persists mock configuration across reloads, and issue `experience-builder-station-brief-widget#1` is closed.
-- The warehouse lane now includes a Type 2 station-attribute history example, and issue `monitoring-data-warehouse#1` is closed.
+- The widget lane now persists mock configuration across reloads and includes an interaction walkthrough asset, and issues `experience-builder-station-brief-widget#1` and `experience-builder-station-brief-widget#2` are closed.
+- The warehouse lane now includes a Type 2 station-attribute history example plus concrete PostgreSQL migration notes, and issues `monitoring-data-warehouse#1` and `monitoring-data-warehouse#2` are closed.
 - GitHub profile pinning still needs to be set manually in the GitHub UI.

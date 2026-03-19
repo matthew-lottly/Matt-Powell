@@ -30,3 +30,15 @@ The warehouse includes `dim_station_attribute_history` as a compact Type 2 histo
 - `owner_team` and `response_tier` illustrate how station operations metadata can evolve without overwriting prior state
 
 This keeps the example focused on a pattern a reviewer will recognize immediately, without expanding the repo into a full enterprise warehouse.
+
+## PostgreSQL Retention And Partitioning Notes
+
+The DuckDB build is intentionally compact, but the same model translates cleanly to PostgreSQL with a few operational decisions:
+
+- Partition `fact_observation` by date so routine retention and vacuum work stays bounded.
+- Retain raw ingest-stage data for a shorter audit window, such as 30 to 90 days, once warehouse loads are proven repeatable.
+- Retain `fact_observation` for a longer operational history, such as 13 to 24 months, so alert and status analysis still has seasonal context.
+- Retain derived daily marts longer than raw staging data because they are smaller and more useful for reporting baselines.
+- Archive or snapshot partitions before deletion if regulatory or incident-review needs require longer lookback.
+
+The dedicated migration note in `docs/postgresql-migration-strategy.md` turns those choices into a concrete reviewer-facing plan.

@@ -6,6 +6,8 @@ Public-safe TypeScript and React prototype of an ArcGIS Experience Builder style
 
 ![Live widget screenshot](assets/widget-live-screenshot.png)
 
+![Interaction walkthrough](assets/widget-interaction-walkthrough.svg)
+
 ## Snapshot
 
 - Lane: GIS application development
@@ -73,6 +75,8 @@ npm run build
 This is not a full ArcGIS Experience Builder export. It is a deliberately public-safe prototype that demonstrates component structure, interaction patterns, and data-shaping logic relevant to Experience Builder widget work.
 
 The configuration panel now persists key widget settings in browser local storage so a reviewer can see settings survive refresh without requiring a backend.
+
+The interaction walkthrough asset highlights the main reviewer path: switch the region filter to `West`, select `Sierra Air Quality Node`, and confirm that the map-adjacent marker, summary counts, and detail panel stay in sync.
 
 See [docs/architecture.md](docs/architecture.md) for the widget design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for a short walkthrough script.

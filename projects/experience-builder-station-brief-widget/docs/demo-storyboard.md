@@ -1,5 +1,7 @@
 # Demo Storyboard
 
+Reference asset: `assets/widget-interaction-walkthrough.svg`
+
 ## 1. Frame the use case
 
 Show the widget as a compact operational panel that could sit beside a map or dashboard in an ArcGIS Experience Builder app.
@@ -23,3 +25,7 @@ Click `Sierra Air Quality Node` to highlight the detail panel and show the readi
 ## 6. Explain the public-safe angle
 
 Close by noting that the code reflects the interaction and component patterns of Experience Builder widget work without exposing any private employer implementation.
+
+## 7. Reviewer shortcut
+
+If a reviewer does not want to run the demo locally, use the walkthrough SVG to show the same sequence in one lightweight asset.

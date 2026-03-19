@@ -74,12 +74,12 @@ monitoring-data-warehouse/
 
 See [docs/model-notes.md](docs/model-notes.md) for the modeling rationale behind the warehouse shape.
 See [docs/architecture.md](docs/architecture.md) for the warehouse build flow.
+See [docs/postgresql-migration-strategy.md](docs/postgresql-migration-strategy.md) for concrete partitioning and retention notes for a PostgreSQL migration path.
 See [docs/schema-diagram.md](docs/schema-diagram.md) for a quick view of the warehouse structure.
 
 ## Next Steps
 
 - Add dbt-style dependency metadata
-- Add partitioning and retention strategy notes for PostgreSQL migration
 - Add source freshness and late-arriving dimension handling notes
 
 ## Publication
