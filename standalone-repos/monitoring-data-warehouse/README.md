@@ -9,7 +9,7 @@ Database-engineering project for modeling, building, and validating a monitoring
 - Lane: Database engineering
 - Domain: Environmental monitoring
 - Stack: DuckDB, SQL, Python
-- Includes: dimensional model, fact table, alert mart, quality checks, tests
+- Includes: dimensional model, fact table, alert mart, quality checks, model metadata, tests
 
 ## Overview
 
@@ -21,6 +21,7 @@ This project represents the database-engineering lane of the portfolio. It start
 - Dimension and fact table modeling
 - Repeatable SQL execution against DuckDB
 - Data quality checks for operational datasets
+- dbt-style model dependency metadata and executable data contracts
 - A portfolio lane focused on database structure and reliability
 
 ## Why This Project Exists
@@ -71,16 +72,18 @@ monitoring-data-warehouse/
 - Row-count and quality-check summary
 - A slowly changing dimension example for station ownership and response tier
 - Sample daily alert and regional status marts
+- A manifest-backed model catalog and contract check summary
 
 See [docs/model-notes.md](docs/model-notes.md) for the modeling rationale behind the warehouse shape.
 See [docs/architecture.md](docs/architecture.md) for the warehouse build flow.
+See [docs/model-catalog.md](docs/model-catalog.md) for model dependencies, grains, and contract coverage.
 See [docs/postgresql-migration-strategy.md](docs/postgresql-migration-strategy.md) for concrete partitioning and retention notes for a PostgreSQL migration path.
 See [docs/schema-diagram.md](docs/schema-diagram.md) for a quick view of the warehouse structure.
 
 ## Next Steps
 
-- Add dbt-style dependency metadata
-- Add source freshness and late-arriving dimension handling notes
+- Add source freshness thresholds and late-arriving dimension handling notes
+- Generate contract results into a lightweight build artifact for CI review
 
 ## Publication
 

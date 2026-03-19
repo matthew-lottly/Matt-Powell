@@ -1,11 +1,13 @@
-import type { StationRecord, WidgetSummary } from "./types";
+import type { StationRecord, StationStatus, WidgetSummary } from "./types";
 
 
-export function filterStations(stations: StationRecord[], region: string): StationRecord[] {
-  if (region === "All") {
-    return stations;
-  }
-  return stations.filter((station) => station.region === region);
+export function filterStations(stations: StationRecord[], region: string, statuses: StationStatus[]): StationRecord[] {
+  const visibleStatuses = statuses.length === 0 ? ["alert", "normal", "offline"] : statuses;
+  return stations.filter((station) => {
+    const regionMatches = region === "All" || station.region === region;
+    const statusMatches = visibleStatuses.includes(station.status);
+    return regionMatches && statusMatches;
+  });
 }
 
 

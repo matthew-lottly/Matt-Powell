@@ -1,6 +1,15 @@
 export type StationStatus = "normal" | "alert" | "offline";
 
 
+export interface StationObservation {
+  observedAt: string;
+  status: StationStatus;
+  alertScore: number;
+  readingValue: number;
+  note: string;
+}
+
+
 export interface StationRecord {
   id: string;
   name: string;
@@ -12,6 +21,7 @@ export interface StationRecord {
   lastObservedAt: string;
   readingValue: number;
   unit: string;
+  observations: StationObservation[];
 }
 
 
@@ -21,6 +31,7 @@ export interface WidgetConfig {
   showOwner: boolean;
   defaultRegion: string | null;
   alertThreshold: number;
+  defaultStatuses: StationStatus[];
 }
 
 

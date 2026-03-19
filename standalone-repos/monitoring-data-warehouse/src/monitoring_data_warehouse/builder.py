@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import duckdb
+import yaml
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -8,6 +9,7 @@ DATA_PATH = PROJECT_ROOT / "data" / "station_readings.csv"
 ATTRIBUTE_HISTORY_PATH = PROJECT_ROOT / "data" / "station_attribute_history.csv"
 SCHEMA_PATH = PROJECT_ROOT / "sql" / "schema.sql"
 TRANSFORM_PATH = PROJECT_ROOT / "sql" / "transforms.sql"
+METADATA_PATH = PROJECT_ROOT / "metadata" / "warehouse_models.yml"
 WAREHOUSE_PATH = PROJECT_ROOT / "monitoring_warehouse.duckdb"
 
 
@@ -18,8 +20,34 @@ def _scalar(connection: duckdb.DuckDBPyConnection, query: str) -> int:
     return int(row[0])
 
 
+def _load_metadata(metadata_path: Path = METADATA_PATH) -> dict:
+    return yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
+
+
+def _run_contract_checks(connection: duckdb.DuckDBPyConnection, metadata: dict) -> dict:
+    checks: list[dict[str, object]] = []
+    for model in metadata.get("models", []):
+        contract = model.get("contract", {})
+        for check in contract.get("checks", []):
+            actual = _scalar(connection, check["query"])
+            expected = int(check.get("expected", 0))
+            checks.append(
+                {
+                    "model": model["name"],
+                    "name": check["name"],
+                    "expected": expected,
+                    "actual": actual,
+                    "passed": actual == expected,
+                }
+            )
+
+    failed_checks = [check for check in checks if not check["passed"]]
+    return {"checks": checks, "failed_checks": failed_checks}
+
+
 def build_warehouse(database_path: Path | None = None) -> dict:
     db_path = database_path or WAREHOUSE_PATH
+    metadata = _load_metadata()
     connection = duckdb.connect(str(db_path))
     csv_literal = str(DATA_PATH).replace("\\", "/").replace("'", "''")
     connection.execute(
@@ -89,8 +117,20 @@ def build_warehouse(database_path: Path | None = None) -> dict:
             "SELECT COUNT(*) FROM dim_station_attribute_history WHERE effective_to IS NULL",
         ),
     }
+    contracts = _run_contract_checks(connection, metadata)
+    quality["contract_failures"] = len(contracts["failed_checks"])
     connection.close()
-    return {"counts": counts, "quality": quality, "warehouse_path": str(db_path)}
+    return {
+        "counts": counts,
+        "quality": quality,
+        "contracts": contracts,
+        "metadata": {
+            "source_count": len(metadata.get("sources", [])),
+            "model_count": len(metadata.get("models", [])),
+            "documented_models": [model["name"] for model in metadata.get("models", [])],
+        },
+        "warehouse_path": str(db_path),
+    }
 
 
 def main() -> None:

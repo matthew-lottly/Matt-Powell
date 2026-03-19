@@ -6,8 +6,14 @@ import { filterStations, regionsForStations, summarizeStations } from "../src/wi
 
 describe("station brief widget transforms", () => {
   test("filters by region", () => {
-    const filtered = filterStations(mockStations, "West");
+    const filtered = filterStations(mockStations, "West", ["alert", "normal", "offline"]);
     expect(filtered).toHaveLength(2);
+    expect(filtered[0].id).toBe("station-002");
+  });
+
+  test("filters by region and selected statuses", () => {
+    const filtered = filterStations(mockStations, "West", ["alert"]);
+    expect(filtered).toHaveLength(1);
     expect(filtered[0].id).toBe("station-002");
   });
 

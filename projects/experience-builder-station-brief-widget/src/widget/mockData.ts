@@ -7,6 +7,7 @@ export const defaultConfig: WidgetConfig = {
   showOwner: true,
   defaultRegion: null,
   alertThreshold: 0.75,
+  defaultStatuses: ["alert", "normal", "offline"],
 };
 
 
@@ -22,6 +23,29 @@ export const mockStations: StationRecord[] = [
     lastObservedAt: "2026-03-18T13:00:00Z",
     readingValue: 7.2,
     unit: "ft",
+    observations: [
+      {
+        observedAt: "2026-03-18T13:00:00Z",
+        status: "alert",
+        alertScore: 0.81,
+        readingValue: 7.2,
+        note: "Flood-stage threshold exceeded at the upstream gauge.",
+      },
+      {
+        observedAt: "2026-03-18T12:00:00Z",
+        status: "normal",
+        alertScore: 0.58,
+        readingValue: 6.4,
+        note: "Stage rising steadily through the midday run.",
+      },
+      {
+        observedAt: "2026-03-18T11:00:00Z",
+        status: "normal",
+        alertScore: 0.42,
+        readingValue: 5.9,
+        note: "Within seasonal range before the frontal system arrived.",
+      },
+    ],
   },
   {
     id: "station-002",
@@ -34,6 +58,29 @@ export const mockStations: StationRecord[] = [
     lastObservedAt: "2026-03-18T13:05:00Z",
     readingValue: 79.3,
     unit: "AQI",
+    observations: [
+      {
+        observedAt: "2026-03-18T13:05:00Z",
+        status: "alert",
+        alertScore: 0.88,
+        readingValue: 79.3,
+        note: "Smoke plume remains concentrated on the east side of the basin.",
+      },
+      {
+        observedAt: "2026-03-18T12:05:00Z",
+        status: "alert",
+        alertScore: 0.91,
+        readingValue: 83.5,
+        note: "Air-quality advisory stayed active during the prior observation.",
+      },
+      {
+        observedAt: "2026-03-18T11:05:00Z",
+        status: "normal",
+        alertScore: 0.46,
+        readingValue: 58.1,
+        note: "Conditions were elevated but below the alert threshold earlier in the day.",
+      },
+    ],
   },
   {
     id: "station-003",
@@ -46,6 +93,29 @@ export const mockStations: StationRecord[] = [
     lastObservedAt: "2026-03-17T22:30:00Z",
     readingValue: 2.1,
     unit: "mg/L",
+    observations: [
+      {
+        observedAt: "2026-03-17T22:30:00Z",
+        status: "offline",
+        alertScore: 0.15,
+        readingValue: 2.1,
+        note: "Telemetry heartbeat dropped after the evening buoy sync.",
+      },
+      {
+        observedAt: "2026-03-17T21:30:00Z",
+        status: "normal",
+        alertScore: 0.23,
+        readingValue: 2.4,
+        note: "Water-quality readings were stable before the communications loss.",
+      },
+      {
+        observedAt: "2026-03-17T20:30:00Z",
+        status: "normal",
+        alertScore: 0.2,
+        readingValue: 2.3,
+        note: "Battery voltage and dissolved oxygen levels were nominal.",
+      },
+    ],
   },
   {
     id: "station-004",
@@ -58,6 +128,29 @@ export const mockStations: StationRecord[] = [
     lastObservedAt: "2026-03-18T11:15:00Z",
     readingValue: 4.9,
     unit: "ft",
+    observations: [
+      {
+        observedAt: "2026-03-18T11:15:00Z",
+        status: "normal",
+        alertScore: 0.34,
+        readingValue: 4.9,
+        note: "Snowmelt contribution remains within the planned operating band.",
+      },
+      {
+        observedAt: "2026-03-18T10:15:00Z",
+        status: "normal",
+        alertScore: 0.31,
+        readingValue: 4.7,
+        note: "Reservoir release schedule held the downstream channel steady.",
+      },
+      {
+        observedAt: "2026-03-18T09:15:00Z",
+        status: "normal",
+        alertScore: 0.28,
+        readingValue: 4.6,
+        note: "No operator intervention required in the overnight cycle.",
+      },
+    ],
   },
   {
     id: "station-005",
@@ -70,5 +163,28 @@ export const mockStations: StationRecord[] = [
     lastObservedAt: "2026-03-18T10:40:00Z",
     readingValue: 6.8,
     unit: "mg/L",
+    observations: [
+      {
+        observedAt: "2026-03-18T10:40:00Z",
+        status: "alert",
+        alertScore: 0.76,
+        readingValue: 6.8,
+        note: "Salinity intrusion remains above the habitat protection threshold.",
+      },
+      {
+        observedAt: "2026-03-18T09:40:00Z",
+        status: "alert",
+        alertScore: 0.72,
+        readingValue: 6.3,
+        note: "Follow-up field sample requested by the habitat program.",
+      },
+      {
+        observedAt: "2026-03-18T08:40:00Z",
+        status: "normal",
+        alertScore: 0.49,
+        readingValue: 5.4,
+        note: "Trend moved upward after the overnight tidal cycle.",
+      },
+    ],
   },
 ];

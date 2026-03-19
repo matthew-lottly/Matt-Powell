@@ -21,7 +21,7 @@ export function App() {
           <h1>Experience Builder Station Brief Widget</h1>
           <p className="hero-copy">
             Public-safe React and TypeScript prototype of an ArcGIS Experience Builder style widget for station
-            filtering, operational summaries, and selection-driven station detail panels.
+            filtering, operational summaries, persisted status filters, and selection-driven station detail panels.
           </p>
         </div>
         <div className="hero-notes">

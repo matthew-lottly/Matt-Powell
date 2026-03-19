@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { filterStations, regionsForStations, summarizeStations } from "./transform";
-import type { StationRecord, WidgetConfig } from "./types";
+import type { StationRecord, StationStatus, WidgetConfig } from "./types";
 
 
 interface StationBriefWidgetProps {
@@ -11,28 +11,54 @@ interface StationBriefWidgetProps {
 }
 
 
+const ALL_STATUSES: StationStatus[] = ["alert", "normal", "offline"];
+
+
 export function StationBriefWidget({ stations, config, onConfigChange }: StationBriefWidgetProps) {
   const regions = useMemo(() => regionsForStations(stations), [stations]);
   const [region, setRegion] = useState(config.defaultRegion ?? "All");
+  const [selectedStatuses, setSelectedStatuses] = useState<StationStatus[]>(config.defaultStatuses);
   const [selectedId, setSelectedId] = useState(stations[0]?.id ?? "");
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
     setRegion(config.defaultRegion ?? "All");
   }, [config.defaultRegion]);
 
-  const filteredStations = useMemo(() => filterStations(stations, region), [stations, region]);
+  useEffect(() => {
+    setSelectedStatuses(config.defaultStatuses.length === 0 ? ALL_STATUSES : config.defaultStatuses);
+  }, [config.defaultStatuses]);
+
+  const filteredStations = useMemo(
+    () => filterStations(stations, region, selectedStatuses),
+    [stations, region, selectedStatuses],
+  );
   const summary = useMemo(() => summarizeStations(filteredStations), [filteredStations]);
   const thresholdStations = filteredStations.filter((station) => station.alertScore >= config.alertThreshold);
   const selectedStation = filteredStations.find((station) => station.id === selectedId) ?? filteredStations[0] ?? null;
 
   useEffect(() => {
-    if (!selectedStation && filteredStations[0]) {
+    if (filteredStations.length === 0) {
+      setSelectedId("");
+      setIsHistoryOpen(false);
+      return;
+    }
+    if (!selectedStation) {
       setSelectedId(filteredStations[0].id);
     }
   }, [filteredStations, selectedStation]);
 
   function updateConfig<K extends keyof WidgetConfig>(key: K, value: WidgetConfig[K]) {
     onConfigChange({ ...config, [key]: value });
+  }
+
+  function toggleStatus(status: StationStatus) {
+    const nextStatuses = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((entry) => entry !== status)
+      : [...selectedStatuses, status];
+    const normalizedStatuses = nextStatuses.length === 0 ? ALL_STATUSES : nextStatuses;
+    setSelectedStatuses(normalizedStatuses);
+    updateConfig("defaultStatuses", normalizedStatuses);
   }
 
   return (
@@ -43,16 +69,34 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
           <h2>{config.title}</h2>
           <p className="section-copy">{config.subtitle}</p>
         </div>
-        <label className="control-block">
-          <span>Region</span>
-          <select value={region} onChange={(event) => setRegion(event.target.value)}>
-            {regions.map((entry) => (
-              <option key={entry} value={entry}>
-                {entry}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="widget-controls">
+          <label className="control-block">
+            <span>Region</span>
+            <select value={region} onChange={(event) => setRegion(event.target.value)}>
+              {regions.map((entry) => (
+                <option key={entry} value={entry}>
+                  {entry}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className="filter-group">
+            <legend>Visible Statuses</legend>
+            <div className="status-filter-list">
+              {ALL_STATUSES.map((status) => (
+                <label key={status} className={`status-filter ${selectedStatuses.includes(status) ? "active" : ""}`}>
+                  <input
+                    aria-label={`${status} status filter`}
+                    type="checkbox"
+                    checked={selectedStatuses.includes(status)}
+                    onChange={() => toggleStatus(status)}
+                  />
+                  <span>{status}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
       </div>
 
       <div className="summary-grid">
@@ -161,6 +205,10 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
                 <input value={config.subtitle} onChange={(event) => updateConfig("subtitle", event.target.value)} />
               </label>
             </div>
+            <div className="config-span-two">
+              <p className="detail-label">Persisted Statuses</p>
+              <strong>{selectedStatuses.join(", ")}</strong>
+            </div>
             <div>
               <p className="detail-label">Above Threshold</p>
               <strong>{thresholdStations.length}</strong>
@@ -188,6 +236,7 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
                 key={station.id}
                 className={`station-row${selectedStation?.id === station.id ? " active" : ""}`}
                 type="button"
+                aria-label={`Select ${station.name} in list`}
                 onClick={() => setSelectedId(station.id)}
               >
                 <div>
@@ -208,7 +257,17 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
                   <p className="eyebrow">Station Detail</p>
                   <h3>{selectedStation.name}</h3>
                 </div>
-                <span className={`status-chip ${selectedStation.status}`}>{selectedStation.status}</span>
+                <div className="panel-actions">
+                  <span className={`status-chip ${selectedStation.status}`}>{selectedStation.status}</span>
+                  <button
+                    type="button"
+                    className="history-button"
+                    aria-label={`View history for ${selectedStation.name}`}
+                    onClick={() => setIsHistoryOpen(true)}
+                  >
+                    View History
+                  </button>
+                </div>
               </div>
               <div className="detail-grid">
                 <div>
@@ -238,12 +297,58 @@ export function StationBriefWidget({ stations, config, onConfigChange }: Station
                   <strong>{selectedStation.alertScore}</strong>
                 </div>
               </div>
+              <div className="history-preview">
+                <p className="detail-label">Latest History Note</p>
+                <p className="section-copy">{selectedStation.observations[0]?.note}</p>
+              </div>
             </>
           ) : (
             <p className="section-copy">No station matches the current filters.</p>
           )}
         </section>
       </div>
+
+      {isHistoryOpen && selectedStation ? (
+        <div className="modal-overlay" role="presentation" onClick={() => setIsHistoryOpen(false)}>
+          <div
+            className="history-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">Observation History</p>
+                <h3 id="history-modal-title">{selectedStation.name} history</h3>
+              </div>
+              <button type="button" className="history-button" onClick={() => setIsHistoryOpen(false)}>
+                Close
+              </button>
+            </div>
+            <div className="history-grid">
+              {selectedStation.observations.map((observation) => (
+                <article key={`${selectedStation.id}-${observation.observedAt}`} className="history-row">
+                  <div>
+                    <p className="detail-label">Observed</p>
+                    <strong>{observation.observedAt}</strong>
+                  </div>
+                  <div>
+                    <p className="detail-label">Reading</p>
+                    <strong>{observation.readingValue} {selectedStation.unit}</strong>
+                  </div>
+                  <div>
+                    <p className="detail-label">Alert Score</p>
+                    <strong>{observation.alertScore}</strong>
+                  </div>
+                  <span className={`status-chip ${observation.status}`}>{observation.status}</span>
+                  <p className="section-copy history-note">{observation.note}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

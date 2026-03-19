@@ -19,3 +19,9 @@ def test_build_warehouse(tmp_path: Path) -> None:
     assert summary["quality"]["distinct_observation_dates"] == 2
     assert summary["quality"]["current_station_attribute_rows"] == 5
     assert summary["quality"]["open_ended_history_rows"] == 5
+    assert summary["quality"]["contract_failures"] == 0
+    assert summary["metadata"]["source_count"] == 2
+    assert summary["metadata"]["model_count"] == 7
+    assert "fact_observation" in summary["metadata"]["documented_models"]
+    assert summary["contracts"]["failed_checks"] == []
+    assert any(check["name"] == "non_null_dimension_keys" for check in summary["contracts"]["checks"])
