@@ -15,7 +15,7 @@ Analytics project for turning monitoring station observations into concise opera
 
 ## Overview
 
-This project focuses on the analytics lane of the portfolio. It uses DuckDB to query a flat observation dataset, calculate alert-oriented metrics, and generate both a markdown operations brief and an HTML summary with visual regional alert bars.
+This project focuses on the analytics lane of the portfolio. It uses DuckDB to query a flat observation dataset, calculate alert-oriented metrics, and generate both a markdown operations brief and an HTML summary with visual regional alert bars and category deep dives.
 
 It is intentionally small and fast to run so a reviewer can move from raw data to a presentable operations brief in a few minutes.
 
@@ -62,9 +62,10 @@ environmental-monitoring-analytics/
 pip install -e .[dev]
 python -m environmental_monitoring_analytics.reporting
 python -m environmental_monitoring_analytics.reporting --input data/api_observation_snapshot.json
+python -m environmental_monitoring_analytics.reporting --start-date 2026-03-18 --end-date 2026-03-18
 ```
 
-The default command uses the checked-in CSV sample. The optional `--input` path also accepts an API-derived JSON snapshot bundle.
+The default command uses the checked-in CSV sample. The optional `--input` path also accepts an API-derived JSON snapshot bundle. Use `--start-date` and `--end-date` together to compare a custom inclusive date window against the immediately preceding window of the same length.
 
 ## Why It Is Useful In A Portfolio
 
@@ -79,8 +80,10 @@ The default command uses the checked-in CSV sample. The optional `--input` path 
 - Average alert score
 - Regional alert breakdown
 - Time-window trend analysis with recent vs previous alert-rate comparison
+- Parameterized date-window comparisons for operational review periods
+- Category alert breakdown with status mix and top-alert stations
 - Latest alert stations section in markdown
-- Exportable HTML brief with visual summary blocks and regional alert bars
+- Exportable HTML brief with visual summary blocks, regional alert bars, and category deep-dive cards
 - Support for API-derived JSON snapshot input in addition to the local CSV sample
 
 See [docs/sample-operations-brief.md](docs/sample-operations-brief.md) for a sample generated brief.
@@ -110,8 +113,8 @@ The included [data/api_observation_snapshot.json](data/api_observation_snapshot.
 
 ## Next Steps
 
-- Add parameterized report windows for longer operational comparisons
-- Add support for larger exported snapshots and batch comparisons
+- Add larger snapshot fixtures for multi-day operational comparisons
+- Add saved report presets for recurring operations reviews
 
 ## Publication
 

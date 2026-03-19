@@ -4,12 +4,10 @@ This file tracks the initial public issue backlog created across the standalone 
 
 ## Recommended Delivery Order
 
-1. environmental-monitoring-analytics#5
-2. environmental-monitoring-analytics#6
-3. experience-builder-station-brief-widget#5
-4. experience-builder-station-brief-widget#6
-5. monitoring-data-warehouse#5
-6. monitoring-data-warehouse#6
+1. experience-builder-station-brief-widget#5
+2. experience-builder-station-brief-widget#6
+3. monitoring-data-warehouse#5
+4. monitoring-data-warehouse#6
 
 This order keeps the flagship backend moving first, then deepens the analytics story, then adds richer widget interactions, and finally expands warehouse engineering discipline.
 
@@ -24,13 +22,12 @@ Completed recently:
 
 ## environmental-monitoring-analytics
 
-- [#5 Add parameterized report windows for custom comparisons](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/5)
-- [#6 Add category deep-dive insights to HTML exports](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/6)
-
 Completed recently:
 
 - [#1 Add time-window trend analysis to the operations brief](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/1)
 - [#2 Support API-derived input snapshots for reporting](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/2)
+- [#5 Add parameterized report windows for custom comparisons](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/5)
+- [#6 Add category deep-dive insights to HTML exports](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/6)
 
 ## monitoring-data-warehouse
 
@@ -57,8 +54,8 @@ Completed recently:
 - Repository About metadata is set for all five public repositories.
 - The standalone repositories now each have an initial issue backlog.
 - The API lane now ships filtered observation rollup summaries in the observation endpoints, a dashboard that highlights recent alert readings and recent status changes, threshold-driven derived alert logic, an operations summary endpoint, and a CI workflow that publishes a public container image. Issues `environmental-monitoring-api#1`, `environmental-monitoring-api#2`, `environmental-monitoring-api#5`, and `environmental-monitoring-api#6` are closed.
-- The analytics lane now ships rolling recent-vs-previous window trend analysis and API-derived snapshot input support, and issues `environmental-monitoring-analytics#1` and `environmental-monitoring-analytics#2` are closed.
+- The analytics lane now ships rolling recent-vs-previous window trend analysis, parameterized date-window comparisons, category-level deep dives in markdown and HTML output, and API-derived snapshot input support. Issues `environmental-monitoring-analytics#1`, `environmental-monitoring-analytics#2`, `environmental-monitoring-analytics#5`, and `environmental-monitoring-analytics#6` are closed.
 - The widget lane now persists mock configuration across reloads and includes an interaction walkthrough asset, and issues `experience-builder-station-brief-widget#1` and `experience-builder-station-brief-widget#2` are closed.
 - The warehouse lane now includes a Type 2 station-attribute history example plus concrete PostgreSQL migration notes, and issues `monitoring-data-warehouse#1` and `monitoring-data-warehouse#2` are closed.
-- A second backlog wave is now open across analytics, widget, and warehouse, with the next priority on parameterized analytics reporting and category-level operational summaries.
+- A second backlog wave is now open across the widget and warehouse repos, with the next priority on richer widget interaction patterns and warehouse metadata plus contract checks.
 - GitHub profile pinning still needs to be set manually in the GitHub UI.
