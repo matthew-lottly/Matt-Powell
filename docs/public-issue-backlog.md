@@ -4,14 +4,21 @@ This file tracks the initial public issue backlog created across the standalone 
 
 ## Recommended Delivery Order
 
-1. environmental-monitoring-api
-2. environmental-monitoring-analytics
-3. experience-builder-station-brief-widget
-4. monitoring-data-warehouse
+1. environmental-monitoring-api#5
+2. environmental-monitoring-api#6
+3. environmental-monitoring-analytics#5
+4. environmental-monitoring-analytics#6
+5. experience-builder-station-brief-widget#5
+6. experience-builder-station-brief-widget#6
+7. monitoring-data-warehouse#5
+8. monitoring-data-warehouse#6
 
-This order keeps the flagship backend moving first, then strengthens the analytics story, then improves the frontend demo depth, and finally expands warehouse sophistication.
+This order keeps the flagship backend moving first, then deepens the analytics story, then adds richer widget interactions, and finally expands warehouse engineering discipline.
 
 ## environmental-monitoring-api
+
+- [#5 Add station threshold configuration and derived alert logic](https://github.com/matthew-lottly/environmental-monitoring-api/issues/5)
+- [#6 Add an operations summary endpoint](https://github.com/matthew-lottly/environmental-monitoring-api/issues/6)
 
 Completed recently:
 
@@ -20,6 +27,9 @@ Completed recently:
 
 ## environmental-monitoring-analytics
 
+- [#5 Add parameterized report windows for custom comparisons](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/5)
+- [#6 Add category deep-dive insights to HTML exports](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/6)
+
 Completed recently:
 
 - [#1 Add time-window trend analysis to the operations brief](https://github.com/matthew-lottly/environmental-monitoring-analytics/issues/1)
@@ -27,12 +37,18 @@ Completed recently:
 
 ## monitoring-data-warehouse
 
+- [#5 Add dbt-style dependency metadata and model docs](https://github.com/matthew-lottly/monitoring-data-warehouse/issues/5)
+- [#6 Add data contract checks for warehouse quality gates](https://github.com/matthew-lottly/monitoring-data-warehouse/issues/6)
+
 Completed recently:
 
 - [#1 Add a slowly changing dimension example for station attributes](https://github.com/matthew-lottly/monitoring-data-warehouse/issues/1)
 - [#2 Document PostgreSQL partitioning and retention strategy for migration](https://github.com/matthew-lottly/monitoring-data-warehouse/issues/2)
 
 ## experience-builder-station-brief-widget
+
+- [#5 Add a station detail modal with observation history](https://github.com/matthew-lottly/experience-builder-station-brief-widget/issues/5)
+- [#6 Add a multi-select status filter to the widget](https://github.com/matthew-lottly/experience-builder-station-brief-widget/issues/6)
 
 Completed recently:
 
@@ -47,4 +63,5 @@ Completed recently:
 - The analytics lane now ships rolling recent-vs-previous window trend analysis and API-derived snapshot input support, and issues `environmental-monitoring-analytics#1` and `environmental-monitoring-analytics#2` are closed.
 - The widget lane now persists mock configuration across reloads and includes an interaction walkthrough asset, and issues `experience-builder-station-brief-widget#1` and `experience-builder-station-brief-widget#2` are closed.
 - The warehouse lane now includes a Type 2 station-attribute history example plus concrete PostgreSQL migration notes, and issues `monitoring-data-warehouse#1` and `monitoring-data-warehouse#2` are closed.
+- A second backlog wave is now open across all four standalone repos, with the next priority on API-derived alert logic and a live operations summary surface.
 - GitHub profile pinning still needs to be set manually in the GitHub UI.
