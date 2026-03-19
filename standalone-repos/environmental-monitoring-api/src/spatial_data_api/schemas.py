@@ -70,6 +70,36 @@ class StationThreshold(StationThresholdUpdate):
     feature_id: str = Field(alias="featureId")
 
 
+class OperationsSummaryRegionalAlert(BaseModel):
+    region: str
+    alert_features: int = Field(alias="alertFeatures")
+    alert_observations: int = Field(alias="alertObservations")
+
+
+class OperationsSummaryAlertRecord(BaseModel):
+    observation_id: str = Field(alias="observationId")
+    feature_id: str = Field(alias="featureId")
+    station_name: str = Field(alias="stationName")
+    region: str
+    category: str
+    observed_at: str = Field(alias="observedAt")
+    metric_name: str = Field(alias="metricName")
+    value: float
+    unit: str
+    alert_score: float = Field(alias="alertScore")
+
+
+class OperationsSummary(BaseModel):
+    total_features: int = Field(alias="totalFeatures")
+    alert_features: int = Field(alias="alertFeatures")
+    offline_features: int = Field(alias="offlineFeatures")
+    alert_rate: float = Field(alias="alertRate")
+    regional_alerts: list[OperationsSummaryRegionalAlert] = Field(alias="regionalAlerts")
+    recent_alerts: list[OperationsSummaryAlertRecord] = Field(alias="recentAlerts")
+    start_at: str | None = Field(default=None, alias="startAt")
+    end_at: str | None = Field(default=None, alias="endAt")
+
+
 class FeatureSummary(BaseModel):
     total_features: int
     categories: dict[str, int]

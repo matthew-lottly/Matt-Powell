@@ -15,6 +15,9 @@ from spatial_data_api.schemas import (
     ObservationCollection,
     ObservationRecord,
     ObservationSummary,
+    OperationsSummary,
+    OperationsSummaryAlertRecord,
+    OperationsSummaryRegionalAlert,
     StationThreshold,
     StationThresholdUpdate,
 )
@@ -140,6 +143,71 @@ class FeatureRepository:
         }
         return _build_observation_summary(observations, category_lookup)
 
+    def operations_summary(
+        self,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> OperationsSummary:
+        features = self.list_features()
+        feature_lookup = {feature.properties.feature_id: feature for feature in features}
+        observations = [
+            observation
+            for observation in self._observations.observations
+            if self._matches_time_window(observation, start_at=start_at, end_at=end_at)
+        ]
+        recent_alerts = [observation for observation in observations if observation.status == "alert"]
+        recent_alerts.sort(key=lambda observation: self._parse_timestamp(observation.observed_at), reverse=True)
+
+        regional_alerts: list[OperationsSummaryRegionalAlert] = []
+        for region in sorted({feature.properties.region for feature in features}):
+            alert_features = sum(
+                1
+                for feature in features
+                if feature.properties.region == region and feature.properties.status == "alert"
+            )
+            alert_observations = sum(
+                1
+                for observation in recent_alerts
+                if feature_lookup.get(observation.feature_id, feature_lookup.get(observation.feature_id))
+                and feature_lookup[observation.feature_id].properties.region == region
+            )
+            regional_alerts.append(
+                OperationsSummaryRegionalAlert(
+                    region=region,
+                    alertFeatures=alert_features,
+                    alertObservations=alert_observations,
+                )
+            )
+
+        return OperationsSummary(
+            totalFeatures=len(features),
+            alertFeatures=sum(1 for feature in features if feature.properties.status == "alert"),
+            offlineFeatures=sum(1 for feature in features if feature.properties.status == "offline"),
+            alertRate=round(
+                sum(1 for feature in features if feature.properties.status == "alert") / len(features),
+                4,
+            ) if features else 0.0,
+            regionalAlerts=regional_alerts,
+            recentAlerts=[
+                OperationsSummaryAlertRecord(
+                    observationId=observation.observation_id,
+                    featureId=observation.feature_id,
+                    stationName=feature_lookup[observation.feature_id].properties.name,
+                    region=feature_lookup[observation.feature_id].properties.region,
+                    category=feature_lookup[observation.feature_id].properties.category,
+                    observedAt=observation.observed_at,
+                    metricName=observation.metric_name,
+                    value=observation.value,
+                    unit=observation.unit,
+                    alertScore=self._alert_score_for_observation(observation),
+                )
+                for observation in recent_alerts[:5]
+                if observation.feature_id in feature_lookup
+            ],
+            startAt=start_at.isoformat().replace("+00:00", "Z") if start_at is not None else None,
+            endAt=end_at.isoformat().replace("+00:00", "Z") if end_at is not None else None,
+        )
+
     def summary(self) -> FeatureSummary:
         categories: dict[str, int] = {}
         statuses: dict[str, int] = {}
@@ -160,6 +228,19 @@ class FeatureRepository:
 
     def data_source_name(self) -> str:
         return self.data_path.name
+
+    def _alert_score_for_observation(self, observation: ObservationRecord) -> float:
+        threshold = self._thresholds.get(observation.feature_id)
+        if threshold is None or threshold.metric_name != observation.metric_name:
+            return 1.0 if observation.status == "alert" else 0.0
+
+        if threshold.max_value is not None and observation.value > threshold.max_value:
+            return round(observation.value / threshold.max_value, 2)
+        if threshold.min_value is not None and observation.value < threshold.min_value and observation.value != 0:
+            return round(threshold.min_value / observation.value, 2)
+        if threshold.min_value is not None and observation.value <= 0:
+            return 1.0
+        return 0.0
 
     @staticmethod
     def _build_latest_observation_lookup(
@@ -361,6 +442,65 @@ class PostGISFeatureRepository:
         }
         return _build_observation_summary(observations, category_lookup)
 
+    def operations_summary(
+        self,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> OperationsSummary:
+        features = self.list_features()
+        feature_lookup = {feature.properties.feature_id: feature for feature in features}
+        observations = self._list_observations(start_at=start_at, end_at=end_at)
+        recent_alerts = [observation for observation in observations if observation.status == "alert"]
+
+        regional_alerts: list[OperationsSummaryRegionalAlert] = []
+        for region in sorted({feature.properties.region for feature in features}):
+            alert_features = sum(
+                1
+                for feature in features
+                if feature.properties.region == region and feature.properties.status == "alert"
+            )
+            alert_observations = sum(
+                1
+                for observation in recent_alerts
+                if observation.feature_id in feature_lookup and feature_lookup[observation.feature_id].properties.region == region
+            )
+            regional_alerts.append(
+                OperationsSummaryRegionalAlert(
+                    region=region,
+                    alertFeatures=alert_features,
+                    alertObservations=alert_observations,
+                )
+            )
+
+        return OperationsSummary(
+            totalFeatures=len(features),
+            alertFeatures=sum(1 for feature in features if feature.properties.status == "alert"),
+            offlineFeatures=sum(1 for feature in features if feature.properties.status == "offline"),
+            alertRate=round(
+                sum(1 for feature in features if feature.properties.status == "alert") / len(features),
+                4,
+            ) if features else 0.0,
+            regionalAlerts=regional_alerts,
+            recentAlerts=[
+                OperationsSummaryAlertRecord(
+                    observationId=observation.observation_id,
+                    featureId=observation.feature_id,
+                    stationName=feature_lookup[observation.feature_id].properties.name,
+                    region=feature_lookup[observation.feature_id].properties.region,
+                    category=feature_lookup[observation.feature_id].properties.category,
+                    observedAt=observation.observed_at,
+                    metricName=observation.metric_name,
+                    value=observation.value,
+                    unit=observation.unit,
+                    alertScore=self._alert_score_for_observation(observation),
+                )
+                for observation in recent_alerts[:5]
+                if observation.feature_id in feature_lookup
+            ],
+            startAt=start_at.isoformat().replace("+00:00", "Z") if start_at is not None else None,
+            endAt=end_at.isoformat().replace("+00:00", "Z") if end_at is not None else None,
+        )
+
     def summary(self) -> FeatureSummary:
         categories: dict[str, int] = {}
         statuses: dict[str, int] = {}
@@ -389,6 +529,42 @@ class PostGISFeatureRepository:
     @staticmethod
     def data_source_name() -> str:
         return "monitoring_stations"
+
+    def _list_observations(
+        self,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[ObservationRecord]:
+        query = """
+        SELECT
+            observation_id,
+            feature_id,
+            TO_CHAR(observed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS observed_at,
+            metric_name,
+            value,
+            unit,
+            status
+        FROM public.monitoring_observations
+        WHERE (:start_at IS NULL OR observed_at >= :start_at)
+          AND (:end_at IS NULL OR observed_at <= :end_at)
+        ORDER BY observed_at DESC, observation_id DESC
+        """
+        with self.engine.connect() as connection:
+            rows = connection.execute(text(query), {"start_at": start_at, "end_at": end_at}).mappings().all()
+        return [self._row_to_observation(dict(row)) for row in rows]
+
+    def _alert_score_for_observation(self, observation: ObservationRecord) -> float:
+        threshold = self._thresholds.get(observation.feature_id)
+        if threshold is None or threshold.metric_name != observation.metric_name:
+            return 1.0 if observation.status == "alert" else 0.0
+
+        if threshold.max_value is not None and observation.value > threshold.max_value:
+            return round(observation.value / threshold.max_value, 2)
+        if threshold.min_value is not None and observation.value < threshold.min_value and observation.value != 0:
+            return round(threshold.min_value / observation.value, 2)
+        if threshold.min_value is not None and observation.value <= 0:
+            return 1.0
+        return 0.0
 
     def _apply_feature_status(self, feature: FeatureRecord) -> FeatureRecord:
         latest_observation = self._latest_observation_for_feature(feature.properties.feature_id)

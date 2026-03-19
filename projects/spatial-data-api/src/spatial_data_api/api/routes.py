@@ -10,6 +10,7 @@ from spatial_data_api.schemas import (
     FeatureSummary,
     HealthStatus,
     ObservationCollection,
+    OperationsSummary,
     ServiceMetadata,
     StationThreshold,
     StationThresholdUpdate,
@@ -69,6 +70,19 @@ def list_features(
 )
 def get_feature_summary(repository: Repository = Depends(get_repository)) -> FeatureSummary:
     return repository.summary()
+
+
+@router.get(
+    f"{settings.api_prefix}/summary",
+    response_model=OperationsSummary,
+    tags=["features"],
+)
+def get_operations_summary(
+    start_at: datetime | None = Query(default=None),
+    end_at: datetime | None = Query(default=None),
+    repository: Repository = Depends(get_repository),
+) -> OperationsSummary:
+    return repository.operations_summary(start_at=start_at, end_at=end_at)
 
 
 @router.get(

@@ -84,6 +84,35 @@ def test_feature_summary() -> None:
     assert payload["categories"]["water_quality"] == 1
 
 
+def test_operations_summary() -> None:
+    response = client.get("/api/v1/summary")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["totalFeatures"] == 3
+    assert payload["alertFeatures"] == 1
+    assert payload["offlineFeatures"] == 1
+    assert payload["alertRate"] == 0.3333
+    assert payload["regionalAlerts"][2] == {
+        "region": "West",
+        "alertFeatures": 1,
+        "alertObservations": 2,
+    }
+    assert payload["recentAlerts"][0]["observationId"] == "obs-2001"
+    assert payload["recentAlerts"][0]["featureId"] == "station-002"
+
+
+def test_operations_summary_with_time_window() -> None:
+    response = client.get(
+        "/api/v1/summary",
+        params={"start_at": "2026-03-18T12:00:00Z", "end_at": "2026-03-18T12:05:00Z"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["startAt"] == "2026-03-18T12:00:00Z"
+    assert payload["endAt"] == "2026-03-18T12:05:00Z"
+    assert [item["observationId"] for item in payload["recentAlerts"]] == ["obs-2001"]
+
+
 def test_threshold_update_changes_feature_status() -> None:
     response = client.post(
         "/api/v1/stations/station-002/thresholds",

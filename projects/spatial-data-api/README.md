@@ -44,6 +44,7 @@ Environmental and operational monitoring workflows often stop at files, dashboar
 - `GET /api/v1/metadata`
 - `GET /api/v1/features`
 - `GET /api/v1/features/summary`
+- `GET /api/v1/summary`
 - `GET /api/v1/features/{feature_id}`
 - `POST /api/v1/stations/{feature_id}/thresholds`
 - `GET /api/v1/observations/recent`
@@ -52,6 +53,7 @@ Environmental and operational monitoring workflows often stop at files, dashboar
 Observation endpoints accept optional `start_at` and `end_at` ISO timestamps for time-window filtering.
 Observation responses also include a summary block with total observations, category counts, status counts, metric counts, and earliest/latest timestamps for the filtered result set.
 Threshold updates let the API derive station alert state from the latest observation while falling back to the seeded sample status when no threshold override exists.
+The operations summary endpoint returns live station counts, alert rate, a regional alert breakdown, and the five most recent alert observations, with optional time-window filters for the observation-driven sections.
 
 Example monitoring domains in the sample data:
 
@@ -173,7 +175,6 @@ This gives the project a ready-to-run monitoring-station table and seed dataset 
 
 - Add an ingestion pipeline for new monitoring feeds
 - Add authentication and access control
-- Add an operations summary endpoint
 
 ## Publication
 
