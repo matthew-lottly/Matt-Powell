@@ -23,6 +23,7 @@ It is designed to read as the frontend companion to the monitoring API and analy
 
 - React and TypeScript component structure for GIS-facing UIs
 - Widget-style configuration and data-source-driven rendering
+- Local persistence of runtime widget configuration across page reloads
 - Station filtering, summary cards, a map-adjacent mock, and selection-driven detail panels
 - A public-safe way to discuss Experience Builder architecture without exposing private code
 
@@ -70,6 +71,8 @@ npm run build
 ## Public Notes
 
 This is not a full ArcGIS Experience Builder export. It is a deliberately public-safe prototype that demonstrates component structure, interaction patterns, and data-shaping logic relevant to Experience Builder widget work.
+
+The configuration panel now persists key widget settings in browser local storage so a reviewer can see settings survive refresh without requiring a backend.
 
 See [docs/architecture.md](docs/architecture.md) for the widget design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for a short walkthrough script.

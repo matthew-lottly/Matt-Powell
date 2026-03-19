@@ -107,12 +107,27 @@ body {
   min-width: 180px;
 }
 
-select {
+.toggle-block {
+  display: grid;
+  gap: 10px;
+}
+
+.toggle-block input {
+  width: 18px;
+  height: 18px;
+}
+
+select,
+input {
   border-radius: 14px;
   border: 1px solid var(--line);
   background: #fff9f1;
   padding: 10px 12px;
   font: inherit;
+}
+
+input[type="checkbox"] {
+  padding: 0;
 }
 
 .summary-grid {
@@ -283,6 +298,10 @@ select {
   align-items: start;
 }
 
+.config-span-two {
+  grid-column: span 2;
+}
+
 @media (max-width: 900px) {
   .widget-header,
   .overview-grid,
@@ -291,5 +310,9 @@ select {
   .detail-grid {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .config-span-two {
+    grid-column: auto;
   }
 }

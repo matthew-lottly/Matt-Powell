@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { filterStations, regionsForStations, summarizeStations } from "./transform";
 import type { StationRecord, WidgetConfig } from "./types";
@@ -7,18 +7,33 @@ import type { StationRecord, WidgetConfig } from "./types";
 interface StationBriefWidgetProps {
   stations: StationRecord[];
   config: WidgetConfig;
+  onConfigChange: (nextConfig: WidgetConfig) => void;
 }
 
 
-export function StationBriefWidget({ stations, config }: StationBriefWidgetProps) {
+export function StationBriefWidget({ stations, config, onConfigChange }: StationBriefWidgetProps) {
   const regions = useMemo(() => regionsForStations(stations), [stations]);
   const [region, setRegion] = useState(config.defaultRegion ?? "All");
   const [selectedId, setSelectedId] = useState(stations[0]?.id ?? "");
+
+  useEffect(() => {
+    setRegion(config.defaultRegion ?? "All");
+  }, [config.defaultRegion]);
 
   const filteredStations = useMemo(() => filterStations(stations, region), [stations, region]);
   const summary = useMemo(() => summarizeStations(filteredStations), [filteredStations]);
   const thresholdStations = filteredStations.filter((station) => station.alertScore >= config.alertThreshold);
   const selectedStation = filteredStations.find((station) => station.id === selectedId) ?? filteredStations[0] ?? null;
+
+  useEffect(() => {
+    if (!selectedStation && filteredStations[0]) {
+      setSelectedId(filteredStations[0].id);
+    }
+  }, [filteredStations, selectedStation]);
+
+  function updateConfig<K extends keyof WidgetConfig>(key: K, value: WidgetConfig[K]) {
+    onConfigChange({ ...config, [key]: value });
+  }
 
   return (
     <section className="widget-shell">
@@ -97,20 +112,62 @@ export function StationBriefWidget({ stations, config }: StationBriefWidgetProps
           </div>
           <div className="detail-grid compact">
             <div>
-              <p className="detail-label">Default Region</p>
-              <strong>{config.defaultRegion ?? "All"}</strong>
+              <label className="control-block">
+                <span>Title</span>
+                <input value={config.title} onChange={(event) => updateConfig("title", event.target.value)} />
+              </label>
             </div>
             <div>
-              <p className="detail-label">Show Owner</p>
-              <strong>{config.showOwner ? "Enabled" : "Hidden"}</strong>
+              <label className="control-block">
+                <span>Default Region</span>
+                <select
+                  value={config.defaultRegion ?? "All"}
+                  onChange={(event) => updateConfig("defaultRegion", event.target.value === "All" ? null : event.target.value)}
+                >
+                  {regions.map((entry) => (
+                    <option key={entry} value={entry}>
+                      {entry}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
             <div>
-              <p className="detail-label">Alert Threshold</p>
-              <strong>{config.alertThreshold}</strong>
+              <label className="control-block">
+                <span>Alert Threshold</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={config.alertThreshold}
+                  onChange={(event) => updateConfig("alertThreshold", Number(event.target.value))}
+                />
+              </label>
+            </div>
+            <div>
+              <label className="toggle-block">
+                <span>Show Owner</span>
+                <input
+                  type="checkbox"
+                  checked={config.showOwner}
+                  onChange={(event) => updateConfig("showOwner", event.target.checked)}
+                />
+              </label>
+            </div>
+            <div className="config-span-two">
+              <label className="control-block">
+                <span>Subtitle</span>
+                <input value={config.subtitle} onChange={(event) => updateConfig("subtitle", event.target.value)} />
+              </label>
             </div>
             <div>
               <p className="detail-label">Above Threshold</p>
               <strong>{thresholdStations.length}</strong>
+            </div>
+            <div>
+              <p className="detail-label">Saved State</p>
+              <strong>Browser Local Storage</strong>
             </div>
           </div>
         </section>

@@ -1,8 +1,18 @@
+import { useEffect, useState } from "react";
+
 import { StationBriefWidget } from "./widget/StationBriefWidget";
+import { loadWidgetConfig, saveWidgetConfig } from "./widget/configStorage";
 import { defaultConfig, mockStations } from "./widget/mockData";
+import type { WidgetConfig } from "./widget/types";
 
 
 export function App() {
+  const [config, setConfig] = useState<WidgetConfig>(() => loadWidgetConfig(defaultConfig));
+
+  useEffect(() => {
+    saveWidgetConfig(config);
+  }, [config]);
+
   return (
     <main className="page-shell">
       <section className="hero-panel">
@@ -22,7 +32,7 @@ export function App() {
         </div>
       </section>
 
-      <StationBriefWidget stations={mockStations} config={defaultConfig} />
+      <StationBriefWidget stations={mockStations} config={config} onConfigChange={setConfig} />
     </main>
   );
 }
