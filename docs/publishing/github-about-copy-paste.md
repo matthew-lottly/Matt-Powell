@@ -162,6 +162,26 @@ Topics
 react, typescript, maplibre, openlayers, gis, geospatial, frontend
 ```
 
+## raster-monitoring-pipeline
+
+Description
+
+```text
+Python raster change-detection pipeline for hotspot review, tile planning, and monitoring summaries.
+```
+
+Website
+
+```text
+https://lottly-ai.com/
+```
+
+Topics
+
+```text
+rasterio, gdal, python, remote-sensing, gis, geospatial, analytics
+```
+
 ## Pin Order
 
 ```text

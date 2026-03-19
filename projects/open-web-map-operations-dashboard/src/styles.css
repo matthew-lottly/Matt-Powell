@@ -122,6 +122,15 @@ select {
   overflow: hidden;
 }
 
+.map-surface .maplibregl-canvas {
+  border-radius: 24px;
+}
+
+.map-surface .maplibregl-ctrl-top-right {
+  top: 12px;
+  right: 12px;
+}
+
 .map-region {
   position: absolute;
   color: rgba(28, 36, 40, 0.5);
@@ -137,6 +146,7 @@ select {
   width: 22px;
   height: 22px;
   transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .map-marker span {

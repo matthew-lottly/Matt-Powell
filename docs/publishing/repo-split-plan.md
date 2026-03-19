@@ -11,6 +11,7 @@ Use this when you are ready to move project folders into their own public reposi
 5. `qgis-operations-workbench`
 6. `postgis-service-blueprint`
 7. `open-web-map-operations-dashboard`
+8. `raster-monitoring-pipeline`
 
 ## Why This Order
 
@@ -21,6 +22,7 @@ Use this when you are ready to move project folders into their own public reposi
 - The QGIS workbench extends the portfolio into desktop GIS and open-stack analyst workflows.
 - The PostGIS service blueprint adds a distinct open spatial publishing lane between raw GIS data and delivery endpoints.
 - The open web map dashboard adds the open-stack frontend consumer for those spatial services.
+- The raster monitoring pipeline rounds out the portfolio with a public-safe raster analysis lane.
 
 ## Proposed Repo Names
 
@@ -31,6 +33,7 @@ Use this when you are ready to move project folders into their own public reposi
 - `qgis-operations-workbench`
 - `postgis-service-blueprint`
 - `open-web-map-operations-dashboard`
+- `raster-monitoring-pipeline`
 
 ## Shared Publication Checklist
 

@@ -38,8 +38,8 @@ export function App() {
           <p className="eyebrow">Open Web Map Client</p>
           <h1>Operations Dashboard</h1>
           <p className="hero-copy">
-            Public-safe React and TypeScript concept for an open-stack operations map with regional filters,
-            layer-state review, and feature inspection patterns that can pair with PostGIS-backed services.
+            Public-safe React and TypeScript dashboard with a live MapLibre map, regional filters, layer-state
+            review, and feature inspection patterns that can pair with PostGIS-backed services.
           </p>
         </div>
         <div className="hero-notes">
@@ -104,6 +104,9 @@ export function App() {
                 <div>
                   <p className="layer-title">{layer.title}</p>
                   <p className="layer-meta">{layer.region} · {layer.format} · {layer.featureCount} features</p>
+                  <p className="layer-meta">
+                    {layer.coordinates.latitude.toFixed(2)}, {layer.coordinates.longitude.toFixed(2)}
+                  </p>
                 </div>
                 <span className={`status-chip ${layer.status}`}>{layer.status}</span>
               </li>

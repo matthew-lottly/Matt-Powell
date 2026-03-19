@@ -7,6 +7,10 @@ export interface DashboardLayer {
   status: LayerStatus;
   format: string;
   featureCount: number;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+  };
   center: {
     x: number;
     y: number;

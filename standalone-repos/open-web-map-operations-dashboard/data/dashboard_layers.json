@@ -7,6 +7,7 @@
       "status": "active",
       "format": "GeoJSON",
       "featureCount": 42,
+      "coordinates": { "longitude": -121.4944, "latitude": 38.5816 },
       "center": { "x": 22, "y": 38 }
     },
     {
@@ -16,6 +17,7 @@
       "status": "review",
       "format": "Vector Tiles",
       "featureCount": 18,
+      "coordinates": { "longitude": -121.3153, "latitude": 44.0582 },
       "center": { "x": 48, "y": 44 }
     },
     {
@@ -25,6 +27,7 @@
       "status": "offline",
       "format": "GeoJSON",
       "featureCount": 11,
+      "coordinates": { "longitude": -104.9903, "latitude": 39.7392 },
       "center": { "x": 78, "y": 36 }
     }
   ]

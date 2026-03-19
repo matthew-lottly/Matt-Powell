@@ -1,0 +1,6 @@
+{
+  "python.analysis.extraPaths": [
+    "./projects/raster-monitoring-pipeline/src",
+    "./standalone-repos/raster-monitoring-pipeline/src"
+  ]
+}

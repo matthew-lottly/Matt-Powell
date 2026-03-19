@@ -8,20 +8,20 @@ Open-stack GIS frontend project for reviewing operational layers, regional filte
 
 - Lane: Open web mapping
 - Domain: Operational layer review and feature inspection
-- Stack: React, TypeScript, Vite
-- Includes: sample layer data, conceptual map surface, filters, tests
+- Stack: React, TypeScript, Vite, MapLibre
+- Includes: sample layer data, live map surface, filters, tests
 
 ## Overview
 
-This project starts the open web mapping lane that follows the PostGIS service blueprint. It is designed as the frontend counterpart to the open spatial publishing work: a lightweight dashboard that can later consume PostGIS-backed services, vector tiles, or GeoJSON feeds.
+This project starts the open web mapping lane that follows the PostGIS service blueprint. It is designed as the frontend counterpart to the open spatial publishing work: a lightweight dashboard that can consume PostGIS-backed services, vector tiles, or GeoJSON feeds.
 
-The current implementation is public-safe and intentionally self-contained. It uses checked-in sample data to show operational map review patterns without depending on external map SDKs or private service endpoints.
+The current implementation is public-safe and intentionally self-contained. It uses checked-in sample data, MapLibre, and OpenStreetMap raster tiles to show operational map review patterns without depending on private service endpoints.
 
 ## What It Demonstrates
 
 - React and TypeScript structure for open-stack GIS interfaces
 - Region and status filters for operational review
-- A conceptual map surface that can later be replaced with MapLibre or OpenLayers
+- A live MapLibre surface with a GeoJSON overlay for layer review
 - Layer cards that read as a map-side operations panel rather than a generic admin list
 
 ## Project Structure
@@ -74,9 +74,9 @@ npm run build
 The current dashboard includes:
 
 - a filterable layer list
-- a conceptual open web map surface
+- a live MapLibre map backed by OpenStreetMap raster tiles
 - operational layer counts and feature totals
-- a visual structure ready for a future MapLibre or OpenLayers implementation
+- a GeoJSON overlay generated from the checked-in layer metadata
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.

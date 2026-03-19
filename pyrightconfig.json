@@ -1,4 +1,19 @@
 {
+  "executionEnvironments": [
+    {
+      "root": "projects/raster-monitoring-pipeline",
+      "extraPaths": [
+        "projects/raster-monitoring-pipeline/src"
+      ]
+    },
+    {
+      "root": "standalone-repos/raster-monitoring-pipeline",
+      "extraPaths": [
+        "standalone-repos/raster-monitoring-pipeline/src"
+      ]
+    }
+  ]
+}{
   "include": [
     "projects",
     "standalone-repos"

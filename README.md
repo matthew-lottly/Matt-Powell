@@ -16,6 +16,7 @@ I build practical systems around data-heavy problems. My work spans enterprise G
 - [projects/qgis-operations-workbench](projects/qgis-operations-workbench) for the desktop GIS and QGIS workflow lane
 - [projects/postgis-service-blueprint](projects/postgis-service-blueprint) for the open spatial services lane
 - [projects/open-web-map-operations-dashboard](projects/open-web-map-operations-dashboard) for the open web mapping lane
+- [projects/raster-monitoring-pipeline](projects/raster-monitoring-pipeline) for the raster analysis and monitoring lane
 - [projects/experience-builder-station-brief-widget](projects/experience-builder-station-brief-widget) for the GIS frontend prototype lane
 - [standalone-repos](standalone-repos) for publishable split-out repository copies
 - [docs/publishing/repo-split-plan.md](docs/publishing/repo-split-plan.md) for the standalone repo roadmap
@@ -36,7 +37,7 @@ I build practical systems around data-heavy problems. My work spans enterprise G
 
 ## Portfolio Shape
 
-This repository is organized as one coherent engineering portfolio with seven complementary lanes:
+This repository is organized as one coherent engineering portfolio with eight complementary lanes:
 
 - backend and GIS delivery
 - analytics and reporting
@@ -44,6 +45,7 @@ This repository is organized as one coherent engineering portfolio with seven co
 - desktop GIS and QGIS-oriented operations workflows
 - open spatial services and publication planning
 - open web mapping and layer review
+- raster analysis and monitoring pipelines
 - GIS frontend prototyping informed by Experience Builder patterns
 
 Each lane is implemented against the same environmental monitoring theme so the work reads as one body of practice instead of unrelated demos.
@@ -57,8 +59,9 @@ Start with the flagship backend project, then move outward by lane.
 3. [projects/monitoring-data-warehouse](projects/monitoring-data-warehouse): database engineering and warehouse modeling
 4. [projects/qgis-operations-workbench](projects/qgis-operations-workbench): Python-based desktop GIS workbench for route layouts, bookmarks, and analyst review packs
 5. [projects/postgis-service-blueprint](projects/postgis-service-blueprint): SQL and Python blueprint for PostGIS-backed collections, publication views, and open spatial service contracts
-6. [projects/open-web-map-operations-dashboard](projects/open-web-map-operations-dashboard): React and TypeScript open web map dashboard for operational layer review and future MapLibre or OpenLayers integration
-7. [projects/experience-builder-station-brief-widget](projects/experience-builder-station-brief-widget): React and TypeScript GIS widget prototype inspired by Experience Builder interaction patterns
+6. [projects/open-web-map-operations-dashboard](projects/open-web-map-operations-dashboard): React and TypeScript open web map dashboard with a live MapLibre surface for operational layer review and filtering
+7. [projects/raster-monitoring-pipeline](projects/raster-monitoring-pipeline): Python raster change-detection pipeline for hotspot review, tile planning, and monitoring summaries
+8. [projects/experience-builder-station-brief-widget](projects/experience-builder-station-brief-widget): React and TypeScript GIS widget prototype inspired by Experience Builder interaction patterns
 
 ## Core Stack
 
@@ -76,7 +79,8 @@ Start with the flagship backend project, then move outward by lane.
 | [projects/monitoring-data-warehouse](projects/monitoring-data-warehouse) | Database Engineering | Warehouse-style schema design, dimensional modeling, SQL transformations, and repeatable data quality checks for monitoring data. |
 | [projects/qgis-operations-workbench](projects/qgis-operations-workbench) | Desktop GIS | Python-driven desktop GIS review pack builder for QGIS-oriented bookmarks, route layouts, and analyst task preparation. |
 | [projects/postgis-service-blueprint](projects/postgis-service-blueprint) | Spatial Services | Open spatial service blueprint for PostGIS-backed collections, publication views, and delivery planning across FastAPI, PostgREST, or OGC API Features. |
-| [projects/open-web-map-operations-dashboard](projects/open-web-map-operations-dashboard) | Web Mapping | React and TypeScript dashboard for open-stack layer review, map filtering, and future MapLibre or OpenLayers integration. |
+| [projects/open-web-map-operations-dashboard](projects/open-web-map-operations-dashboard) | Web Mapping | React and TypeScript dashboard for open-stack layer review, map filtering, and a live MapLibre map surface. |
+| [projects/raster-monitoring-pipeline](projects/raster-monitoring-pipeline) | Raster Analysis | Python pipeline for raster snapshot comparison, hotspot ranking, and downstream monitoring summaries. |
 | [projects/experience-builder-station-brief-widget](projects/experience-builder-station-brief-widget) | GIS Frontend | Public-safe React and TypeScript widget prototype inspired by ArcGIS Experience Builder patterns, with conceptual visuals and selection-driven station summaries. |
 
 ## Project Cards
@@ -118,10 +122,17 @@ Demo narrative: [projects/postgis-service-blueprint/docs/demo-storyboard.md](pro
 
 ### Open Web Map Operations Dashboard
 
-Open web mapping project focused on layer review, region/status filtering, and a frontend structure that can evolve into a real MapLibre or OpenLayers client.
+Open web mapping project focused on layer review, region/status filtering, and a live MapLibre client that can grow into a fuller operational map application.
 
 Demo asset: [projects/open-web-map-operations-dashboard/assets/dashboard-preview.svg](projects/open-web-map-operations-dashboard/assets/dashboard-preview.svg)
 Demo narrative: [projects/open-web-map-operations-dashboard/docs/demo-storyboard.md](projects/open-web-map-operations-dashboard/docs/demo-storyboard.md)
+
+### Raster Monitoring Pipeline
+
+Raster analysis project focused on comparing baseline and latest raster snapshots, flagging hotspots, and exporting structured change summaries for downstream review.
+
+Demo asset: [projects/raster-monitoring-pipeline/assets/raster-preview.svg](projects/raster-monitoring-pipeline/assets/raster-preview.svg)
+Demo narrative: [projects/raster-monitoring-pipeline/docs/demo-storyboard.md](projects/raster-monitoring-pipeline/docs/demo-storyboard.md)
 
 ### Experience Builder Station Brief Widget
 
@@ -132,7 +143,7 @@ Demo narrative: [projects/experience-builder-station-brief-widget/docs/demo-stor
 
 ## Next GIS Expansion
 
-The next public repo wave broadens beyond Esri-centered work while keeping the current Experience Builder-inspired prototype in place. The QGIS workbench, PostGIS service blueprint, and open web map dashboard are now live as standalone repos.
+The next public repo wave broadens beyond Esri-centered work while keeping the current Experience Builder-inspired prototype in place. The QGIS workbench, PostGIS service blueprint, and open web map dashboard are now live as standalone repos, and the raster pipeline lane is now started in the portfolio.
 
 - [docs/next-gis-repo-sequence.md](docs/next-gis-repo-sequence.md) outlines the next sequence across QGIS desktop automation, open web mapping, spatial services, and raster pipelines.
 
@@ -140,7 +151,7 @@ The next public repo wave broadens beyond Esri-centered work while keeping the c
 
 - Standalone-ready copies have been prepared in [standalone-repos](standalone-repos)
 - Split instructions and helper scripts are in [docs/publishing/repo-split-plan.md](docs/publishing/repo-split-plan.md)
-- Each standalone repository now includes its own CI workflow, publishing notes, and license file
+- Each standalone repository now includes its own CI workflow, publishing notes, and license file, including the new raster pipeline mirror
 
 ## Connect
 

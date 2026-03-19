@@ -1,0 +1,1 @@
+"""Raster monitoring pipeline package."""

@@ -45,6 +45,7 @@ Purpose: show analytical depth beyond vector workflows.
 - Stack: GDAL, rasterio, xarray, Python, DuckDB or parquet outputs
 - Deliverables: tiling or clipping workflows, derived raster metrics, change summaries, and publishable preview assets
 - Why fourth: it rounds out the portfolio with a strong analysis lane that is distinct from backend and frontend work
+- Status: started in the portfolio as `raster-monitoring-pipeline`
 
 ## Suggested Naming Direction
 

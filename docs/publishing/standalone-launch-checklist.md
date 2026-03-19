@@ -11,8 +11,9 @@ Use this file when you are ready to publish the extracted repositories under [st
 5. `qgis-operations-workbench`
 6. `postgis-service-blueprint`
 7. `open-web-map-operations-dashboard`
+8. `raster-monitoring-pipeline`
 
-This order puts the strongest flagship repo live first, adds analytics depth, closes the backend/data story with warehouse modeling, adds the frontend GIS lane, broadens the public stack with a desktop QGIS workflow repo, adds an open spatial publishing repo, and then adds an open web map client.
+This order puts the strongest flagship repo live first, adds analytics depth, closes the backend/data story with warehouse modeling, adds the frontend GIS lane, broadens the public stack with a desktop QGIS workflow repo, adds an open spatial publishing repo, adds an open web map client, and then rounds out the set with a raster analysis lane.
 
 ## Before You Start
 
@@ -242,7 +243,38 @@ git push -u origin main
 2. Confirm the workflow appears under Actions.
 3. Pin it when you want the open web mapping lane visible on the profile.
 
-## After All Seven Are Live
+## Repository 8: raster-monitoring-pipeline
+
+### Create On GitHub
+
+- Name: `raster-monitoring-pipeline`
+- Visibility: Public
+
+### About Box
+
+- Description: Python raster change-detection pipeline for hotspot review, tile planning, and monitoring summaries.
+- Website: `https://lottly-ai.com/`
+- Topics: `rasterio`, `gdal`, `python`, `remote-sensing`, `gis`, `geospatial`, `analytics`
+
+### Push Commands
+
+```powershell
+Set-Location d:\GitHub\standalone-repos\raster-monitoring-pipeline
+git init
+git add .
+git commit -m "Initial standalone release"
+git branch -M main
+git remote add origin https://github.com/matthew-lottly/raster-monitoring-pipeline.git
+git push -u origin main
+```
+
+### After Push
+
+1. Confirm the preview asset renders in the README.
+2. Confirm the workflow appears under Actions.
+3. Swap it into the pinned set when you want the raster analysis lane visible on the profile.
+
+## After All Eight Are Live
 
 1. Pin repositories in this order:
    - `environmental-monitoring-api`
