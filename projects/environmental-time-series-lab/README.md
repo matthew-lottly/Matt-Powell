@@ -21,6 +21,7 @@ This project focuses on time-series analysis rather than GIS surface area. It lo
 - Rolling averages for temporal smoothing at multiple windows
 - Feature profiling for level, slope, recent change, and variability
 - Baseline leaderboard output for a held-out review window
+- A persisted `outputs/run_registry.json` trail for exported runs
 - Clean export artifacts for downstream reporting, diagnostics, or model preparation
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.

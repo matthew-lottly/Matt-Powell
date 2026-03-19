@@ -17,6 +17,7 @@ def test_build_time_series_report() -> None:
     report = build_time_series_report(PROJECT_ROOT / "data" / "station_histories.json")
 
     assert report["experiment"]["runLabel"] == "temporal-diagnostics-review"
+    assert report["experiment"]["registryFile"] == "run_registry.json"
     assert report["summary"]["seriesCount"] == 3
     assert report["summary"]["reviewWindow"] == 2
     assert report["summary"]["averageSelectedReviewMae"] == 0.41
@@ -37,3 +38,8 @@ def test_export_time_series_report(tmp_path: Path) -> None:
     content = output_path.read_text(encoding="utf-8")
     assert "Temporal Review" in content
     assert "temporal-diagnostics-review" in content
+    registry_path = tmp_path / "run_registry.json"
+    assert registry_path.exists()
+    registry = registry_path.read_text(encoding="utf-8")
+    assert "Temporal Review" in registry
+    assert "time_series_report.json" in registry

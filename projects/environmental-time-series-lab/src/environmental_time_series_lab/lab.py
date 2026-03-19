@@ -11,6 +11,7 @@ from typing import Any, Sequence
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "station_histories.json"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs"
+DEFAULT_REGISTRY_NAME = "run_registry.json"
 DEFAULT_REVIEW_WINDOW = 2
 DEFAULT_SHORT_WINDOW = 3
 DEFAULT_LONG_WINDOW = 5
@@ -102,6 +103,17 @@ def _build_feature_profile(values: Sequence[float], short_window: int, long_wind
     }
 
 
+def _update_run_registry(output_dir: Path, registry_name: str, run_entry: dict[str, Any]) -> Path:
+    registry_path = output_dir / registry_name
+    if registry_path.exists():
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    else:
+        registry = {"runs": []}
+    registry.setdefault("runs", []).append(run_entry)
+    registry_path.write_text(json.dumps(registry, indent=2), encoding="utf-8")
+    return registry_path
+
+
 def build_time_series_report(
     data_path: Path = DEFAULT_DATA_PATH,
     review_window: int = DEFAULT_REVIEW_WINDOW,
@@ -109,6 +121,7 @@ def build_time_series_report(
     long_window: int = DEFAULT_LONG_WINDOW,
     report_name: str = "Environmental Time Series Lab",
     run_label: str = "temporal-diagnostics-review",
+    registry_name: str = DEFAULT_REGISTRY_NAME,
 ) -> dict[str, Any]:
     histories = load_histories(data_path)
     summaries = []
@@ -166,6 +179,7 @@ def build_time_series_report(
         "experiment": {
             "runLabel": run_label,
             "generatedAt": datetime.now(UTC).isoformat(),
+            "registryFile": registry_name,
             "reviewWindow": review_window,
             "shortWindow": short_window,
             "longWindow": long_window,
@@ -196,6 +210,7 @@ def export_time_series_report(
     review_window: int = DEFAULT_REVIEW_WINDOW,
     short_window: int = DEFAULT_SHORT_WINDOW,
     long_window: int = DEFAULT_LONG_WINDOW,
+    registry_name: str = DEFAULT_REGISTRY_NAME,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     report = build_time_series_report(
@@ -204,9 +219,23 @@ def export_time_series_report(
         review_window=review_window,
         short_window=short_window,
         long_window=long_window,
+        registry_name=registry_name,
     )
     output_path = output_dir / "time_series_report.json"
     output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    _update_run_registry(
+        output_dir,
+        registry_name,
+        {
+            "runLabel": report["experiment"]["runLabel"],
+            "generatedAt": report["experiment"]["generatedAt"],
+            "reportName": report["reportName"],
+            "reportFile": output_path.name,
+            "seriesCount": report["summary"]["seriesCount"],
+            "averageSelectedReviewMae": report["summary"]["averageSelectedReviewMae"],
+            "baselineWins": report["summary"]["baselineWins"],
+        },
+    )
     return output_path
 
 
@@ -215,6 +244,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Directory for generated JSON output.")
     parser.add_argument("--report-name", default="Environmental Time Series Lab", help="Display name embedded in the output report.")
     parser.add_argument("--run-label", default="temporal-diagnostics-review", help="Label stored with the experiment-style report output.")
+    parser.add_argument("--registry-name", default=DEFAULT_REGISTRY_NAME, help="Name of the JSON file used to store appended run metadata.")
     parser.add_argument("--review-window", type=int, default=DEFAULT_REVIEW_WINDOW, help="Number of trailing observations reserved for baseline review.")
     parser.add_argument("--short-window", type=int, default=DEFAULT_SHORT_WINDOW, help="Short rolling window used in diagnostics output.")
     parser.add_argument("--long-window", type=int, default=DEFAULT_LONG_WINDOW, help="Long rolling window used in diagnostics output.")
@@ -230,6 +260,7 @@ def main() -> None:
         review_window=args.review_window,
         short_window=args.short_window,
         long_window=args.long_window,
+        registry_name=args.registry_name,
     )
     print(f"Wrote time-series report to {output_path}")
 
