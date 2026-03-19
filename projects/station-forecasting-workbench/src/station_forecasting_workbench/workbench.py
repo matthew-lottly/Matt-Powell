@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -27,7 +27,7 @@ def _mae(actual: list[float], predicted: list[float]) -> float:
     )
 
 
-def _mean(values: list[float]) -> float:
+def _mean(values: Sequence[float]) -> float:
     return sum(values) / len(values)
 
 

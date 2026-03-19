@@ -12,8 +12,8 @@ Show the JSON fixture and note that each station includes one simple daily serie
 
 ## 3. Run the lab
 
-Generate `outputs/time_series_report.json` and review the rolling means and trend labels.
+Generate `outputs/time_series_report.json` and review the experiment metadata, baseline leaderboard, and rolling-window diagnostics.
 
 ## 4. Explain the extension path
 
-Close by noting that the same structure can grow into decomposition, forecasting, or richer temporal feature engineering.
+Close by noting that the same structure can grow into decomposition, change-point detection, forecasting, or external experiment tracking.

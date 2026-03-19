@@ -16,14 +16,24 @@ def test_load_histories() -> None:
 def test_build_time_series_report() -> None:
     report = build_time_series_report(PROJECT_ROOT / "data" / "station_histories.json")
 
+    assert report["experiment"]["runLabel"] == "temporal-diagnostics-review"
     assert report["summary"]["seriesCount"] == 3
-    assert report["summary"]["upwardTrends"] == 2
-    assert report["seriesSummaries"][0]["trendLabel"] == "upward"
-    assert len(report["seriesSummaries"][0]["rollingMean"]) == 5
+    assert report["summary"]["reviewWindow"] == 2
+    assert report["summary"]["averageSelectedReviewMae"] == 0.41
+    assert report["summary"]["trendLabels"] == {"downward": 1, "upward": 2}
+    assert report["summary"]["baselineWins"] == {"drift": 1, "last_value": 1, "trailing_mean_3": 1}
+    assert report["seriesDiagnostics"][0]["trendLabel"] == "upward"
+    assert report["seriesDiagnostics"][0]["selectedBaseline"] == "drift"
+    assert report["seriesDiagnostics"][0]["selectedReviewMae"] == 0.05
+    assert len(report["seriesDiagnostics"][0]["rollingMeanShort"]) == 5
+    assert len(report["seriesDiagnostics"][0]["rollingMeanLong"]) == 3
+    assert len(report["seriesDiagnostics"][0]["baselineLeaderboard"]) == 4
 
 
 def test_export_time_series_report(tmp_path: Path) -> None:
     output_path = export_time_series_report(tmp_path, report_name="Temporal Review")
 
     assert output_path.exists()
-    assert "Temporal Review" in output_path.read_text(encoding="utf-8")
+    content = output_path.read_text(encoding="utf-8")
+    assert "Temporal Review" in content
+    assert "temporal-diagnostics-review" in content
