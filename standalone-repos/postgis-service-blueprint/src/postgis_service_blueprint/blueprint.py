@@ -11,6 +11,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT_PATH = PROJECT_ROOT / "data" / "service_layers.geojson"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs"
+DEFAULT_SEED_SQL_PATH = DEFAULT_OUTPUT_DIR / "sample_seed.sql"
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,10 @@ class LayerFeature:
     status: str
     owner: str
     coordinates: tuple[float, float]
+
+
+def _escape_sql_text(value: str) -> str:
+    return value.replace("'", "''")
 
 
 def load_layer_features(input_path: Path = DEFAULT_INPUT_PATH) -> list[LayerFeature]:
@@ -137,6 +142,7 @@ def build_service_blueprint(project_root: Path = PROJECT_ROOT, service_name: str
             "The checked-in data is sample content for a public-safe spatial service blueprint.",
             "SQL assets in the repo show how source tables, views, and publication-ready collections can be organized.",
             "The exported blueprint JSON is intended as a handoff artifact for API or SQL-first service implementation.",
+            "A generated seed SQL file can load the same sample collections into a local PostGIS container.",
         ],
     }
 
@@ -149,10 +155,45 @@ def export_service_blueprint(output_dir: Path = DEFAULT_OUTPUT_DIR, service_name
     return output_path
 
 
+def export_seed_sql(output_path: Path = DEFAULT_SEED_SQL_PATH, project_root: Path = PROJECT_ROOT) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    features = load_layer_features(project_root / "data" / "service_layers.geojson")
+
+    statements = [
+        "TRUNCATE TABLE monitoring_features;",
+    ]
+
+    for feature in features:
+        statements.append(
+            "INSERT INTO monitoring_features (feature_id, layer_name, category, region, status, owner, geom) VALUES "
+            f"('{_escape_sql_text(feature.feature_id)}', "
+            f"'{_escape_sql_text(feature.layer_name)}', "
+            f"'{_escape_sql_text(feature.category)}', "
+            f"'{_escape_sql_text(feature.region)}', "
+            f"'{_escape_sql_text(feature.status)}', "
+            f"'{_escape_sql_text(feature.owner)}', "
+            f"ST_SetSRID(ST_MakePoint({feature.coordinates[0]}, {feature.coordinates[1]}), 4326));"
+        )
+
+    output_path.write_text("\n".join(statements) + "\n", encoding="utf-8")
+    return output_path
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build a sample PostGIS service blueprint artifact.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Directory for generated JSON output.")
     parser.add_argument("--service-name", default="PostGIS Service Blueprint", help="Display name embedded in the output artifact.")
+    parser.add_argument(
+        "--export-seed-sql",
+        action="store_true",
+        help="Also generate a PostGIS seed SQL file from the checked-in sample layer.",
+    )
+    parser.add_argument(
+        "--seed-sql-path",
+        type=Path,
+        default=DEFAULT_SEED_SQL_PATH,
+        help="Output path for the generated PostGIS seed SQL file.",
+    )
     return parser.parse_args()
 
 
@@ -160,6 +201,9 @@ def main() -> None:
     args = parse_args()
     output_path = export_service_blueprint(args.output_dir, service_name=args.service_name)
     print(f"Wrote service blueprint to {output_path}")
+    if args.export_seed_sql:
+        seed_sql_path = export_seed_sql(args.seed_sql_path)
+        print(f"Wrote PostGIS seed SQL to {seed_sql_path}")
 
 
 if __name__ == "__main__":

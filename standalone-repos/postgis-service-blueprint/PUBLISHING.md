@@ -28,6 +28,6 @@
 
 ## First Public Polish Pass
 
-- Add a local PostGIS seed script or Docker compose stack
+- Keep the local PostGIS seed script and Docker compose stack in sync with the sample layer fixture
 - Add one concrete delivery layer example through FastAPI or PostgREST
 - Link this repository back to the QGIS workbench and API repos as the open spatial publishing lane
