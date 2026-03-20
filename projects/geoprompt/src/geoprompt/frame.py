@@ -370,6 +370,96 @@ class GeoPromptFrame:
 
         return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or targets.crs)
 
+    def catchment_competition(
+        self,
+        targets: "GeoPromptFrame",
+        max_distance: float,
+        origin_id_column: str = "site_id",
+        target_id_column: str = "site_id",
+        aggregations: dict[str, AggregationName] | None = None,
+        how: SpatialJoinMode = "left",
+        distance_method: str = "euclidean",
+        competition_suffix: str = "catchment",
+    ) -> "GeoPromptFrame":
+        if max_distance < 0:
+            raise ValueError("max_distance must be zero or greater")
+        if how not in {"inner", "left"}:
+            raise ValueError("how must be 'inner' or 'left'")
+        if self.crs and targets.crs and self.crs != targets.crs:
+            raise ValueError("frames must share the same CRS before catchment competition summaries")
+
+        self._require_column(origin_id_column)
+        targets._require_column(target_id_column)
+
+        origin_centroids = self._centroids()
+        target_rows = list(targets._rows)
+        target_centroids = targets._centroids()
+
+        coverage_buckets: dict[str, dict[str, list[Record]]] = {
+            str(origin_row[origin_id_column]): {
+                "covered": [],
+                "exclusive": [],
+                "shared": [],
+                "won": [],
+            }
+            for origin_row in self._rows
+        }
+        unserved_target_ids: list[str] = []
+
+        for target_row, target_centroid in zip(target_rows, target_centroids, strict=True):
+            row_matches = self._nearest_row_matches(
+                origin_centroid=target_centroid,
+                right_rows=self._rows,
+                right_centroids=origin_centroids,
+                k=len(self._rows),
+                distance_method=distance_method,
+                max_distance=max_distance,
+            )
+            if not row_matches:
+                unserved_target_ids.append(str(target_row[target_id_column]))
+                continue
+
+            is_shared = len(row_matches) > 1
+            for origin_row, _distance_value in row_matches:
+                origin_key = str(origin_row[origin_id_column])
+                coverage_buckets[origin_key]["covered"].append(target_row)
+                coverage_buckets[origin_key]["shared" if is_shared else "exclusive"].append(target_row)
+
+            winning_origin, _winning_distance = row_matches[0]
+            coverage_buckets[str(winning_origin[origin_id_column])]["won"].append(target_row)
+
+        rows: list[Record] = []
+        for origin_row in self._rows:
+            origin_key = str(origin_row[origin_id_column])
+            bucket = coverage_buckets[origin_key]
+            covered_rows = bucket["covered"]
+            if not covered_rows and how == "inner":
+                continue
+
+            resolved_row = dict(origin_row)
+            resolved_row[f"{target_id_column}s_{competition_suffix}"] = [str(row[target_id_column]) for row in covered_rows]
+            resolved_row[f"count_{competition_suffix}"] = len(covered_rows)
+            resolved_row[f"{target_id_column}s_exclusive_{competition_suffix}"] = [
+                str(row[target_id_column]) for row in bucket["exclusive"]
+            ]
+            resolved_row[f"count_exclusive_{competition_suffix}"] = len(bucket["exclusive"])
+            resolved_row[f"{target_id_column}s_shared_{competition_suffix}"] = [
+                str(row[target_id_column]) for row in bucket["shared"]
+            ]
+            resolved_row[f"count_shared_{competition_suffix}"] = len(bucket["shared"])
+            resolved_row[f"{target_id_column}s_won_{competition_suffix}"] = [
+                str(row[target_id_column]) for row in bucket["won"]
+            ]
+            resolved_row[f"count_won_{competition_suffix}"] = len(bucket["won"])
+            resolved_row[f"{target_id_column}s_unserved_{competition_suffix}"] = list(unserved_target_ids)
+            resolved_row[f"count_unserved_{competition_suffix}"] = len(unserved_target_ids)
+            resolved_row[f"distance_limit_{competition_suffix}"] = max_distance
+            resolved_row[f"distance_method_{competition_suffix}"] = distance_method
+            resolved_row.update(self._aggregate_rows(covered_rows, aggregations=aggregations, suffix=competition_suffix))
+            rows.append(resolved_row)
+
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or targets.crs)
+
     def query_radius(
         self,
         anchor: str | Geometry | Coordinate,
@@ -399,7 +489,7 @@ class GeoPromptFrame:
                 rows.append(resolved_row)
 
         rows.sort(key=lambda item: (float(item["distance"]), str(item.get(id_column, ""))))
-        return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
 
     def within_distance(
         self,
@@ -491,7 +581,7 @@ class GeoPromptFrame:
                 buffered_row = dict(row)
                 buffered_row[self.geometry_column] = buffered_geometry
                 rows.append(buffered_row)
-        return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
 
     def buffer_join(
         self,
@@ -549,7 +639,7 @@ class GeoPromptFrame:
                 merged_row[f"{other.geometry_column}_{rsuffix}"] = right_row[other.geometry_column]
                 joined_rows.append(merged_row)
 
-        return GeoPromptFrame(rows=joined_rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
+        return GeoPromptFrame._from_internal_rows(joined_rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
     def coverage_summary(
         self,
@@ -598,7 +688,7 @@ class GeoPromptFrame:
             resolved_row.update(self._aggregate_rows(matched_rows, aggregations=aggregations, suffix=rsuffix))
             rows.append(resolved_row)
 
-        return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs or targets.crs)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or targets.crs)
 
     def query_bounds(
         self,
@@ -627,7 +717,7 @@ class GeoPromptFrame:
             if include_row:
                 rows.append(dict(row))
 
-        return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
 
     def set_crs(self, crs: str, allow_override: bool = False) -> "GeoPromptFrame":
         if self.crs is not None and self.crs != crs and not allow_override:
@@ -718,7 +808,7 @@ class GeoPromptFrame:
                 merged_row[f"join_predicate_{rsuffix}"] = predicate
                 joined_rows.append(merged_row)
 
-        return GeoPromptFrame(rows=joined_rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
+        return GeoPromptFrame._from_internal_rows(joined_rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
     def clip(self, mask: "GeoPromptFrame") -> "GeoPromptFrame":
         if self.crs and mask.crs and self.crs != mask.crs:
@@ -735,7 +825,7 @@ class GeoPromptFrame:
                 clipped_row = dict(row)
                 clipped_row[self.geometry_column] = clipped_geometry
                 rows.append(clipped_row)
-        return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs or mask.crs)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or mask.crs)
 
     def overlay_intersections(
         self,

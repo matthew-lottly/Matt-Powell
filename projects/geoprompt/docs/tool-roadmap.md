@@ -19,9 +19,9 @@ Geoprompt is strongest when a tool does one of these well:
 
 ### 2. Catchment Competition
 
-- Build on `buffer(...)`, `coverage_summary(...)`, and nearest-distance logic
-- Add overlap-aware counts where a target can be exclusive, shared, or contested
-- Useful for store competition, response coverage, and multi-provider access analysis
+- Implemented through `catchment_competition(...)`
+- Current scope covers exclusive, shared, won, and unserved target summaries inside a service radius
+- Next extension should add geometry-driven competition summaries on top of buffered service areas and contested-demand rollups
 
 ### 3. Corridor Reach
 
@@ -56,8 +56,7 @@ Geoprompt is strongest when a tool does one of these well:
 
 ## Recommended Next Implementation Order
 
-1. Catchment competition
-2. Overlay summaries
-3. Corridor reach
-4. Zone fit scoring
-5. Multi-scale clustering
+1. Overlay summaries
+2. Corridor reach
+3. Zone fit scoring
+4. Multi-scale clustering

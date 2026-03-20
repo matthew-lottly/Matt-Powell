@@ -285,6 +285,88 @@ def test_summarize_assignments_supports_left_mode_and_distance_filter() -> None:
     assert records[1]["distance_mean_assigned"] is None
 
 
+def test_catchment_competition_counts_exclusive_shared_won_and_unserved_targets() -> None:
+    origins = GeoPromptFrame.from_records(
+        [
+            {"site_id": "origin-a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "origin-b", "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    targets = GeoPromptFrame.from_records(
+        [
+            {"target_id": "target-1", "demand": 2.0, "geometry": {"type": "Point", "coordinates": [0.5, 0.0]}},
+            {"target_id": "target-2", "demand": 3.0, "geometry": {"type": "Point", "coordinates": [1.5, 0.0]}},
+            {"target_id": "target-3", "demand": 4.0, "geometry": {"type": "Point", "coordinates": [2.7, 0.0]}},
+            {"target_id": "target-4", "demand": 5.0, "geometry": {"type": "Point", "coordinates": [9.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    summary = origins.catchment_competition(
+        targets,
+        max_distance=2.0,
+        origin_id_column="site_id",
+        target_id_column="target_id",
+        aggregations={"demand": "sum"},
+    )
+    records = sorted(summary.to_records(), key=lambda item: item["site_id"])
+
+    assert records[0]["site_id"] == "origin-a"
+    assert records[0]["target_ids_catchment"] == ["target-1", "target-2"]
+    assert records[0]["target_ids_exclusive_catchment"] == ["target-1"]
+    assert records[0]["target_ids_shared_catchment"] == ["target-2"]
+    assert records[0]["target_ids_won_catchment"] == ["target-1", "target-2"]
+    assert records[0]["count_catchment"] == 2
+    assert records[0]["count_exclusive_catchment"] == 1
+    assert records[0]["count_shared_catchment"] == 1
+    assert records[0]["count_won_catchment"] == 2
+    assert records[0]["count_unserved_catchment"] == 1
+    assert records[0]["target_ids_unserved_catchment"] == ["target-4"]
+    assert records[0]["demand_sum_catchment"] == 5.0
+
+    assert records[1]["site_id"] == "origin-b"
+    assert records[1]["target_ids_catchment"] == ["target-2", "target-3"]
+    assert records[1]["target_ids_exclusive_catchment"] == ["target-3"]
+    assert records[1]["target_ids_shared_catchment"] == ["target-2"]
+    assert records[1]["target_ids_won_catchment"] == ["target-3"]
+    assert records[1]["count_catchment"] == 2
+    assert records[1]["count_exclusive_catchment"] == 1
+    assert records[1]["count_shared_catchment"] == 1
+    assert records[1]["count_won_catchment"] == 1
+    assert records[1]["count_unserved_catchment"] == 1
+    assert records[1]["demand_sum_catchment"] == 7.0
+
+
+def test_catchment_competition_supports_inner_mode() -> None:
+    origins = GeoPromptFrame.from_records(
+        [
+            {"site_id": "origin-a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "origin-b", "geometry": {"type": "Point", "coordinates": [10.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    targets = GeoPromptFrame.from_records(
+        [
+            {"target_id": "target-1", "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    summary = origins.catchment_competition(
+        targets,
+        max_distance=2.0,
+        origin_id_column="site_id",
+        target_id_column="target_id",
+        how="inner",
+    )
+
+    records = summary.to_records()
+    assert len(records) == 1
+    assert records[0]["site_id"] == "origin-a"
+    assert records[0]["count_catchment"] == 1
+
+
 def test_buffer_converts_points_to_polygons() -> None:
     frame = read_points(PROJECT_ROOT / "data" / "sample_points.json", crs="EPSG:4326")
 

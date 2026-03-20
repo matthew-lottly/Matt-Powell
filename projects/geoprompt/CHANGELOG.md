@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7
+
+- Added `GeoPromptFrame.catchment_competition(...)` for overlap-aware service-radius competition summaries, including exclusive, shared, won, and unserved target rollups.
+- Added regression coverage for catchment competition workflows and inner-mode filtering.
+- Added rectangle-oriented predicate fast paths in `geometry.py` so axis-aligned polygon workloads spend less time in the general segment-intersection path.
+- Reduced redundant row normalization in more frame methods so `clip(...)`, `spatial_join(...)`, coverage summaries, and related workflows spend less time rebuilding already-normalized geometry rows.
+
 ## 0.1.6
 
 - Improved `nearest_neighbors(...)` so small-`k` lookups do not sort the full candidate list.

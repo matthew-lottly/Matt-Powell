@@ -120,6 +120,44 @@ def _segments(vertices: tuple[Coordinate, ...]) -> tuple[tuple[Coordinate, Coord
     return tuple((vertices[index - 1], vertices[index]) for index in range(1, len(vertices)))
 
 
+def _bounds_intersect(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> bool:
+    return not (
+        left[2] < right[0]
+        or left[0] > right[2]
+        or left[3] < right[1]
+        or left[1] > right[3]
+    )
+
+
+def _point_in_bounds(point: Coordinate, bounds: tuple[float, float, float, float], tolerance: float = 1e-9) -> bool:
+    min_x, min_y, max_x, max_y = bounds
+    return min_x - tolerance <= point[0] <= max_x + tolerance and min_y - tolerance <= point[1] <= max_y + tolerance
+
+
+def _rectangle_bounds(polygon: Geometry) -> tuple[float, float, float, float] | None:
+    if geometry_type(polygon) != "Polygon":
+        return None
+
+    ring = geometry_vertices(polygon)
+    if len(ring) != 5:
+        return None
+
+    min_x, min_y, max_x, max_y = geometry_bounds(polygon)
+    expected_corners = {
+        (min_x, min_y),
+        (min_x, max_y),
+        (max_x, min_y),
+        (max_x, max_y),
+    }
+    actual_corners = set(ring[:-1])
+    if len(actual_corners) != 4 or actual_corners != expected_corners:
+        return None
+    return (min_x, min_y, max_x, max_y)
+
+
 def _cross_product(origin: Coordinate, middle: Coordinate, destination: Coordinate) -> float:
     return (middle[0] - origin[0]) * (destination[1] - origin[1]) - (middle[1] - origin[1]) * (destination[0] - origin[0])
 
@@ -159,6 +197,55 @@ def _segments_intersect(
     )
 
 
+def _segment_intersects_rectangle(
+    start: Coordinate,
+    end: Coordinate,
+    bounds: tuple[float, float, float, float],
+) -> bool:
+    if _point_in_bounds(start, bounds) or _point_in_bounds(end, bounds):
+        return True
+
+    segment_bounds = (
+        min(start[0], end[0]),
+        min(start[1], end[1]),
+        max(start[0], end[0]),
+        max(start[1], end[1]),
+    )
+    if not _bounds_intersect(segment_bounds, bounds):
+        return False
+
+    min_x, min_y, max_x, max_y = bounds
+    rectangle_edges = (
+        ((min_x, min_y), (max_x, min_y)),
+        ((max_x, min_y), (max_x, max_y)),
+        ((max_x, max_y), (min_x, max_y)),
+        ((min_x, max_y), (min_x, min_y)),
+    )
+    return any(_segments_intersect(start, end, edge_start, edge_end) for edge_start, edge_end in rectangle_edges)
+
+
+def _line_intersects_rectangle(vertices: tuple[Coordinate, ...], bounds: tuple[float, float, float, float]) -> bool:
+    return any(_segment_intersects_rectangle(start, end, bounds) for start, end in _segments(vertices))
+
+
+def _polygon_intersects_rectangle(polygon: Geometry, bounds: tuple[float, float, float, float]) -> bool:
+    ring = geometry_vertices(polygon)
+    if any(_point_in_bounds(vertex, bounds) for vertex in ring[:-1]):
+        return True
+
+    min_x, min_y, max_x, max_y = bounds
+    rectangle_corners = (
+        (min_x, min_y),
+        (max_x, min_y),
+        (max_x, max_y),
+        (min_x, max_y),
+    )
+    if any(_point_in_polygon(corner, polygon) for corner in rectangle_corners):
+        return True
+
+    return _line_intersects_rectangle(ring, bounds)
+
+
 def _point_in_polygon(point: Coordinate, polygon: Geometry) -> bool:
     ring = geometry_vertices(polygon)
     for start, end in _segments(ring):
@@ -182,6 +269,9 @@ def geometry_intersects(origin: Geometry, destination: Geometry) -> bool:
     origin_type = geometry_type(origin)
     destination_type = geometry_type(destination)
 
+    if not _bounds_intersect(geometry_bounds(origin), geometry_bounds(destination)):
+        return False
+
     if origin_type == "Point" and destination_type == "Point":
         return geometry_vertices(origin)[0] == geometry_vertices(destination)[0]
     if origin_type == "Point" and destination_type == "LineString":
@@ -190,6 +280,9 @@ def geometry_intersects(origin: Geometry, destination: Geometry) -> bool:
     if origin_type == "LineString" and destination_type == "Point":
         return geometry_intersects(destination, origin)
     if origin_type == "Point" and destination_type == "Polygon":
+        destination_rectangle = _rectangle_bounds(destination)
+        if destination_rectangle is not None:
+            return _point_in_bounds(geometry_vertices(origin)[0], destination_rectangle)
         return _point_in_polygon(geometry_vertices(origin)[0], destination)
     if origin_type == "Polygon" and destination_type == "Point":
         return geometry_intersects(destination, origin)
@@ -200,6 +293,9 @@ def geometry_intersects(origin: Geometry, destination: Geometry) -> bool:
             for second_start, second_end in _segments(geometry_vertices(destination))
         )
     if origin_type == "LineString" and destination_type == "Polygon":
+        destination_rectangle = _rectangle_bounds(destination)
+        if destination_rectangle is not None:
+            return _line_intersects_rectangle(geometry_vertices(origin), destination_rectangle)
         destination_ring = geometry_vertices(destination)
         return any(
             _segments_intersect(first_start, first_end, second_start, second_end)
@@ -209,6 +305,14 @@ def geometry_intersects(origin: Geometry, destination: Geometry) -> bool:
     if origin_type == "Polygon" and destination_type == "LineString":
         return geometry_intersects(destination, origin)
     if origin_type == "Polygon" and destination_type == "Polygon":
+        origin_rectangle = _rectangle_bounds(origin)
+        destination_rectangle = _rectangle_bounds(destination)
+        if origin_rectangle is not None and destination_rectangle is not None:
+            return True
+        if destination_rectangle is not None:
+            return _polygon_intersects_rectangle(origin, destination_rectangle)
+        if origin_rectangle is not None:
+            return _polygon_intersects_rectangle(destination, origin_rectangle)
         origin_ring = geometry_vertices(origin)
         destination_ring = geometry_vertices(destination)
         return any(
@@ -224,7 +328,16 @@ def geometry_within(candidate: Geometry, container: Geometry) -> bool:
     candidate_type = geometry_type(candidate)
     container_type = geometry_type(container)
 
+    if not _bounds_intersect(geometry_bounds(candidate), geometry_bounds(container)):
+        return False
+
     if container_type == "Polygon":
+        container_rectangle = _rectangle_bounds(container)
+        if container_rectangle is not None:
+            candidate_vertices = geometry_vertices(candidate)
+            if candidate_type == "Polygon":
+                candidate_vertices = candidate_vertices[:-1]
+            return all(_point_in_bounds(vertex, container_rectangle) for vertex in candidate_vertices)
         return all(_point_in_polygon(vertex, container) for vertex in geometry_vertices(candidate))
     if candidate_type == "Point" and container_type == "LineString":
         point = geometry_vertices(candidate)[0]
