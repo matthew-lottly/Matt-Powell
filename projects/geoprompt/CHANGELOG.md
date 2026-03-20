@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.12
+
+- Extended `GeoPromptFrame.corridor_reach(...)` with `distance_mode` (`direct` or `network`), corridor scoring modes, optional corridor weights, and directional alignment support.
+- Extended `GeoPromptFrame.zone_fit_score(...)` with grouped zone rankings through `group_by`, `group_aggregation`, and `top_n` controls.
+- Added `GeoPromptFrame.cluster_diagnostics(...)` and `GeoPromptFrame.recommend_cluster_count(...)` for cluster-count exploration using SSE and silhouette summaries.
+- Extended `GeoPromptFrame.overlay_summary(...)` with grouped overlay summaries and optional right-side normalization.
+- Added benchmark coverage for grouped overlay summaries and cluster diagnostics.
+- Expanded regression coverage for corridor scoring, network distance mode, grouped zone rankings, grouped overlay summaries, and cluster recommendation helpers.
+
 ## 0.1.11
 
 - Added haversine support to `GeoPromptFrame.corridor_reach(...)` using local tangent-plane segment distance so lon/lat corridor screening can run in geographic mode.

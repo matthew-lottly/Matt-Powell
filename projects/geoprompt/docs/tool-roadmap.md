@@ -26,28 +26,28 @@ Geoprompt is strongest when a tool does one of these well:
 ### 3. Corridor Reach
 
 - Implemented through `corridor_reach(...)`
-- Current scope covers per-feature corridor matching within a distance limit, corridor distance summaries, total corridor length aggregation, and Euclidean or haversine distance support
-- Next extension should add direction-aware corridor scoring and weighted corridor priority ranking
+- Current scope covers per-feature corridor matching within a distance limit, corridor distance summaries, total corridor length aggregation, Euclidean or haversine distance support, direct or network-style corridor distance, and weighted direction-aware corridor scoring
+- Next extension should add corridor-path anchor controls and network-specific diagnostics
 
 ## Mid-Term Tools
 
 ### 4. Overlay Summaries
 
 - Implemented through `overlay_summary(...)`
-- Current scope covers intersecting ids, intersection counts, overlap area, overlap length, and per-feature area or length shares
-- Next extension should add right-side normalization controls and grouped overlay summaries by class or band
+- Current scope covers intersecting ids, intersection counts, overlap area, overlap length, per-feature area or length shares, grouped overlay summaries, and optional right-side normalization
+- Next extension should add overlay-group comparison helpers and ranked group summaries
 
 ### 5. Zone Fit Scoring
 
 - Implemented through `zone_fit_score(...)`
-- Current scope covers containment, overlap, area similarity, access scoring, optional directional alignment, and custom scoring weight control with best-zone assignment
-- Next extension should add grouped zone rankings and user-defined scoring callbacks
+- Current scope covers containment, overlap, area similarity, access scoring, optional directional alignment, custom scoring weight control, grouped zone rankings, and best-zone assignment
+- Next extension should add user-defined scoring callbacks and pairwise zone comparison outputs
 
 ### 6. Multi-Scale Clustering
 
 - Implemented through `centroid_cluster(...)`
-- Current scope covers deterministic k-means centroid-distance clustering with cluster ids, centers, distances, cluster SSE, and silhouette-style quality metrics
-- Next extension should add cluster count selection heuristics and grouped cluster summaries
+- Current scope covers deterministic k-means centroid-distance clustering with cluster ids, centers, distances, cluster SSE, silhouette-style quality metrics, and cluster-count diagnostics through `cluster_diagnostics(...)`
+- Next extension should add grouped cluster summaries and alternate recommendation heuristics
 
 ## Design Rules For New Tools
 
@@ -59,8 +59,8 @@ Geoprompt is strongest when a tool does one of these well:
 
 ## Recommended Next Implementation Order
 
-1. Direction-aware corridor scoring
-2. Grouped zone-fit rankings
-3. Cluster count selection heuristics
-4. Grouped overlay summaries
-5. Network-distance corridor analysis
+1. Corridor-path anchor controls
+2. User-defined zone-fit scoring callbacks
+3. Grouped cluster summaries
+4. Overlay-group comparison helpers
+5. Corridor network diagnostics

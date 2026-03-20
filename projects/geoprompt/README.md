@@ -9,7 +9,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Lane: Spatial package design
 - Domain: Reusable custom spatial analysis
 - Stack: Python, JSON fixtures, lightweight geometry frame, custom equations
-- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, catchment competition summaries, corridor reach, zone fit scoring, centroid clustering, buffer, buffer joins, coverage summaries, overlay summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, gravity model, accessibility index, convex hull, envelope, frame utilities, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
+- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, catchment competition summaries, corridor reach with scoring and network-style distance, zone fit scoring with grouped rankings, centroid clustering with diagnostics, buffer, buffer joins, coverage summaries, overlay summaries with grouping, dissolve, clip and overlay intersections, nearest-neighbor analysis, gravity model, accessibility index, convex hull, envelope, frame utilities, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
 
 ## Overview
 
@@ -40,9 +40,9 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 - Overlay summaries for overlap metrics when you need counts and shares instead of derived geometry outputs
 - Dissolve workflows with `GeoPromptFrame.dissolve(...)`
 - Overlay operations with `GeoPromptFrame.clip(...)` and `GeoPromptFrame.overlay_intersections(...)`
-- Corridor reach analysis with `GeoPromptFrame.corridor_reach(...)` for route-proximity screening in Euclidean or haversine mode
-- Zone fit scoring with `GeoPromptFrame.zone_fit_score(...)` for configurable multi-factor zone matching
-- Centroid clustering with `GeoPromptFrame.centroid_cluster(...)` for deterministic spatial grouping plus cluster quality metrics
+- Corridor reach analysis with `GeoPromptFrame.corridor_reach(...)` for route-proximity screening, scoring, and direct or network-style corridor distance
+- Zone fit scoring with `GeoPromptFrame.zone_fit_score(...)` for configurable multi-factor zone matching and grouped zone rankings
+- Centroid clustering with `GeoPromptFrame.centroid_cluster(...)` for deterministic spatial grouping plus cluster quality metrics and cluster-count diagnostics
 - Gravity model and accessibility index equations for interaction and access scoring
 - Geometry helpers: `geometry_convex_hull(...)`, `geometry_envelope(...)`, `GeoPromptFrame.envelopes()`, `GeoPromptFrame.convex_hulls()`
 - Frame utilities: `select(...)`, `rename_columns(...)`, `filter(...)`, `sort(...)`, `describe()`, `__repr__`, `__getitem__`
@@ -237,6 +237,25 @@ summary = assets.overlay_summary(
 print(summary.head(3))
 ```
 
+Grouped overlay example:
+
+```python
+import geoprompt as gp
+
+regions = gp.read_features("data/benchmark_regions.json", crs="EPSG:4326")
+assets = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+
+summary = assets.overlay_summary(
+    regions,
+    right_id_column="region_id",
+    group_by="region_band",
+    normalize_by="both",
+    top_n_groups=2,
+)
+
+print(summary.head(3))
+```
+
 Dissolve example:
 
 ```python
@@ -261,6 +280,10 @@ reach = assets.corridor_reach(
     max_distance=0.05,
     aggregations={"capacity_index": "sum"},
     distance_method="euclidean",
+    distance_mode="direct",
+    score_mode="combined",
+    weight_column="capacity_index",
+    preferred_bearing=90.0,
 )
 
 print(reach.head(3))
@@ -298,6 +321,9 @@ scored = features.zone_fit_score(
         "alignment": 0.1,
     },
     preferred_bearing=90.0,
+    group_by="region_band",
+    group_aggregation="max",
+    top_n=3,
 )
 
 print(scored.head(3))
@@ -316,6 +342,20 @@ print(clustered.head(5))
 ```
 
 Clustered output now includes `cluster_size`, `cluster_sse`, `cluster_silhouette`, and `cluster_silhouette_mean`.
+
+Cluster-diagnostics example:
+
+```python
+import geoprompt as gp
+
+features = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+
+diagnostics = features.cluster_diagnostics([2, 3, 4, 5])
+recommended = features.recommend_cluster_count([2, 3, 4, 5], metric="silhouette")
+
+print(diagnostics)
+print(recommended)
+```
 
 Frame utilities example:
 

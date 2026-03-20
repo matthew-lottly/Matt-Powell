@@ -404,6 +404,7 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
         (f"{case.name}.geoprompt.to_crs", lambda: frame.to_crs("EPSG:3857")),
         (f"{case.name}.reference.to_crs", lambda: geopandas_frame.to_crs("EPSG:3857")),
         (f"{case.name}.geoprompt.centroid_cluster", lambda: frame.centroid_cluster(k=min(3, len(frame)))),
+        (f"{case.name}.geoprompt.cluster_diagnostics", lambda: frame.cluster_diagnostics(k_values=[1, min(2, len(frame)), min(3, len(frame))])),
     ]:
         benchmark, _ = _benchmark(operation, func)
         benchmarks.append(benchmark)
@@ -460,6 +461,12 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
         benchmark, _ = _benchmark(
             f"{case.name}.geoprompt.zone_fit_score",
             lambda: frame.zone_fit_score(regions, zone_id_column="region_id"),
+        )
+        benchmarks.append(benchmark)
+
+        benchmark, _ = _benchmark(
+            f"{case.name}.geoprompt.overlay_summary_grouped",
+            lambda: frame.overlay_summary(regions, right_id_column="region_id", group_by="region_band", normalize_by="both"),
         )
         benchmarks.append(benchmark)
 

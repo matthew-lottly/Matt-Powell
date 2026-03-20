@@ -549,6 +549,27 @@ def test_overlay_summary_supports_inner_mode() -> None:
     assert "alpha-point" in site_ids
 
 
+def test_overlay_summary_supports_grouping_and_right_normalization() -> None:
+    regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
+    features = read_features(PROJECT_ROOT / "data" / "benchmark_features.json", crs="EPSG:4326")
+
+    summary = features.overlay_summary(
+        regions,
+        right_id_column="region_id",
+        group_by="region_band",
+        normalize_by="both",
+        top_n_groups=1,
+    )
+    records = {record["site_id"]: record for record in summary.to_records()}
+
+    north_zone = records["north-campus-zone"]
+    assert north_zone["groups_overlay"]
+    assert len(north_zone["groups_overlay"]) == 1
+    assert north_zone["best_group_overlay"] in {"north", "south"}
+    assert north_zone["area_share_overlay"] is not None
+    assert north_zone["area_share_right_overlay"] is not None
+
+
 def test_dissolve_regions_by_band() -> None:
     regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
 
@@ -680,6 +701,42 @@ def test_corridor_reach_supports_haversine_distance() -> None:
     assert record["distance_min_reach"] < 1.0
 
 
+def test_corridor_reach_supports_network_distance_and_scoring() -> None:
+    features = GeoPromptFrame.from_records(
+        [
+            {"site_id": "near-start", "geometry": {"type": "Point", "coordinates": [1.0, 0.1]}},
+            {"site_id": "far-along", "geometry": {"type": "Point", "coordinates": [9.0, 0.1]}},
+        ],
+        crs="EPSG:4326",
+    )
+    corridors = GeoPromptFrame.from_records(
+        [
+            {"site_id": "route-1", "priority": 2.0, "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [10.0, 0.0]]}},
+            {"site_id": "route-2", "priority": 1.0, "geometry": {"type": "LineString", "coordinates": [[0.0, 1.0], [10.0, 1.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    direct = features.corridor_reach(corridors, max_distance=20.0)
+    network = features.corridor_reach(
+        corridors,
+        max_distance=20.0,
+        distance_mode="network",
+        score_mode="combined",
+        weight_column="priority",
+        preferred_bearing=90.0,
+    )
+    direct_records = {row["site_id"]: row for row in direct.to_records()}
+    network_records = {row["site_id"]: row for row in network.to_records()}
+
+    assert direct_records["near-start"]["distance_min_reach"] < network_records["far-along"]["distance_min_reach"]
+    assert network_records["near-start"]["distance_mode_reach"] == "network"
+    assert network_records["near-start"]["score_mode_reach"] == "combined"
+    assert network_records["near-start"]["corridor_scores_reach"]
+    assert network_records["near-start"]["best_corridor_reach"] == "route-1"
+    assert network_records["near-start"]["best_score_reach"] is not None
+
+
 def test_zone_fit_score_ranks_zones_for_features() -> None:
     features = GeoPromptFrame.from_records(
         [
@@ -737,6 +794,33 @@ def test_zone_fit_score_supports_custom_weights_and_alignment() -> None:
     assert record["best_zone_fit"] == "north-zone"
     assert record["score_weights_fit"]["alignment"] == 0.9
     assert any(zone_score["alignment_score"] is not None for zone_score in record["zone_scores_fit"])
+
+
+def test_zone_fit_score_supports_group_rankings() -> None:
+    features = GeoPromptFrame.from_records(
+        [{"site_id": "inside", "geometry": {"type": "Point", "coordinates": [0.5, 0.5]}}],
+        crs="EPSG:4326",
+    )
+    zones = GeoPromptFrame.from_records(
+        [
+            {"region_id": "zone-a", "region_band": "north", "geometry": {"type": "Polygon", "coordinates": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]] }},
+            {"region_id": "zone-b", "region_band": "north", "geometry": {"type": "Polygon", "coordinates": [[[0.0, 0.0], [1.2, 0.0], [1.2, 1.2], [0.0, 1.2]]] }},
+            {"region_id": "zone-c", "region_band": "south", "geometry": {"type": "Polygon", "coordinates": [[[2.0, 2.0], [3.0, 2.0], [3.0, 3.0], [2.0, 3.0]]] }},
+        ],
+        crs="EPSG:4326",
+    )
+
+    scored = features.zone_fit_score(
+        zones,
+        zone_id_column="region_id",
+        group_by="region_band",
+        group_aggregation="max",
+        top_n=2,
+    )
+    record = scored.to_records()[0]
+    assert record["group_scores_fit"]
+    assert record["best_group_fit"] == "north"
+    assert len(record["zone_scores_fit"]) == 2
 
 
 def test_zone_fit_score_respects_max_distance() -> None:
@@ -812,6 +896,26 @@ def test_centroid_cluster_single_cluster_reports_zero_silhouette() -> None:
     clustered = frame.centroid_cluster(k=1)
     assert all(row["cluster_silhouette"] == 0.0 for row in clustered)
     assert all(row["cluster_silhouette_mean"] == 0.0 for row in clustered)
+
+
+def test_cluster_diagnostics_and_recommendation() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "geometry": {"type": "Point", "coordinates": [0.2, 0.0]}},
+            {"site_id": "c", "geometry": {"type": "Point", "coordinates": [5.0, 0.0]}},
+            {"site_id": "d", "geometry": {"type": "Point", "coordinates": [5.2, 0.0]}},
+        ],
+    )
+
+    diagnostics = frame.cluster_diagnostics([1, 2, 3])
+    assert [item["k"] for item in diagnostics] == [1, 2, 3]
+    assert diagnostics[0]["sse_total"] >= diagnostics[1]["sse_total"]
+    assert any(item["recommended_silhouette"] for item in diagnostics)
+    assert any(item["recommended_sse"] for item in diagnostics)
+
+    recommendation = frame.recommend_cluster_count([1, 2, 3], metric="silhouette")
+    assert recommendation["recommended_silhouette"] is True
 
 
 def test_geometry_envelope_creates_bounding_box() -> None:
@@ -1118,3 +1222,5 @@ def test_comparison_report_benchmarks_new_methods() -> None:
     assert "sample.geoprompt.centroid_cluster" in benchmark_ops
     assert "benchmark.geoprompt.zone_fit_score" in benchmark_ops
     assert "benchmark.geoprompt.corridor_reach" in benchmark_ops
+    assert "benchmark.geoprompt.cluster_diagnostics" in benchmark_ops
+    assert "benchmark.geoprompt.overlay_summary_grouped" in benchmark_ops
