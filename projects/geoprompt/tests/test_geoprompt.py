@@ -662,6 +662,24 @@ def test_corridor_reach_supports_inner_mode() -> None:
     assert result.to_records()[0]["site_id"] == "near"
 
 
+def test_corridor_reach_rejects_unsupported_distance_method() -> None:
+    features = GeoPromptFrame.from_records(
+        [{"site_id": "near", "geometry": {"type": "Point", "coordinates": [1.0, 0.05]}}],
+        crs="EPSG:4326",
+    )
+    corridors = GeoPromptFrame.from_records(
+        [{"site_id": "route", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [2.0, 0.0]]}}],
+        crs="EPSG:4326",
+    )
+
+    try:
+        features.corridor_reach(corridors, max_distance=1.0, distance_method="haversine")
+    except ValueError as exc:
+        assert "euclidean" in str(exc)
+    else:
+        raise AssertionError("corridor_reach should reject unsupported distance methods")
+
+
 def test_zone_fit_score_ranks_zones_for_features() -> None:
     features = GeoPromptFrame.from_records(
         [
@@ -764,12 +782,29 @@ def test_geometry_convex_hull_returns_hull() -> None:
     assert (1.0, 0.5) not in [(x, y) for x, y in zip(xs, ys)]
 
 
+def test_geometry_convex_hull_returns_line_for_collinear_points() -> None:
+    line = {
+        "type": "LineString",
+        "coordinates": [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)],
+    }
+    hull = geometry_convex_hull(line)
+    assert hull["type"] == "LineString"
+    assert hull["coordinates"] == ((0.0, 0.0), (2.0, 0.0))
+
+
 def test_gravity_model_equation() -> None:
     g = gravity_model(10.0, 20.0, distance_value=5.0, friction=2.0)
     assert round(g, 2) == 8.0
 
     g_zero = gravity_model(10.0, 20.0, distance_value=0.0)
     assert g_zero == float("inf")
+
+    try:
+        gravity_model(10.0, 20.0, distance_value=-1.0)
+    except ValueError as exc:
+        assert "zero or greater" in str(exc)
+    else:
+        raise AssertionError("gravity_model should reject negative distances")
 
 
 def test_accessibility_index_equation() -> None:
@@ -779,6 +814,20 @@ def test_accessibility_index_equation() -> None:
         friction=2.0,
     )
     assert round(score, 2) == 15.0
+
+    infinite_score = accessibility_index(
+        weights=[10.0, 20.0],
+        distances=[0.0, 2.0],
+        friction=2.0,
+    )
+    assert infinite_score == float("inf")
+
+    try:
+        accessibility_index(weights=[10.0], distances=[-1.0], friction=2.0)
+    except ValueError as exc:
+        assert "zero or greater" in str(exc)
+    else:
+        raise AssertionError("accessibility_index should reject negative distances")
 
 
 def test_frame_repr() -> None:
@@ -851,6 +900,10 @@ def test_frame_filter_with_boolean_mask() -> None:
     assert len(filtered) == 1
     assert filtered.to_records()[0]["site_id"] == "a"
 
+    tuple_filtered = frame.filter((False, True))
+    assert len(tuple_filtered) == 1
+    assert tuple_filtered.to_records()[0]["site_id"] == "b"
+
 
 def test_frame_sort_by_column() -> None:
     frame = GeoPromptFrame.from_records(
@@ -864,6 +917,22 @@ def test_frame_sort_by_column() -> None:
     assert [r["site_id"] for r in asc] == ["a", "c", "b"]
 
     desc = frame.sort("demand", descending=True)
+    assert [r["site_id"] for r in desc] == ["b", "c", "a"]
+
+
+def test_frame_sort_keeps_none_values_last() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "demand": None, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "demand": 3.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "demand": 1.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        ],
+    )
+
+    asc = frame.sort("demand")
+    desc = frame.sort("demand", descending=True)
+
+    assert [r["site_id"] for r in asc] == ["c", "b", "a"]
     assert [r["site_id"] for r in desc] == ["b", "c", "a"]
 
 

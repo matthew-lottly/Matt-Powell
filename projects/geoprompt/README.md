@@ -265,6 +265,8 @@ reach = assets.corridor_reach(
 print(reach.head(3))
 ```
 
+`corridor_reach(...)` currently supports Euclidean distance only.
+
 Zone-fit-score example:
 
 ```python

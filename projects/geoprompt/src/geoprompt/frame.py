@@ -1155,17 +1155,19 @@ class GeoPromptFrame:
     def filter(self, predicate: Any) -> "GeoPromptFrame":
         if callable(predicate):
             rows = [row for row in self._rows if predicate(row)]
-        elif isinstance(predicate, list) and all(isinstance(v, bool) for v in predicate):
+        elif isinstance(predicate, Sequence) and not isinstance(predicate, (str, bytes)) and all(isinstance(v, bool) for v in predicate):
             if len(predicate) != len(self._rows):
                 raise ValueError("boolean mask length must match frame length")
             rows = [row for row, keep in zip(self._rows, predicate, strict=True) if keep]
         else:
-            raise TypeError("predicate must be a callable or a boolean list")
+            raise TypeError("predicate must be a callable or a boolean sequence")
         return GeoPromptFrame._from_internal_rows([dict(r) for r in rows], geometry_column=self.geometry_column, crs=self.crs)
 
     def sort(self, by: str, descending: bool = False) -> "GeoPromptFrame":
         self._require_column(by)
-        sorted_rows = sorted(self._rows, key=lambda row: (row.get(by) is None, row.get(by)), reverse=descending)
+        non_null_rows = [row for row in self._rows if row.get(by) is not None]
+        null_rows = [row for row in self._rows if row.get(by) is None]
+        sorted_rows = sorted(non_null_rows, key=lambda row: row.get(by), reverse=descending) + null_rows
         return GeoPromptFrame._from_internal_rows([dict(r) for r in sorted_rows], geometry_column=self.geometry_column, crs=self.crs)
 
     def describe(self) -> dict[str, dict[str, Any]]:
@@ -1200,6 +1202,8 @@ class GeoPromptFrame:
             raise ValueError("max_distance must be zero or greater")
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
+        if distance_method != "euclidean":
+            raise ValueError("corridor_reach currently supports only the 'euclidean' distance method")
         if self.crs and corridors.crs and self.crs != corridors.crs:
             raise ValueError("frames must share the same CRS before corridor reach analysis")
 

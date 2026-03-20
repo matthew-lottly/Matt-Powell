@@ -465,6 +465,12 @@ def geometry_convex_hull(geometry: Geometry) -> Geometry:
             upper.pop()
         upper.append(point)
     hull = lower[:-1] + upper[:-1]
+    if len(hull) < 3:
+        return {"type": "LineString", "coordinates": (points[0], points[-1])}
+
+    if all(abs(_cross_product(hull[0], hull[1], point)) <= 1e-9 for point in hull[2:]):
+        return {"type": "LineString", "coordinates": (points[0], points[-1])}
+
     hull.append(hull[0])
     return {"type": "Polygon", "coordinates": tuple(hull)}
 

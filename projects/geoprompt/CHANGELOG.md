@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.10
+
+- Fixed `geometry_convex_hull(...)` so fully collinear inputs return a `LineString` hull instead of an invalid polygon shell.
+- Tightened `corridor_reach(...)` semantics by rejecting unsupported distance methods instead of silently mixing Euclidean segment math with haversine labels.
+- Fixed `gravity_model(...)` and `accessibility_index(...)` input validation so negative distances now raise clear errors.
+- Updated `accessibility_index(...)` zero-distance handling to return infinite accessibility for positive-weight exact hits instead of an arbitrary large finite sentinel.
+- Improved `GeoPromptFrame.filter(...)` to accept boolean sequences, not just boolean lists.
+- Improved `GeoPromptFrame.sort(...)` so `None` values stay at the end in both ascending and descending sorts.
+- Added targeted regression coverage for all of the above edge cases.
+
 ## 0.1.9
 
 ### New Tools

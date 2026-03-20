@@ -118,7 +118,9 @@ def gravity_model(
     distance_value: float,
     friction: float = 2.0,
 ) -> float:
-    if distance_value <= 0:
+    if distance_value < 0:
+        raise ValueError("distance_value must be zero or greater")
+    if distance_value == 0:
         return float("inf") if origin_weight > 0 and destination_weight > 0 else 0.0
     if friction <= 0:
         raise ValueError("friction must be greater than zero")
@@ -136,8 +138,12 @@ def accessibility_index(
         raise ValueError("friction must be greater than zero")
     total = 0.0
     for weight, distance_value in zip(weights, distances, strict=True):
-        if distance_value <= 0:
-            total += float(weight) * 1e12
+        if distance_value < 0:
+            raise ValueError("distances must be zero or greater")
+        if distance_value == 0:
+            if float(weight) > 0:
+                return float("inf")
+            continue
         else:
             total += float(weight) / math.pow(distance_value, friction)
     return total
