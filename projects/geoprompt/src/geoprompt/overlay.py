@@ -127,6 +127,8 @@ def overlay_intersections(left_geometries: list[Geometry], right_geometries: lis
     return intersections
 
 
+
+
 def dissolve_geometries(geometries: list[Geometry]) -> list[Geometry]:
     if not geometries:
         return []

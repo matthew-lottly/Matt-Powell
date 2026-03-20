@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.8
+
+- Added `GeoPromptFrame.overlay_summary(...)` for per-feature intersection counts, overlap metrics, and proportional area or length summaries.
+- Added regression coverage for overlay summaries in both `left` and `inner` modes.
+- Evaluated an alternate `spatial_join(...)` predicate engine during this pass and kept the existing join path because it did not produce a clear enough benchmark win to justify shipping it.
+
 ## 0.1.7
 
 - Added `GeoPromptFrame.catchment_competition(...)` for overlap-aware service-radius competition summaries, including exclusive, shared, won, and unserved target rollups.

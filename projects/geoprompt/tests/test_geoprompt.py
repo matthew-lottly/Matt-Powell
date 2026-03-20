@@ -504,6 +504,51 @@ def test_clip_and_overlay_intersections() -> None:
     assert any(record["region_id"] == "southeast-sector" and record["site_id"] == "delta-point" for record in intersections)
 
 
+def test_overlay_summary_returns_overlap_metrics_and_aggregates() -> None:
+    regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
+    features = read_features(PROJECT_ROOT / "data" / "benchmark_features.json", crs="EPSG:4326")
+
+    summary = features.overlay_summary(
+        regions,
+        right_id_column="region_id",
+        aggregations={"region_name": "count"},
+        how="left",
+    )
+    records = {record["site_id"]: record for record in summary.to_records()}
+
+    assert records["alpha-point"]["region_ids_overlay"] == ["northwest-sector"]
+    assert records["alpha-point"]["count_overlay"] == 1
+    assert records["alpha-point"]["intersection_count_overlay"] == 1
+    assert records["alpha-point"]["area_overlap_overlay"] == 0.0
+    assert records["alpha-point"]["length_overlap_overlay"] == 0.0
+    assert records["alpha-point"]["region_name_count_overlay"] == 1
+
+    assert records["north-campus-zone"]["count_overlay"] >= 1
+    assert records["north-campus-zone"]["area_overlap_overlay"] > 0.0
+    assert records["north-campus-zone"]["area_share_overlay"] is not None
+    assert records["north-campus-zone"]["area_share_overlay"] > 0.0
+
+    assert records["north-connector-line"]["count_overlay"] >= 1
+    assert records["north-connector-line"]["length_overlap_overlay"] > 0.0
+    assert records["north-connector-line"]["length_share_overlay"] is not None
+    assert records["north-connector-line"]["length_share_overlay"] > 0.0
+
+    assert records["remote-point"]["count_overlay"] == 0
+    assert records["remote-point"]["region_ids_overlay"] == []
+    assert records["remote-point"]["region_name_count_overlay"] is None
+
+
+def test_overlay_summary_supports_inner_mode() -> None:
+    regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
+    features = read_features(PROJECT_ROOT / "data" / "benchmark_features.json", crs="EPSG:4326")
+
+    summary = features.overlay_summary(regions, right_id_column="region_id", how="inner")
+    site_ids = {record["site_id"] for record in summary}
+
+    assert "remote-point" not in site_ids
+    assert "alpha-point" in site_ids
+
+
 def test_dissolve_regions_by_band() -> None:
     regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
 

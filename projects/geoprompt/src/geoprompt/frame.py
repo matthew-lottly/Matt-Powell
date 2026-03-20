@@ -781,7 +781,7 @@ class GeoPromptFrame:
                 return geometry_contains(left_geometry, right_geometry)
             raise ValueError(f"unsupported spatial join predicate: {predicate}")
 
-        for left_row in self._rows:
+        for left_index, left_row in enumerate(self._rows):
             left_geometry = left_row[self.geometry_column]
             left_bounds = geometry_bounds(left_geometry)
             row_matches = []
@@ -809,6 +809,56 @@ class GeoPromptFrame:
                 joined_rows.append(merged_row)
 
         return GeoPromptFrame._from_internal_rows(joined_rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
+
+    def overlay_summary(
+        self,
+        other: "GeoPromptFrame",
+        right_id_column: str = "region_id",
+        aggregations: dict[str, AggregationName] | None = None,
+        how: SpatialJoinMode = "left",
+        summary_suffix: str = "overlay",
+    ) -> "GeoPromptFrame":
+        if how not in {"inner", "left"}:
+            raise ValueError("how must be 'inner' or 'left'")
+        if self.crs and other.crs and self.crs != other.crs:
+            raise ValueError("frames must share the same CRS before overlay summaries")
+
+        other._require_column(right_id_column)
+        other_rows = list(other._rows)
+        grouped: dict[int, list[tuple[int, list[Geometry]]]] = {}
+        for left_index, right_index, geometries in overlay_intersections(
+            [row[self.geometry_column] for row in self._rows],
+            [row[other.geometry_column] for row in other_rows],
+        ):
+            grouped.setdefault(left_index, []).append((right_index, geometries))
+
+        rows: list[Record] = []
+        for left_index, left_row in enumerate(self._rows):
+            matches = grouped.get(left_index, [])
+            if not matches and how == "inner":
+                continue
+
+            matched_rows = [other_rows[right_index] for right_index, _ in matches]
+            overlap_area = sum(geometry_area(geometry) for _right_index, geometries in matches for geometry in geometries)
+            overlap_length = sum(geometry_length(geometry) for _right_index, geometries in matches for geometry in geometries)
+            intersection_count = sum(len(geometries) for _right_index, geometries in matches)
+
+            left_geometry = left_row[self.geometry_column]
+            left_area = geometry_area(left_geometry)
+            left_length = geometry_length(left_geometry)
+
+            resolved_row = dict(left_row)
+            resolved_row[f"{right_id_column}s_{summary_suffix}"] = [str(row[right_id_column]) for row in matched_rows]
+            resolved_row[f"count_{summary_suffix}"] = len(matched_rows)
+            resolved_row[f"intersection_count_{summary_suffix}"] = intersection_count
+            resolved_row[f"area_overlap_{summary_suffix}"] = overlap_area
+            resolved_row[f"length_overlap_{summary_suffix}"] = overlap_length
+            resolved_row[f"area_share_{summary_suffix}"] = (overlap_area / left_area) if left_area > 0 else None
+            resolved_row[f"length_share_{summary_suffix}"] = (overlap_length / left_length) if left_length > 0 else None
+            resolved_row.update(self._aggregate_rows(matched_rows, aggregations=aggregations, suffix=summary_suffix))
+            rows.append(resolved_row)
+
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
     def clip(self, mask: "GeoPromptFrame") -> "GeoPromptFrame":
         if self.crs and mask.crs and self.crs != mask.crs:
@@ -853,7 +903,7 @@ class GeoPromptFrame:
                 merged_row[f"{other.geometry_column}_{rsuffix}"] = right_row[other.geometry_column]
                 merged_row[self.geometry_column] = geometry
                 rows.append(merged_row)
-        return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
     def dissolve(
         self,

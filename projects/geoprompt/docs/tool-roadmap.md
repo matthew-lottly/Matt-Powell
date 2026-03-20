@@ -33,8 +33,9 @@ Geoprompt is strongest when a tool does one of these well:
 
 ### 4. Overlay Summaries
 
-- Add area-share and length-share summaries on top of `clip(...)` and `overlay_intersections(...)`
-- Return proportions instead of raw geometry outputs when users only need metrics
+- Implemented through `overlay_summary(...)`
+- Current scope covers intersecting ids, intersection counts, overlap area, overlap length, and per-feature area or length shares
+- Next extension should add right-side normalization controls and grouped overlay summaries by class or band
 
 ### 5. Zone Fit Scoring
 
@@ -56,7 +57,6 @@ Geoprompt is strongest when a tool does one of these well:
 
 ## Recommended Next Implementation Order
 
-1. Overlay summaries
-2. Corridor reach
-3. Zone fit scoring
-4. Multi-scale clustering
+1. Corridor reach
+2. Zone fit scoring
+3. Multi-scale clustering

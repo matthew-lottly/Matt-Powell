@@ -9,7 +9,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Lane: Spatial package design
 - Domain: Reusable custom spatial analysis
 - Stack: Python, JSON fixtures, lightweight geometry frame, custom equations
-- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, catchment competition summaries, buffer, buffer joins, coverage summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
+- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, catchment competition summaries, buffer, buffer joins, coverage summaries, overlay summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
 
 ## Overview
 
@@ -37,6 +37,7 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 - Buffer generation for point, line, and polygon geometries through the overlay engine
 - Buffer joins for service-area style matching against surrounding features
 - Coverage summaries for fast count and aggregate rollups per service geometry
+- Overlay summaries for overlap metrics when you need counts and shares instead of derived geometry outputs
 - Dissolve workflows with `GeoPromptFrame.dissolve(...)`
 - Overlay operations with `GeoPromptFrame.clip(...)` and `GeoPromptFrame.overlay_intersections(...)`
 - Geographic distance support for longitude/latitude point workflows through haversine distance
@@ -212,6 +213,23 @@ print(clipped.head(3))
 print(intersections.head(3))
 ```
 
+Overlay-summary example:
+
+```python
+import geoprompt as gp
+
+regions = gp.read_features("data/benchmark_regions.json", crs="EPSG:4326")
+assets = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+
+summary = assets.overlay_summary(
+    regions,
+    right_id_column="region_id",
+    aggregations={"region_name": "count"},
+)
+
+print(summary.head(3))
+```
+
 Dissolve example:
 
 ```python
@@ -373,6 +391,7 @@ The main package entry points are:
 - `GeoPromptFrame.buffer(...)`
 - `GeoPromptFrame.buffer_join(...)`
 - `GeoPromptFrame.coverage_summary(...)`
+- `GeoPromptFrame.overlay_summary(...)`
 - `GeoPromptFrame.dissolve(...)`
 - `GeoPromptFrame.clip(...)`
 - `GeoPromptFrame.overlay_intersections(...)`
@@ -406,13 +425,13 @@ Current validated snapshot from the built-in corpora:
 - correctness parity flags are all `true` for bounds, nearest neighbors, bounds queries, geometry metrics, reprojection, clip, dissolve, and spatial join
 - Geoprompt is consistently faster on geometry metrics, nearest-neighbor lookup, bounds queries, and dissolve
 - the generated stress corpus now shows Geoprompt ahead on both spatial join and clip
-- the smaller benchmark corpus now shows `clip` much closer to parity, while `spatial_join` is still the clearest target for the next optimization pass
+- the smaller benchmark corpus now shows `spatial_join` ahead of the reference path in the latest snapshot, while `clip` remains close enough to keep watching in later passes
 
 Representative relative speed ratios from the latest comparison report:
 
-- `sample` corpus: geometry metrics `7.09x`, nearest neighbors `6.79x`, bounds query `84.34x`, reprojection `1.49x`
-- `benchmark` corpus: geometry metrics `20.30x`, nearest neighbors `5.67x`, bounds query `58.24x`, reprojection `2.39x`, clip `0.83x`, spatial join `0.41x`, dissolve `19.24x`
-- `stress` corpus: geometry metrics `3.14x`, nearest neighbors `5.47x`, bounds query `4.21x`, reprojection `1.07x`, clip `1.32x`, spatial join `3.10x`, dissolve `5.16x`
+- `sample` corpus: geometry metrics `2.75x`, nearest neighbors `7.50x`, bounds query `61.59x`, reprojection `1.24x`
+- `benchmark` corpus: geometry metrics `6.06x`, nearest neighbors `5.93x`, bounds query `24.51x`, reprojection `1.46x`, clip `0.72x`, spatial join `1.11x`, dissolve `18.74x`
+- `stress` corpus: geometry metrics `3.35x`, nearest neighbors `6.04x`, bounds query `3.11x`, reprojection `0.98x`, clip `0.76x`, spatial join `3.18x`, dissolve `7.51x`
 
 ## Release Readiness
 
@@ -428,7 +447,7 @@ The project now includes:
 - License: [LICENSE](LICENSE)
 - Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Release notes: [docs/release-notes-0.1.7.md](docs/release-notes-0.1.7.md)
+- Release notes: [docs/release-notes-0.1.8.md](docs/release-notes-0.1.8.md)
 - Tool roadmap: [docs/tool-roadmap.md](docs/tool-roadmap.md)
 
 ## Repository Notes
