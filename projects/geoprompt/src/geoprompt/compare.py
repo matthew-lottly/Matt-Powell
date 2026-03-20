@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .frame import GeoPromptFrame
-from .geometry import geometry_bounds, geometry_centroid
+from .geometry import geometry_bounds, geometry_centroid, transform_geometry
 from .overlay import geometry_from_shapely, geometry_to_shapely
 from .io import read_features, write_json
 
@@ -348,6 +348,38 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
     projected_reference = geopandas_frame.to_crs("EPSG:3857")
     projected_bounds = projected_frame.bounds().__dict__
     projected_reference_bounds = projected_reference.total_bounds.tolist()
+    changed_records = [dict(record) for record in records]
+    if changed_records:
+        changed_records[0] = {
+            **changed_records[0],
+            "geometry": transform_geometry(changed_records[0]["geometry"], lambda coordinate: (coordinate[0] + 0.005, coordinate[1] + 0.002)),
+        }
+        if "demand_index" in changed_records[0]:
+            changed_records[0]["demand_index"] = float(changed_records[0]["demand_index"]) + 0.1
+    if len(changed_records) >= 3:
+        changed_records.pop(1)
+    if changed_records:
+        added_record = dict(changed_records[-1])
+        added_record["site_id"] = f"{added_record.get('site_id', 'site')}-added"
+        added_record["geometry"] = transform_geometry(added_record["geometry"], lambda coordinate: (coordinate[0] + 0.02, coordinate[1] + 0.015))
+        changed_records.append(added_record)
+    changed_frame = GeoPromptFrame.from_records(changed_records, crs=case.crs)
+    changed_variant_records = [dict(record) for record in records]
+    if changed_variant_records:
+        changed_variant_records[0] = {
+            **changed_variant_records[0],
+            "geometry": transform_geometry(changed_variant_records[0]["geometry"], lambda coordinate: (coordinate[0] - 0.004, coordinate[1] + 0.003)),
+        }
+        if "demand_index" in changed_variant_records[0]:
+            changed_variant_records[0]["demand_index"] = float(changed_variant_records[0]["demand_index"]) + 0.2
+    if len(changed_variant_records) >= 2:
+        changed_variant_records.pop(-1)
+    if changed_variant_records:
+        variant_added_record = dict(changed_variant_records[0])
+        variant_added_record["site_id"] = f"{variant_added_record.get('site_id', 'site')}-variant"
+        variant_added_record["geometry"] = transform_geometry(variant_added_record["geometry"], lambda coordinate: (coordinate[0] + 0.03, coordinate[1] - 0.01))
+        changed_variant_records.append(variant_added_record)
+    changed_frame_variant = GeoPromptFrame.from_records(changed_variant_records, crs=case.crs)
 
     join_report: dict[str, Any] | None = None
     clip_report: dict[str, Any] | None = None
@@ -422,6 +454,14 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
         (f"{case.name}.geoprompt.centroid_cluster", lambda: frame.centroid_cluster(k=min(3, len(frame)))),
         (f"{case.name}.geoprompt.cluster_diagnostics", lambda: frame.cluster_diagnostics(k_values=[1, min(2, len(frame)), min(3, len(frame))])),
         (f"{case.name}.geoprompt.summarize_clusters", lambda: frame.centroid_cluster(k=min(3, len(frame))).summarize_clusters()),
+        (f"{case.name}.geoprompt.spatial_lag", lambda: frame.spatial_lag("demand_index", mode="distance_band", max_distance=0.05)),
+        (f"{case.name}.geoprompt.spatial_autocorrelation", lambda: frame.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05)),
+        (f"{case.name}.geoprompt.summarize_autocorrelation", lambda: frame.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05).summarize_autocorrelation("demand_index")),
+        (f"{case.name}.geoprompt.report_autocorrelation_patterns", lambda: frame.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05).report_autocorrelation_patterns("demand_index")),
+        (f"{case.name}.geoprompt.change_detection", lambda: frame.change_detection(changed_frame, max_distance=0.05)),
+        (f"{case.name}.geoprompt.extract_change_events", lambda: frame.change_detection(changed_frame, max_distance=0.05).extract_change_events()),
+        (f"{case.name}.geoprompt.compare_change_events", lambda: frame.change_detection(changed_frame, max_distance=0.05).extract_change_events().compare_change_events(frame.change_detection(changed_frame_variant, max_distance=0.05).extract_change_events())),
+        (f"{case.name}.geoprompt.compare_change_events_equivalent", lambda: frame.change_detection(changed_frame, max_distance=0.05).extract_change_events().compare_change_events(frame.change_detection(changed_frame_variant, max_distance=0.05).extract_change_events(), match_mode="equivalent")),
         (f"{case.name}.geoprompt.snap_geometries", lambda: frame.snap_geometries(tolerance=0.005)),
         (f"{case.name}.geoprompt.clean_topology", lambda: frame.clean_topology(tolerance=0.005, min_segment_length=0.001)),
     ]:
@@ -503,6 +543,33 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
             ),
         )
         benchmarks.append(benchmark)
+        benchmark, _ = _benchmark(
+            f"{case.name}.geoprompt.overlay_difference",
+            lambda: regions.overlay_difference(
+                regions.query_bounds(min_x=case.query_bounds[0], min_y=case.query_bounds[1], max_x=case.query_bounds[2], max_y=case.query_bounds[3]),
+                left_id_column="region_id",
+                right_id_column="region_id",
+            ),
+        )
+        benchmarks.append(benchmark)
+        benchmark, _ = _benchmark(
+            f"{case.name}.geoprompt.overlay_symmetric_difference",
+            lambda: regions.overlay_symmetric_difference(
+                regions.query_bounds(min_x=case.query_bounds[0], min_y=case.query_bounds[1], max_x=case.query_bounds[2], max_y=case.query_bounds[3]),
+                left_id_column="region_id",
+                right_id_column="region_id",
+            ),
+        )
+        benchmarks.append(benchmark)
+        benchmark, _ = _benchmark(
+            f"{case.name}.geoprompt.polygon_split",
+            lambda: regions.polygon_split(
+                regions.query_bounds(min_x=case.query_bounds[0], min_y=case.query_bounds[1], max_x=case.query_bounds[2], max_y=case.query_bounds[3]),
+                id_column="region_id",
+                splitter_id_column="region_id",
+            ),
+        )
+        benchmarks.append(benchmark)
 
         corridor_rows = [row for row in frame.to_records() if row["geometry"]["type"] == "LineString"]
         if corridor_rows:
@@ -572,6 +639,41 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
                             demand_id_column="demand_id",
                             demand_weight_column="demand",
                         ),
+                    )
+                    benchmarks.append(benchmark)
+                observation_records = []
+                for index, network_record in enumerate(network_frame.to_records()[: min(4, len(network_frame))], start=1):
+                    from_node = tuple(network_record["from_node"])
+                    to_node = tuple(network_record["to_node"])
+                    observation_records.append(
+                        {
+                            "site_id": f"obs-{index}",
+                            "track_id": "track-a",
+                            "sequence": index,
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [
+                                    (from_node[0] + to_node[0]) / 2.0,
+                                    (from_node[1] + to_node[1]) / 2.0,
+                                ],
+                            },
+                        }
+                    )
+                if observation_records:
+                    observation_frame = GeoPromptFrame.from_records(observation_records, crs=case.crs)
+                    benchmark, _ = _benchmark(
+                        f"{case.name}.geoprompt.trajectory_match",
+                        lambda: network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05),
+                    )
+                    benchmarks.append(benchmark)
+                    benchmark, _ = _benchmark(
+                        f"{case.name}.geoprompt.summarize_trajectory_segments",
+                        lambda: network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05).summarize_trajectory_segments(),
+                    )
+                    benchmarks.append(benchmark)
+                    benchmark, _ = _benchmark(
+                        f"{case.name}.geoprompt.score_trajectory_segments",
+                        lambda: network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05).summarize_trajectory_segments().score_trajectory_segments(),
                     )
                     benchmarks.append(benchmark)
 

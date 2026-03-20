@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 from typing import Any
@@ -130,6 +131,16 @@ def write_geojson(path: str | Path, frame: GeoPromptFrame, geometry: str = "geom
     return write_json(path, frame_to_geojson(frame, geometry=geometry, id_column=id_column))
 
 
+def write_records_json(path: str | Path, frame: GeoPromptFrame) -> Path:
+    payload: dict[str, Any] = {
+        "records": frame.to_records(),
+        "geometry_column": frame.geometry_column,
+    }
+    if frame.crs is not None:
+        payload["crs"] = frame.crs
+    return write_json(path, payload)
+
+
 def frame_to_records_flat(frame: GeoPromptFrame, geometry: str = "geometry") -> list[dict[str, Any]]:
     from .geometry import geometry_bounds, geometry_centroid
 
@@ -153,12 +164,31 @@ def frame_to_records_flat(frame: GeoPromptFrame, geometry: str = "geometry") -> 
     return flat
 
 
+def write_flat_csv(path: str | Path, frame: GeoPromptFrame, geometry: str = "geometry") -> Path:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    rows = frame_to_records_flat(frame, geometry=geometry)
+    fieldnames = sorted({key for row in rows for key in row.keys()})
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            serialized_row = {
+                key: json.dumps(value, ensure_ascii=True) if isinstance(value, (dict, list)) else value
+                for key, value in row.items()
+            }
+            writer.writerow(serialized_row)
+    return output_path
+
+
 __all__ = [
     "frame_to_geojson",
     "frame_to_records_flat",
     "read_features",
     "read_geojson",
     "read_points",
+    "write_flat_csv",
     "write_geojson",
     "write_json",
+    "write_records_json",
 ]

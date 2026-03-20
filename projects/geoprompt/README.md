@@ -53,11 +53,15 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 - Zone fit scoring with `GeoPromptFrame.zone_fit_score(...)` for configurable multi-factor zone matching, grouped zone rankings, and workflow-specific score callbacks
 - Centroid clustering with `GeoPromptFrame.centroid_cluster(...)` for deterministic spatial grouping plus cluster quality metrics and cluster-count diagnostics
 - Cluster rollups with `GeoPromptFrame.summarize_clusters(...)` for per-cluster member counts, dominant groups, and aggregate summaries
+- Spatial lag and local autocorrelation with `GeoPromptFrame.spatial_lag(...)` and `GeoPromptFrame.spatial_autocorrelation(...)`
+- Autocorrelation reporting with `GeoPromptFrame.summarize_autocorrelation(...)` and `GeoPromptFrame.report_autocorrelation_patterns(...)`
 - Overlay group comparison with `GeoPromptFrame.overlay_group_comparison(...)` for top-group and runner-up overlap gaps
+- Trajectory matching with `GeoPromptFrame.trajectory_match(...)`, segment summaries, and segment scoring for review queues
+- Change detection with event extraction and event-to-event comparison through `GeoPromptFrame.change_detection(...)`, `extract_change_events()`, and `compare_change_events(...)`
 - Gravity model and accessibility index equations for interaction and access scoring
 - Geometry helpers: `geometry_convex_hull(...)`, `geometry_envelope(...)`, `GeoPromptFrame.envelopes()`, `GeoPromptFrame.convex_hulls()`
 - Frame utilities: `select(...)`, `rename_columns(...)`, `filter(...)`, `sort(...)`, `describe()`, `__repr__`, `__getitem__`
-- Flat record export with `frame_to_records_flat(...)` and in-memory GeoJSON loading with `read_geojson(dict)`
+- Flat record export with `frame_to_records_flat(...)`, `write_flat_csv(...)`, `write_records_json(...)`, and in-memory GeoJSON loading with `read_geojson(dict)`
 - Geographic distance support for longitude/latitude point workflows through haversine distance
 - Pairwise interaction analysis without requiring pandas or geopandas
 - A demo CLI that exports a real review plot and JSON report from checked-in mixed geometry features
@@ -318,6 +322,75 @@ diagnostics = assets.corridor_diagnostics(
 )
 
 print(diagnostics.head(3))
+```
+
+Autocorrelation reporting example:
+
+```python
+import geoprompt as gp
+
+assets = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+
+autocorr = assets.spatial_autocorrelation(
+    "demand_index",
+    mode="distance_band",
+    max_distance=0.05,
+    permutations=24,
+)
+report = autocorr.report_autocorrelation_patterns("demand_index")
+
+print(report.head(3))
+```
+
+Trajectory scoring example:
+
+```python
+import geoprompt as gp
+
+corridors = gp.read_features("data/benchmark_features.json", crs="EPSG:4326").filter(
+    lambda row: row["geometry"]["type"] == "LineString"
+)
+network = corridors.network_build()
+observations = gp.GeoPromptFrame.from_records(
+    [
+        {"site_id": "obs-1", "track_id": "track-a", "sequence": 1, "geometry": {"type": "Point", "coordinates": [-111.95, 40.71]}},
+        {"site_id": "obs-2", "track_id": "track-a", "sequence": 2, "geometry": {"type": "Point", "coordinates": [-111.93, 40.72]}},
+    ],
+    crs="EPSG:4326",
+)
+
+scored = network.trajectory_match(observations, candidate_k=3, max_distance=0.05).summarize_trajectory_segments().score_trajectory_segments()
+
+print(scored.head(3))
+```
+
+Change-event comparison example:
+
+```python
+import geoprompt as gp
+
+baseline = gp.read_features("data/sample_features.json", crs="EPSG:4326")
+current = baseline.assign(priority_index=lambda frame: [value + 0.1 for value in frame["priority_index"]])
+next_current = baseline.assign(priority_index=lambda frame: [value + 0.2 for value in frame["priority_index"]])
+
+baseline_events = baseline.change_detection(current, max_distance=0.05).extract_change_events()
+current_events = baseline.change_detection(next_current, max_distance=0.05).extract_change_events()
+event_diff = baseline_events.compare_change_events(current_events, match_mode="equivalent")
+
+print(event_diff.head(3))
+```
+
+Tabular export example:
+
+```python
+import geoprompt as gp
+
+assets = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+autocorr = assets.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05)
+report = autocorr.report_autocorrelation_patterns("demand_index")
+
+gp.write_records_json("outputs/autocorr-report.records.json", report)
+gp.write_flat_csv("outputs/autocorr-report.flat.csv", report)
 ```
 
 Zone-fit-score example:

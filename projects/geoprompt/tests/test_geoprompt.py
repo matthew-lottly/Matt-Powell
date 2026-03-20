@@ -5,7 +5,7 @@ from geoprompt.compare import _stress_feature_records, _stress_region_records
 from geoprompt import GeoPromptFrame, geometry_centroid, geometry_convex_hull, geometry_envelope, gravity_model, accessibility_index
 from geoprompt.demo import build_demo_report
 from geoprompt.equations import area_similarity, corridor_strength, directional_alignment, euclidean_distance, haversine_distance, prompt_decay, prompt_interaction
-from geoprompt.io import frame_to_geojson, read_features, read_geojson, read_points, write_geojson
+from geoprompt.io import frame_to_geojson, read_features, read_geojson, read_points, write_flat_csv, write_geojson, write_records_json
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -83,6 +83,23 @@ def test_geojson_round_trip_and_nearest_neighbors(tmp_path: Path) -> None:
     assert feature_collection["type"] == "FeatureCollection"
     assert feature_collection["crs"]["properties"]["name"] == "EPSG:4326"
     assert len(feature_collection["features"]) == len(frame)
+
+
+def test_write_records_json_and_flat_csv(tmp_path: Path) -> None:
+    frame = read_features(PROJECT_ROOT / "data" / "sample_features.json", crs="EPSG:4326")
+
+    records_json_path = write_records_json(tmp_path / "sample_features.records.json", frame)
+    flat_csv_path = write_flat_csv(tmp_path / "sample_features.flat.csv", frame)
+
+    payload = json.loads(records_json_path.read_text(encoding="utf-8"))
+    csv_lines = flat_csv_path.read_text(encoding="utf-8").splitlines()
+
+    assert payload["crs"] == "EPSG:4326"
+    assert payload["geometry_column"] == "geometry"
+    assert len(payload["records"]) == len(frame)
+    assert csv_lines[0].startswith("capacity_index,")
+    assert any("geometry_centroid_x" in line for line in csv_lines[:1])
+    assert len(csv_lines) == len(frame) + 1
 
 
 def test_query_bounds_modes() -> None:
@@ -655,6 +672,638 @@ def test_overlay_union_partitions_polygon_faces_with_lineage() -> None:
     assert records[1]["zone_ids_union"] == []
     assert records[2]["region_ids_union"] == []
     assert records[2]["zone_ids_union"] == ["right-a"]
+
+
+def test_polygon_split_splits_polygon_by_line_splitter() -> None:
+    polygons = GeoPromptFrame.from_records(
+        [
+            {"site_id": "zone-a", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [4.0, 0.0], [4.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    splitters = GeoPromptFrame.from_records(
+        [
+            {"cut_id": "cut-1", "geometry": {"type": "LineString", "coordinates": [[2.0, -1.0], [2.0, 3.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    split = polygons.polygon_split(splitters, splitter_id_column="cut_id", include_diagnostics=True)
+    records = split.to_records()
+
+    assert len(records) == 2
+    assert [record["part_index_split"] for record in records] == [1, 2]
+    assert [record["area_split"] for record in records] == [4.0, 4.0]
+    assert all(record["part_count_split"] == 2 for record in records)
+    assert all(record["splitter_ids_split"] == ["cut-1"] for record in records)
+    assert all(record["split_detected_split"] is True for record in records)
+
+
+def test_polygon_split_uses_polygon_boundaries_as_splitters() -> None:
+    polygons = GeoPromptFrame.from_records(
+        [
+            {"site_id": "zone-a", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [4.0, 0.0], [4.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    splitters = GeoPromptFrame.from_records(
+        [
+            {"region_id": "region-a", "geometry": {"type": "Polygon", "coordinates": [[2.0, -1.0], [5.0, -1.0], [5.0, 3.0], [2.0, 3.0], [2.0, -1.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    split = polygons.polygon_split(splitters, splitter_id_column="region_id", include_diagnostics=True)
+    records = split.to_records()
+
+    assert len(records) == 2
+    assert [record["area_split"] for record in records] == [4.0, 4.0]
+    assert all(record["splitter_ids_split"] == ["region-a"] for record in records)
+    assert all(record["applied_splitter_count_split"] == 1 for record in records)
+
+
+def test_overlay_difference_returns_only_left_side_faces() -> None:
+    left = GeoPromptFrame.from_records(
+        [
+            {"region_id": "left-a", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [3.0, 0.0], [3.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    right = GeoPromptFrame.from_records(
+        [
+            {"zone_id": "right-a", "geometry": {"type": "Polygon", "coordinates": [[1.0, 0.0], [2.0, 0.0], [2.0, 2.0], [1.0, 2.0], [1.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    difference = left.overlay_difference(right, left_id_column="region_id", right_id_column="zone_id")
+    records = difference.to_records()
+
+    assert len(records) == 2
+    assert [record["area_difference"] for record in records] == [2.0, 2.0]
+    assert all(record["region_ids_difference"] == ["left-a"] for record in records)
+    assert all(record["zone_ids_difference"] == [] for record in records)
+    assert all(record["removed_area_difference"] == 2.0 for record in records)
+    assert all(record["removed_share_difference"] == (2.0 / 6.0) for record in records)
+
+
+def test_overlay_symmetric_difference_excludes_overlap_faces() -> None:
+    left = GeoPromptFrame.from_records(
+        [
+            {"region_id": "left-a", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    right = GeoPromptFrame.from_records(
+        [
+            {"zone_id": "right-a", "geometry": {"type": "Polygon", "coordinates": [[1.0, 0.0], [3.0, 0.0], [3.0, 2.0], [1.0, 2.0], [1.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    symdiff = left.overlay_symmetric_difference(right, left_id_column="region_id", right_id_column="zone_id", rsuffix="right")
+    records = symdiff.to_records()
+
+    assert len(records) == 2
+    assert [record["source_side_symdiff"] for record in records] == ["left", "right"]
+    assert [record["area_symdiff"] for record in records] == [2.0, 2.0]
+    assert records[0]["region_ids_symdiff"] == ["left-a"]
+    assert records[0]["zone_ids_symdiff"] == []
+    assert records[1]["region_ids_symdiff"] == []
+    assert records[1]["zone_ids_symdiff"] == ["right-a"]
+
+
+def test_spatial_lag_supports_distance_band_and_inverse_distance_weights() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "demand_index": 2.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "demand_index": 4.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "demand_index": 8.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    lagged = frame.spatial_lag(
+        "demand_index",
+        mode="distance_band",
+        max_distance=1.5,
+        weight_mode="inverse_distance",
+        include_diagnostics=True,
+    )
+    records = lagged.to_records()
+
+    assert records[0]["demand_index_lag"] == 4.0
+    assert records[1]["demand_index_lag"] == 2.0
+    assert records[2]["demand_index_lag"] is None
+    assert records[0]["neighbor_ids_lag"] == ["b"]
+    assert records[1]["neighbor_ids_lag"] == ["a"]
+    assert records[2]["neighbor_count_lag"] == 0
+    assert records[0]["mode_lag"] == "distance_band"
+
+
+def test_spatial_lag_supports_intersects_mode() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "weight": 2.0, "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+            {"site_id": "b", "weight": 6.0, "geometry": {"type": "Polygon", "coordinates": [[2.0, 0.0], [4.0, 0.0], [4.0, 2.0], [2.0, 2.0], [2.0, 0.0]]}},
+            {"site_id": "c", "weight": 10.0, "geometry": {"type": "Polygon", "coordinates": [[6.0, 0.0], [8.0, 0.0], [8.0, 2.0], [6.0, 2.0], [6.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    lagged = frame.spatial_lag("weight", mode="intersects", include_diagnostics=True)
+    records = lagged.to_records()
+
+    assert records[0]["weight_lag"] == 6.0
+    assert records[1]["weight_lag"] == 2.0
+    assert records[2]["weight_lag"] is None
+    assert records[0]["neighbor_ids_lag"] == ["b"]
+    assert records[2]["neighbor_weights_lag"] == []
+
+
+def test_spatial_autocorrelation_reports_global_and_local_scores() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "value": 1.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "value": 5.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "d", "value": 5.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    autocorr = frame.spatial_autocorrelation(
+        "value",
+        mode="distance_band",
+        max_distance=1.1,
+        permutations=24,
+        random_seed=7,
+        significance_level=1.0,
+        include_diagnostics=True,
+    )
+    records = autocorr.to_records()
+
+    assert records[0]["global_moran_i_autocorr"] is not None
+    assert records[0]["global_moran_i_autocorr"] > 0
+    assert records[0]["global_geary_c_autocorr"] is not None
+    assert 0.0 <= records[0]["global_moran_p_value_autocorr"] <= 1.0
+    assert records[0]["local_moran_i_autocorr"] is not None
+    assert records[0]["local_moran_i_autocorr"] > 0
+    assert records[0]["local_cluster_label_autocorr"] == "low-low"
+    assert records[0]["local_cluster_code_autocorr"] == "LL"
+    assert records[0]["local_cluster_family_autocorr"] == "coldspot"
+    assert records[0]["coldspot_autocorr"] is True
+    assert records[0]["hotspot_autocorr"] is False
+    assert records[3]["local_cluster_label_autocorr"] == "high-high"
+    assert records[3]["hotspot_autocorr"] is True
+    assert records[3]["significant_cluster_autocorr"] is True
+    assert records[1]["neighbor_count_autocorr"] == 2
+    assert records[0]["total_weight_autocorr"] == 6.0
+
+
+def test_summarize_autocorrelation_groups_cluster_families() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "value": 1.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "value": 5.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "d", "value": 5.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    autocorr = frame.spatial_autocorrelation(
+        "value",
+        mode="distance_band",
+        max_distance=1.1,
+        permutations=12,
+        random_seed=7,
+        significance_level=1.0,
+    )
+    summary = autocorr.summarize_autocorrelation("value")
+    records = summary.to_records()
+
+    assert [record["local_cluster_family_autocorr"] for record in records] == ["mixed", "coldspot", "hotspot"]
+    assert [record["feature_count_autocorr"] for record in records] == [2, 1, 1]
+    assert records[0]["value_mean_autocorr"] == 3.0
+    assert records[1]["value_mean_autocorr"] == 1.0
+    assert records[2]["value_mean_autocorr"] == 5.0
+    assert records[0]["significant_count_autocorr"] == 2
+    assert records[0]["site_ids_autocorr"] == ["b", "c"]
+
+
+def test_report_autocorrelation_patterns_filters_to_publishable_families() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "value": 1.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "value": 5.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "d", "value": 5.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    autocorr = frame.spatial_autocorrelation(
+        "value",
+        mode="distance_band",
+        max_distance=1.1,
+        permutations=12,
+        random_seed=7,
+        significance_level=1.0,
+    )
+    report = autocorr.report_autocorrelation_patterns("value")
+    records = report.to_records()
+
+    assert {record["local_cluster_family_autocorr"] for record in records} == {"coldspot", "hotspot"}
+    assert all(record["local_cluster_family_autocorr"] != "mixed" for record in records)
+    coldspot_record = next(record for record in records if record["local_cluster_family_autocorr"] == "coldspot")
+    hotspot_record = next(record for record in records if record["local_cluster_family_autocorr"] == "hotspot")
+    assert coldspot_record["representative_ids_autocorr"] == ["a"]
+    assert hotspot_record["representative_ids_autocorr"] == ["d"]
+    assert [record["report_rank_autocorr"] for record in records] == [1, 2]
+
+
+def test_trajectory_match_assigns_ordered_observations_to_network_edges() -> None:
+    corridors = GeoPromptFrame.from_records(
+        [
+            {"site_id": "corridor-a", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [1.0, 0.0]]}},
+            {"site_id": "corridor-b", "geometry": {"type": "LineString", "coordinates": [[1.0, 0.0], [1.0, 1.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    network = corridors.network_build()
+    observations = GeoPromptFrame.from_records(
+        [
+            {"site_id": "obs-1", "track_id": "track-a", "sequence": 1, "geometry": {"type": "Point", "coordinates": [0.2, 0.0]}},
+            {"site_id": "obs-2", "track_id": "track-a", "sequence": 2, "geometry": {"type": "Point", "coordinates": [0.8, 0.0]}},
+            {"site_id": "obs-3", "track_id": "track-a", "sequence": 3, "geometry": {"type": "Point", "coordinates": [1.0, 0.7]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    matched = network.trajectory_match(observations, candidate_k=2, max_distance=0.3, include_diagnostics=True)
+    records = matched.to_records()
+
+    assert [record["edge_id_match"] for record in records] == ["edge-00000", "edge-00000", "edge-00001"]
+    assert [record["source_id"] for record in records] == ["corridor-a", "corridor-a", "corridor-b"]
+    assert all(record["matched_match"] is True for record in records)
+    assert [record["continuity_state_match"] for record in records] == ["start", "continuation", "continuation"]
+    assert [record["segment_index_match"] for record in records] == [1, 1, 1]
+    assert records[2]["transition_cost_match"] > 0.0
+    assert records[2]["transition_penalty_match"] > 0.0
+    assert records[2]["transition_mode_match"] == "hmm"
+
+
+def test_trajectory_match_marks_off_network_gap_states() -> None:
+    corridors = GeoPromptFrame.from_records(
+        [
+            {"site_id": "corridor-a", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [1.0, 0.0]]}},
+            {"site_id": "corridor-b", "geometry": {"type": "LineString", "coordinates": [[1.0, 0.0], [2.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    network = corridors.network_build()
+    observations = GeoPromptFrame.from_records(
+        [
+            {"site_id": "obs-1", "track_id": "track-a", "sequence": 1, "geometry": {"type": "Point", "coordinates": [0.2, 0.0]}},
+            {"site_id": "obs-2", "track_id": "track-a", "sequence": 2, "geometry": {"type": "Point", "coordinates": [10.0, 10.0]}},
+            {"site_id": "obs-3", "track_id": "track-a", "sequence": 3, "geometry": {"type": "Point", "coordinates": [1.8, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    matched = network.trajectory_match(observations, candidate_k=2, max_distance=0.25, gap_penalty=0.5, include_diagnostics=True)
+    records = matched.to_records()
+
+    assert records[0]["matched_match"] is True
+    assert records[1]["matched_match"] is False
+    assert records[1]["gap_state_match"] is True
+    assert records[1]["continuity_state_match"] == "gap"
+    assert records[2]["matched_match"] is True
+    assert records[2]["edge_id_match"] == "edge-00001"
+    assert records[2]["continuity_state_match"] == "resume"
+    assert records[2]["segment_index_match"] == 2
+
+
+def test_summarize_trajectory_segments_collapses_contiguous_matches() -> None:
+    corridors = GeoPromptFrame.from_records(
+        [
+            {"site_id": "corridor-a", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [1.0, 0.0]]}},
+            {"site_id": "corridor-b", "geometry": {"type": "LineString", "coordinates": [[1.0, 0.0], [1.0, 1.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    network = corridors.network_build()
+    observations = GeoPromptFrame.from_records(
+        [
+            {"site_id": "obs-1", "track_id": "track-a", "sequence": 1, "geometry": {"type": "Point", "coordinates": [0.2, 0.0]}},
+            {"site_id": "obs-2", "track_id": "track-a", "sequence": 2, "geometry": {"type": "Point", "coordinates": [0.8, 0.0]}},
+            {"site_id": "obs-3", "track_id": "track-a", "sequence": 3, "geometry": {"type": "Point", "coordinates": [1.0, 0.7]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    matched = network.trajectory_match(observations, candidate_k=2, max_distance=0.3)
+    segments = matched.summarize_trajectory_segments()
+    records = segments.to_records()
+
+    assert len(records) == 1
+    assert records[0]["track_id"] == "track-a"
+    assert records[0]["segment_index_match"] == 1
+    assert records[0]["observation_ids_match"] == ["obs-1", "obs-2", "obs-3"]
+    assert records[0]["edge_ids_match"] == ["edge-00000", "edge-00001"]
+    assert records[0]["observation_count_match"] == 3
+    assert records[0]["geometry"]["type"] == "LineString"
+
+
+def test_summarize_trajectory_segments_splits_resumed_paths() -> None:
+    corridors = GeoPromptFrame.from_records(
+        [
+            {"site_id": "corridor-a", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [1.0, 0.0]]}},
+            {"site_id": "corridor-b", "geometry": {"type": "LineString", "coordinates": [[1.0, 0.0], [2.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    network = corridors.network_build()
+    observations = GeoPromptFrame.from_records(
+        [
+            {"site_id": "obs-1", "track_id": "track-a", "sequence": 1, "geometry": {"type": "Point", "coordinates": [0.2, 0.0]}},
+            {"site_id": "obs-2", "track_id": "track-a", "sequence": 2, "geometry": {"type": "Point", "coordinates": [10.0, 10.0]}},
+            {"site_id": "obs-3", "track_id": "track-a", "sequence": 3, "geometry": {"type": "Point", "coordinates": [1.8, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    matched = network.trajectory_match(observations, candidate_k=2, max_distance=0.25, gap_penalty=0.5)
+    segments = matched.summarize_trajectory_segments()
+    records = segments.to_records()
+
+    assert len(records) == 2
+    assert [record["segment_index_match"] for record in records] == [1, 2]
+    assert [record["gap_before_match"] for record in records] == [False, True]
+    assert [record["geometry"]["type"] for record in records] == ["Point", "Point"]
+
+
+def test_score_trajectory_segments_flags_resumed_paths_for_review() -> None:
+    corridors = GeoPromptFrame.from_records(
+        [
+            {"site_id": "corridor-a", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [1.0, 0.0]]}},
+            {"site_id": "corridor-b", "geometry": {"type": "LineString", "coordinates": [[1.0, 0.0], [2.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    network = corridors.network_build()
+    observations = GeoPromptFrame.from_records(
+        [
+            {"site_id": "obs-1", "track_id": "track-a", "sequence": 1, "geometry": {"type": "Point", "coordinates": [0.2, 0.0]}},
+            {"site_id": "obs-2", "track_id": "track-a", "sequence": 2, "geometry": {"type": "Point", "coordinates": [0.8, 0.0]}},
+            {"site_id": "obs-3", "track_id": "track-a", "sequence": 3, "geometry": {"type": "Point", "coordinates": [10.0, 10.0]}},
+            {"site_id": "obs-4", "track_id": "track-a", "sequence": 4, "geometry": {"type": "Point", "coordinates": [1.2, 0.0]}},
+            {"site_id": "obs-5", "track_id": "track-a", "sequence": 5, "geometry": {"type": "Point", "coordinates": [1.8, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    scored = (
+        network.trajectory_match(observations, candidate_k=2, max_distance=0.25, gap_penalty=0.5)
+        .summarize_trajectory_segments()
+        .score_trajectory_segments(distance_threshold=0.2, transition_cost_threshold=0.5)
+    )
+    records = scored.to_records()
+
+    first_segment = next(record for record in records if record["segment_index_match"] == 1)
+    second_segment = next(record for record in records if record["segment_index_match"] == 2)
+
+    assert first_segment["anomaly_flags_trajectory"] == []
+    assert first_segment["review_segment_trajectory"] is False
+    assert second_segment["gap_before_match"] is True
+    assert second_segment["anomaly_flags_trajectory"] == ["resumed_after_gap"]
+    assert second_segment["anomaly_level_trajectory"] == "moderate"
+    assert second_segment["review_segment_trajectory"] is True
+    assert second_segment["confidence_score_trajectory"] < first_segment["confidence_score_trajectory"]
+
+
+def test_change_detection_classifies_basic_change_types() -> None:
+    left = GeoPromptFrame.from_records(
+        [
+            {"site_id": "same", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "move", "value": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "modify", "value": 3.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "remove", "value": 4.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    right = GeoPromptFrame.from_records(
+        [
+            {"site_id": "same", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "move", "value": 2.0, "geometry": {"type": "Point", "coordinates": [1.2, 0.0]}},
+            {"site_id": "modify", "value": 9.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "add", "value": 5.0, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    changes = left.change_detection(right, attribute_columns=["value"], max_distance=0.5, include_diagnostics=True)
+    records = changes.to_records()
+    classes = {
+        tuple(record["left_ids_change"]): record["change_class_change"]
+        for record in records
+        if record["event_side_change"] == "left"
+    }
+    added = [record for record in records if record["change_class_change"] == "added"]
+
+    assert classes[("same",)] == "unchanged"
+    assert classes[("move",)] == "moved"
+    assert classes[("modify",)] == "modified"
+    assert classes[("remove",)] == "removed"
+    assert len(added) == 1
+    assert added[0]["left_ids_change"] == []
+    assert added[0]["right_ids_change"] == ["add"]
+    assert added[0]["change_class_change"] == "added"
+    modify_record = next(record for record in records if record["left_ids_change"] == ["modify"])
+    assert modify_record["attribute_changes_change"] == {"value": {"left": 3.0, "right": 9.0}}
+    assert modify_record["event_group_id_change"].startswith("event-")
+    assert modify_record["event_summary_change"]["change_class"] == "modified"
+    assert modify_record["event_summary_change"]["attribute_columns"] == ["value"]
+
+
+def test_change_detection_detects_split_and_merge_events() -> None:
+    split_left = GeoPromptFrame.from_records(
+        [
+            {"site_id": "zone-a", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [4.0, 0.0], [4.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    split_right = GeoPromptFrame.from_records(
+        [
+            {"site_id": "zone-a-1", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+            {"site_id": "zone-a-2", "geometry": {"type": "Polygon", "coordinates": [[2.0, 0.0], [4.0, 0.0], [4.0, 2.0], [2.0, 2.0], [2.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    split_changes = split_left.change_detection(split_right, max_distance=3.0)
+    split_record = next(record for record in split_changes.to_records() if record["change_class_change"] == "split")
+    assert split_record["left_ids_change"] == ["zone-a"]
+    assert sorted(split_record["right_ids_change"]) == ["zone-a-1", "zone-a-2"]
+    assert split_record["area_share_score_change"] > 0.0
+    assert split_record["match_area_shares_change"][0]["left_share"] == 0.5
+    assert split_record["match_area_shares_change"][0]["right_share"] == 1.0
+    assert split_record["event_feature_count_change"] == 3
+    assert split_record["event_summary_change"]["right_count"] == 2
+
+    merge_left = split_right
+    merge_right = split_left
+    merge_changes = merge_left.change_detection(merge_right, max_distance=3.0)
+    merge_record = next(record for record in merge_changes.to_records() if record["change_class_change"] == "merge")
+    assert sorted(merge_record["left_ids_change"]) == ["zone-a-1", "zone-a-2"]
+    assert merge_record["right_ids_change"] == ["zone-a"]
+    assert merge_record["area_share_score_change"] > 0.0
+    assert merge_record["event_summary_change"]["left_count"] == 2
+
+
+def test_extract_change_events_collapses_split_rows_into_single_event() -> None:
+    left = GeoPromptFrame.from_records(
+        [
+            {"site_id": "zone-a", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [4.0, 0.0], [4.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    right = GeoPromptFrame.from_records(
+        [
+            {"site_id": "zone-a-1", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+            {"site_id": "zone-a-2", "geometry": {"type": "Polygon", "coordinates": [[2.0, 0.0], [4.0, 0.0], [4.0, 2.0], [2.0, 2.0], [2.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    events = left.change_detection(right, max_distance=3.0).extract_change_events()
+    records = events.to_records()
+
+    assert len(records) == 1
+    assert records[0]["change_class_change"] == "split"
+    assert records[0]["left_ids_change"] == ["zone-a"]
+    assert sorted(records[0]["right_ids_change"]) == ["zone-a-1", "zone-a-2"]
+    assert records[0]["event_feature_count_change"] == 3
+    assert records[0]["member_geometry_types_change"] == ["Polygon"]
+    assert records[0]["geometry"]["type"] == "Point"
+
+
+def test_compare_change_events_reports_persisted_resolved_and_emerged_events() -> None:
+    left = GeoPromptFrame.from_records(
+        [
+            {"site_id": "same", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "modify", "value": 3.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "remove", "value": 4.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    right_a = GeoPromptFrame.from_records(
+        [
+            {"site_id": "same", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "modify", "value": 9.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "add-a", "value": 5.0, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    right_b = GeoPromptFrame.from_records(
+        [
+            {"site_id": "same", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "modify", "value": 11.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+            {"site_id": "add-b", "value": 6.0, "geometry": {"type": "Point", "coordinates": [5.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    baseline_events = left.change_detection(right_a, attribute_columns=["value"], max_distance=0.5).extract_change_events()
+    current_events = left.change_detection(right_b, attribute_columns=["value"], max_distance=0.5).extract_change_events()
+    comparison = baseline_events.compare_change_events(current_events)
+    records = comparison.to_records()
+    status_by_signature = {
+        record["event_signature_eventdiff"]: record["event_status_eventdiff"]
+        for record in records
+    }
+
+    assert status_by_signature["added|none|add-a"] == "resolved"
+    assert status_by_signature["added|none|add-b"] == "emerged"
+    assert status_by_signature["modified|modify|modify"] == "persisted"
+    persisted_record = next(record for record in records if record["event_signature_eventdiff"] == "modified|modify|modify")
+    assert persisted_record["baseline_event_summary_change"]["attribute_columns"] == ["value"]
+    assert persisted_record["current_event_summary_change"]["attribute_columns"] == ["value"]
+
+
+def test_compare_change_events_equivalent_mode_matches_near_equivalent_events() -> None:
+    baseline = GeoPromptFrame.from_records(
+        [
+            {
+                "event_group_id_change": "event-00001",
+                "change_class_change": "split",
+                "event_side_change": "left",
+                "left_ids_change": ["zone-a"],
+                "right_ids_change": ["zone-a-1", "zone-a-2"],
+                "event_row_count_change": 1,
+                "event_feature_count_change": 3,
+                "member_geometry_types_change": ["Polygon"],
+                "event_summary_change": {
+                    "change_class": "split",
+                    "event_side": "left",
+                    "left_ids": ["zone-a"],
+                    "right_ids": ["zone-a-1", "zone-a-2"],
+                    "left_count": 1,
+                    "right_count": 2,
+                    "row_count": 1,
+                    "feature_count": 3,
+                    "attribute_columns": [],
+                    "mean_similarity_score": 0.9,
+                    "mean_area_share_score": 1.0,
+                },
+                "geometry": {"type": "Point", "coordinates": [2.0, 1.0]},
+            }
+        ],
+        crs="EPSG:4326",
+    )
+    current = GeoPromptFrame.from_records(
+        [
+            {
+                "event_group_id_change": "event-00009",
+                "change_class_change": "split",
+                "event_side_change": "left",
+                "left_ids_change": ["zone-a"],
+                "right_ids_change": ["zone-a-west", "zone-a-east"],
+                "event_row_count_change": 1,
+                "event_feature_count_change": 3,
+                "member_geometry_types_change": ["Polygon"],
+                "event_summary_change": {
+                    "change_class": "split",
+                    "event_side": "left",
+                    "left_ids": ["zone-a"],
+                    "right_ids": ["zone-a-west", "zone-a-east"],
+                    "left_count": 1,
+                    "right_count": 2,
+                    "row_count": 1,
+                    "feature_count": 3,
+                    "attribute_columns": [],
+                    "mean_similarity_score": 0.88,
+                    "mean_area_share_score": 1.0,
+                },
+                "geometry": {"type": "Point", "coordinates": [2.05, 1.0]},
+            }
+        ],
+        crs="EPSG:4326",
+    )
+
+    exact = baseline.compare_change_events(current)
+    equivalent = baseline.compare_change_events(current, match_mode="equivalent")
+
+    exact_statuses = [record["event_status_eventdiff"] for record in exact.to_records()]
+    equivalent_records = equivalent.to_records()
+
+    assert exact_statuses == ["emerged", "resolved"]
+    assert len(equivalent_records) == 1
+    assert equivalent_records[0]["event_status_eventdiff"] == "persisted"
+    assert equivalent_records[0]["match_mode_eventdiff"] == "equivalent"
+    assert equivalent_records[0]["event_similarity_eventdiff"] is not None
+    assert equivalent_records[0]["event_similarity_eventdiff"] >= 0.6
 
 
 def test_network_build_splits_lines_at_intersections() -> None:
@@ -1799,11 +2448,25 @@ def test_comparison_report_benchmarks_new_methods() -> None:
     assert "sample.geoprompt.summarize_clusters" in benchmark_ops
     assert "benchmark.geoprompt.overlay_group_comparison" in benchmark_ops
     assert "benchmark.geoprompt.overlay_union" in benchmark_ops
+    assert "benchmark.geoprompt.overlay_difference" in benchmark_ops
+    assert "benchmark.geoprompt.overlay_symmetric_difference" in benchmark_ops
     assert "benchmark.geoprompt.corridor_diagnostics" in benchmark_ops
     assert "benchmark.geoprompt.network_build" in benchmark_ops
+    assert "sample.geoprompt.spatial_lag" in benchmark_ops
+    assert "sample.geoprompt.spatial_autocorrelation" in benchmark_ops
+    assert "sample.geoprompt.summarize_autocorrelation" in benchmark_ops
+    assert "sample.geoprompt.report_autocorrelation_patterns" in benchmark_ops
+    assert "sample.geoprompt.change_detection" in benchmark_ops
+    assert "sample.geoprompt.extract_change_events" in benchmark_ops
+    assert "sample.geoprompt.compare_change_events" in benchmark_ops
+    assert "sample.geoprompt.compare_change_events_equivalent" in benchmark_ops
     assert "sample.geoprompt.snap_geometries" in benchmark_ops
     assert "sample.geoprompt.clean_topology" in benchmark_ops
     assert "benchmark.geoprompt.line_split" in benchmark_ops
+    assert "benchmark.geoprompt.polygon_split" in benchmark_ops
+    assert "benchmark.geoprompt.trajectory_match" in benchmark_ops
+    assert "benchmark.geoprompt.summarize_trajectory_segments" in benchmark_ops
+    assert "benchmark.geoprompt.score_trajectory_segments" in benchmark_ops
     assert "benchmark.geoprompt.shortest_path" in benchmark_ops
     assert "benchmark.geoprompt.service_area" in benchmark_ops
     assert "benchmark.geoprompt.location_allocate" in benchmark_ops

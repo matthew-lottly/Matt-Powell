@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import importlib
 import math
+import random
 from dataclasses import dataclass
 from heapq import heappop, heappush, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
 from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, gravity_model, prompt_decay, prompt_influence, prompt_interaction
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_convex_hull, geometry_distance, geometry_envelope, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_vertices, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
-from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections, overlay_union_faces
+from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections, overlay_union_faces, polygon_split_faces
 from .spatial_index import SpatialIndex
 
 
@@ -24,6 +25,10 @@ CorridorScoreMode = Literal["distance", "strength", "alignment", "combined"]
 ClusterRecommendMetric = Literal["silhouette", "sse"]
 CorridorPathAnchor = Literal["start", "end", "nearest"]
 GridShape = Literal["fishnet", "hexbin"]
+SpatialLagMode = Literal["k_nearest", "distance_band", "intersects"]
+SpatialLagWeightMode = Literal["binary", "inverse_distance"]
+ChangeClass = Literal["unchanged", "moved", "modified", "split", "merge", "removed", "added"]
+TrajectoryTransitionMode = Literal["network_cost", "hmm"]
 
 
 Coordinate = tuple[float, float]
@@ -1151,6 +1156,131 @@ class GeoPromptFrame:
         )
         return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
+    def overlay_difference(
+        self,
+        other: "GeoPromptFrame",
+        left_id_column: str = "site_id",
+        right_id_column: str = "site_id",
+        difference_suffix: str = "difference",
+    ) -> "GeoPromptFrame":
+        if self.crs and other.crs and self.crs != other.crs:
+            raise ValueError("frames must share the same CRS before overlay operations")
+        if any(geometry_type(row[self.geometry_column]) != "Polygon" for row in self._rows):
+            raise ValueError("overlay_difference currently requires Polygon geometries on the left frame")
+        if any(geometry_type(row[other.geometry_column]) != "Polygon" for row in other._rows):
+            raise ValueError("overlay_difference currently requires Polygon geometries on the right frame")
+        self._require_column(left_id_column)
+        other._require_column(right_id_column)
+
+        faces = overlay_union_faces(
+            [row[self.geometry_column] for row in self._rows],
+            [row[other.geometry_column] for row in other._rows],
+        )
+        retained_faces = [(left_indexes, geometry) for left_indexes, right_indexes, geometry in faces if left_indexes and not right_indexes]
+        retained_totals: dict[int, float] = {}
+        part_counts: dict[int, int] = {}
+        for left_indexes, geometry in retained_faces:
+            if len(left_indexes) != 1:
+                continue
+            left_index = left_indexes[0]
+            retained_totals[left_index] = retained_totals.get(left_index, 0.0) + geometry_area(geometry)
+            part_counts[left_index] = part_counts.get(left_index, 0) + 1
+
+        rows: list[Record] = []
+        for left_indexes, geometry in retained_faces:
+            resolved: Record = {}
+            for column in self.columns:
+                if column == self.geometry_column:
+                    continue
+                resolved[column] = self._rows[left_indexes[0]][column] if len(left_indexes) == 1 else None
+            left_ids = [str(self._rows[index][left_id_column]) for index in left_indexes]
+            resolved[f"{left_id_column}s_{difference_suffix}"] = left_ids
+            resolved[f"{right_id_column}s_{difference_suffix}"] = []
+            resolved[f"left_count_{difference_suffix}"] = len(left_indexes)
+            resolved[f"right_count_{difference_suffix}"] = 0
+            resolved[f"source_side_{difference_suffix}"] = "left"
+            resolved[f"area_{difference_suffix}"] = geometry_area(geometry)
+            if len(left_indexes) == 1:
+                left_index = left_indexes[0]
+                source_area = geometry_area(self._rows[left_index][self.geometry_column])
+                retained_area = retained_totals.get(left_index, 0.0)
+                removed_area = max(0.0, source_area - retained_area)
+                resolved[f"source_area_{difference_suffix}"] = source_area
+                resolved[f"retained_area_{difference_suffix}"] = retained_area
+                resolved[f"removed_area_{difference_suffix}"] = removed_area
+                resolved[f"removed_share_{difference_suffix}"] = (removed_area / source_area) if source_area > 0.0 else None
+                resolved[f"part_count_{difference_suffix}"] = part_counts.get(left_index, 0)
+            else:
+                resolved[f"source_area_{difference_suffix}"] = None
+                resolved[f"retained_area_{difference_suffix}"] = None
+                resolved[f"removed_area_{difference_suffix}"] = None
+                resolved[f"removed_share_{difference_suffix}"] = None
+                resolved[f"part_count_{difference_suffix}"] = None
+            resolved[self.geometry_column] = geometry
+            rows.append(resolved)
+
+        rows.sort(
+            key=lambda row: (
+                tuple(row[f"{left_id_column}s_{difference_suffix}"]),
+                round(geometry_centroid(row[self.geometry_column])[0], 12),
+                round(geometry_centroid(row[self.geometry_column])[1], 12),
+            )
+        )
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
+
+    def overlay_symmetric_difference(
+        self,
+        other: "GeoPromptFrame",
+        left_id_column: str = "site_id",
+        right_id_column: str = "site_id",
+        rsuffix: str = "right",
+        difference_suffix: str = "symdiff",
+    ) -> "GeoPromptFrame":
+        if self.crs and other.crs and self.crs != other.crs:
+            raise ValueError("frames must share the same CRS before overlay operations")
+        if any(geometry_type(row[self.geometry_column]) != "Polygon" for row in self._rows):
+            raise ValueError("overlay_symmetric_difference currently requires Polygon geometries on the left frame")
+        if any(geometry_type(row[other.geometry_column]) != "Polygon" for row in other._rows):
+            raise ValueError("overlay_symmetric_difference currently requires Polygon geometries on the right frame")
+        self._require_column(left_id_column)
+        other._require_column(right_id_column)
+
+        faces = overlay_union_faces(
+            [row[self.geometry_column] for row in self._rows],
+            [row[other.geometry_column] for row in other._rows],
+        )
+        left_columns = [column for column in self.columns if column != self.geometry_column]
+        right_columns = [column for column in other.columns if column != other.geometry_column]
+        right_rows = list(other._rows)
+        rows: list[Record] = []
+
+        for left_indexes, right_indexes, geometry in faces:
+            if bool(left_indexes) == bool(right_indexes):
+                continue
+            resolved: Record = {}
+            for column in left_columns:
+                resolved[column] = self._rows[left_indexes[0]][column] if len(left_indexes) == 1 else None
+            for column in right_columns:
+                target_name = column if column not in resolved else f"{column}_{rsuffix}"
+                resolved[target_name] = right_rows[right_indexes[0]][column] if len(right_indexes) == 1 else None
+            resolved[f"{left_id_column}s_{difference_suffix}"] = [str(self._rows[index][left_id_column]) for index in left_indexes]
+            resolved[f"{right_id_column}s_{difference_suffix}"] = [str(right_rows[index][right_id_column]) for index in right_indexes]
+            resolved[f"left_count_{difference_suffix}"] = len(left_indexes)
+            resolved[f"right_count_{difference_suffix}"] = len(right_indexes)
+            resolved[f"source_side_{difference_suffix}"] = "left" if left_indexes else "right"
+            resolved[f"area_{difference_suffix}"] = geometry_area(geometry)
+            resolved[self.geometry_column] = geometry
+            rows.append(resolved)
+
+        rows.sort(
+            key=lambda row: (
+                str(row[f"source_side_{difference_suffix}"]),
+                tuple(row[f"{left_id_column}s_{difference_suffix}"]),
+                tuple(row[f"{right_id_column}s_{difference_suffix}"]),
+            )
+        )
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
+
     def dissolve(
         self,
         by: str,
@@ -1424,6 +1554,386 @@ class GeoPromptFrame:
             }
         return stats
 
+    def spatial_lag(
+        self,
+        value_column: str,
+        id_column: str = "site_id",
+        mode: SpatialLagMode = "k_nearest",
+        k: int = 4,
+        max_distance: float | None = None,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+        weight_mode: SpatialLagWeightMode = "binary",
+        include_diagnostics: bool = False,
+        lag_suffix: str = "lag",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        self._require_column(id_column)
+        if mode not in {"k_nearest", "distance_band", "intersects"}:
+            raise ValueError("mode must be 'k_nearest', 'distance_band', or 'intersects'")
+        if weight_mode not in {"binary", "inverse_distance"}:
+            raise ValueError("weight_mode must be 'binary' or 'inverse_distance'")
+        if k <= 0:
+            raise ValueError("k must be greater than zero")
+        if max_distance is not None and max_distance < 0:
+            raise ValueError("max_distance must be zero or greater")
+        if mode == "distance_band" and max_distance is None:
+            raise ValueError("max_distance is required when mode='distance_band'")
+
+        row_count = len(self._rows)
+        centroids = self._centroids()
+        geometry_index = self.spatial_index(mode="geometry") if mode == "intersects" and self._rows else None
+        centroid_index = self.spatial_index(mode="centroid", cell_size=max_distance) if mode == "distance_band" and distance_method == "euclidean" and max_distance is not None and self._rows else None
+        rows: list[Record] = []
+
+        for origin_index, origin_row in enumerate(self._rows):
+            candidate_indexes: list[int]
+            if mode == "distance_band" and centroid_index is not None and max_distance is not None:
+                origin_centroid = centroids[origin_index]
+                candidate_indexes = centroid_index.query(
+                    (
+                        origin_centroid[0] - max_distance,
+                        origin_centroid[1] - max_distance,
+                        origin_centroid[0] + max_distance,
+                        origin_centroid[1] + max_distance,
+                    )
+                )
+            elif mode == "intersects" and geometry_index is not None:
+                candidate_indexes = geometry_index.query(geometry_bounds(origin_row[self.geometry_column]))
+            else:
+                candidate_indexes = list(range(row_count))
+
+            neighbor_candidates: list[tuple[int, float]] = []
+            for candidate_index in candidate_indexes:
+                if not include_self and candidate_index == origin_index:
+                    continue
+                candidate_row = self._rows[candidate_index]
+                if mode == "intersects":
+                    if not geometry_intersects(origin_row[self.geometry_column], candidate_row[self.geometry_column]):
+                        continue
+                    distance_value = coordinate_distance(centroids[origin_index], centroids[candidate_index], method=distance_method)
+                else:
+                    distance_value = coordinate_distance(centroids[origin_index], centroids[candidate_index], method=distance_method)
+                    if mode == "distance_band" and max_distance is not None and distance_value > max_distance:
+                        continue
+                neighbor_candidates.append((candidate_index, distance_value))
+
+            if mode == "k_nearest":
+                neighbor_candidates = nsmallest(
+                    k,
+                    neighbor_candidates,
+                    key=lambda item: (float(item[1]), _row_sort_key(self._rows[item[0]])),
+                )
+            else:
+                neighbor_candidates.sort(key=lambda item: (float(item[1]), _row_sort_key(self._rows[item[0]])))
+
+            weights: list[float] = []
+            weighted_values: list[float] = []
+            neighbor_ids: list[str] = []
+            for candidate_index, distance_value in neighbor_candidates:
+                if weight_mode == "binary":
+                    weight = 1.0
+                elif distance_value <= 1e-12:
+                    weight = 1.0
+                else:
+                    weight = 1.0 / distance_value
+                weights.append(weight)
+                weighted_values.append(float(self._rows[candidate_index][value_column]) * weight)
+                neighbor_ids.append(str(self._rows[candidate_index][id_column]))
+
+            weight_sum = sum(weights)
+            lag_value = (sum(weighted_values) / weight_sum) if weight_sum > 0.0 else None
+            resolved = dict(origin_row)
+            resolved[f"{value_column}_{lag_suffix}"] = lag_value
+            resolved[f"neighbor_count_{lag_suffix}"] = len(neighbor_candidates)
+            resolved[f"neighbor_ids_{lag_suffix}"] = neighbor_ids
+            if include_diagnostics:
+                denominator = row_count if include_self else max(0, row_count - 1)
+                resolved[f"candidate_count_{lag_suffix}"] = len(candidate_indexes)
+                resolved[f"pruning_ratio_{lag_suffix}"] = 1.0 - (len(candidate_indexes) / denominator if denominator else 0.0)
+                resolved[f"weight_sum_{lag_suffix}"] = weight_sum
+                resolved[f"neighbor_weights_{lag_suffix}"] = weights
+                resolved[f"mode_{lag_suffix}"] = mode
+                resolved[f"weight_mode_{lag_suffix}"] = weight_mode
+                resolved[f"distance_method_{lag_suffix}"] = distance_method
+            rows.append(resolved)
+
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def spatial_autocorrelation(
+        self,
+        value_column: str,
+        id_column: str = "site_id",
+        mode: SpatialLagMode = "k_nearest",
+        k: int = 4,
+        max_distance: float | None = None,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+        weight_mode: SpatialLagWeightMode = "binary",
+        permutations: int = 0,
+        random_seed: int = 0,
+        significance_level: float = 0.05,
+        include_diagnostics: bool = False,
+        autocorr_suffix: str = "autocorr",
+    ) -> "GeoPromptFrame":
+        if permutations < 0:
+            raise ValueError("permutations must be zero or greater")
+        if not 0.0 <= significance_level <= 1.0:
+            raise ValueError("significance_level must be between zero and one")
+        lagged = self.spatial_lag(
+            value_column=value_column,
+            id_column=id_column,
+            mode=mode,
+            k=k,
+            max_distance=max_distance,
+            include_self=include_self,
+            distance_method=distance_method,
+            weight_mode=weight_mode,
+            include_diagnostics=True,
+            lag_suffix=autocorr_suffix,
+        )
+        lagged_rows = lagged.to_records()
+        values = [float(row[value_column]) for row in lagged_rows]
+        row_count = len(values)
+        mean_value = (sum(values) / row_count) if row_count else 0.0
+        centered_values = [value - mean_value for value in values]
+        variance_sum = sum(value * value for value in centered_values)
+        m2 = (variance_sum / row_count) if row_count else 0.0
+        id_to_index = {str(row[id_column]): index for index, row in enumerate(lagged_rows)}
+        neighbor_indexes = [
+            [id_to_index[neighbor_id] for neighbor_id in row[f"neighbor_ids_{autocorr_suffix}"]]
+            for row in lagged_rows
+        ]
+        neighbor_weights = [
+            [float(weight) for weight in row[f"neighbor_weights_{autocorr_suffix}"]]
+            for row in lagged_rows
+        ]
+        autocorr_stats = _autocorrelation_statistics(values, neighbor_indexes, neighbor_weights)
+        global_moran = autocorr_stats["global_moran"]
+        global_geary = autocorr_stats["global_geary"]
+        total_weight = autocorr_stats["total_weight"]
+        local_moran_values = autocorr_stats["local_moran_values"]
+        local_geary_values = autocorr_stats["local_geary_values"]
+
+        global_moran_p_value = None
+        global_geary_p_value = None
+        local_moran_p_values: list[float | None] = [None] * row_count
+        local_geary_p_values: list[float | None] = [None] * row_count
+        if permutations > 0 and row_count > 1 and total_weight > 0.0 and variance_sum > 0.0:
+            rng = random.Random(random_seed)
+            global_moran_hits = 0
+            global_geary_hits = 0
+            local_moran_hits = [0] * row_count
+            local_geary_hits = [0] * row_count
+            observed_global_moran = global_moran
+            observed_global_geary = global_geary
+            for _ in range(permutations):
+                permuted_values = rng.sample(values, row_count)
+                permutation_stats = _autocorrelation_statistics(permuted_values, neighbor_indexes, neighbor_weights)
+                permutation_global_moran = permutation_stats["global_moran"]
+                permutation_global_geary = permutation_stats["global_geary"]
+                if observed_global_moran is not None and permutation_global_moran is not None and abs(permutation_global_moran) >= abs(observed_global_moran):
+                    global_moran_hits += 1
+                if observed_global_geary is not None and permutation_global_geary is not None and abs(permutation_global_geary - 1.0) >= abs(observed_global_geary - 1.0):
+                    global_geary_hits += 1
+                for origin_index, permutation_local_moran in enumerate(permutation_stats["local_moran_values"]):
+                    observed_local_moran = local_moran_values[origin_index]
+                    if observed_local_moran is not None and permutation_local_moran is not None and abs(permutation_local_moran) >= abs(observed_local_moran):
+                        local_moran_hits[origin_index] += 1
+                for origin_index, permutation_local_geary in enumerate(permutation_stats["local_geary_values"]):
+                    observed_local_geary = local_geary_values[origin_index]
+                    if observed_local_geary is not None and permutation_local_geary is not None and abs(permutation_local_geary - 1.0) >= abs(observed_local_geary - 1.0):
+                        local_geary_hits[origin_index] += 1
+
+            if observed_global_moran is not None:
+                global_moran_p_value = (global_moran_hits + 1) / (permutations + 1)
+            if observed_global_geary is not None:
+                global_geary_p_value = (global_geary_hits + 1) / (permutations + 1)
+            local_moran_p_values = [
+                ((hits + 1) / (permutations + 1)) if local_moran_values[index] is not None else None
+                for index, hits in enumerate(local_moran_hits)
+            ]
+            local_geary_p_values = [
+                ((hits + 1) / (permutations + 1)) if local_geary_values[index] is not None else None
+                for index, hits in enumerate(local_geary_hits)
+            ]
+
+        rows: list[Record] = []
+        for index, (row, local_moran, local_geary) in enumerate(zip(lagged_rows, local_moran_values, local_geary_values, strict=True)):
+            resolved = dict(row)
+            lag_value = row.get(f"{value_column}_{autocorr_suffix}")
+            lag_centered_value = (float(lag_value) - mean_value) if lag_value is not None else None
+            resolved[f"mean_{autocorr_suffix}"] = mean_value
+            resolved[f"global_moran_i_{autocorr_suffix}"] = global_moran
+            resolved[f"global_geary_c_{autocorr_suffix}"] = global_geary
+            resolved[f"global_moran_p_value_{autocorr_suffix}"] = global_moran_p_value
+            resolved[f"global_geary_p_value_{autocorr_suffix}"] = global_geary_p_value
+            resolved[f"local_moran_i_{autocorr_suffix}"] = local_moran
+            resolved[f"local_geary_c_{autocorr_suffix}"] = local_geary
+            resolved[f"local_moran_p_value_{autocorr_suffix}"] = local_moran_p_values[index]
+            resolved[f"local_geary_p_value_{autocorr_suffix}"] = local_geary_p_values[index]
+            cluster_label = _local_cluster_label(
+                centered_values[index],
+                lag_centered_value,
+                local_moran,
+                local_moran_p_values[index],
+                significance_level,
+            )
+            cluster_family = _local_cluster_family(cluster_label)
+            resolved[f"local_cluster_label_{autocorr_suffix}"] = cluster_label
+            resolved[f"local_cluster_code_{autocorr_suffix}"] = _local_cluster_code(cluster_label)
+            resolved[f"local_cluster_family_{autocorr_suffix}"] = cluster_family
+            resolved[f"significant_cluster_{autocorr_suffix}"] = bool(local_moran_p_values[index] is not None and local_moran_p_values[index] <= significance_level)
+            resolved[f"hotspot_{autocorr_suffix}"] = cluster_family == "hotspot"
+            resolved[f"coldspot_{autocorr_suffix}"] = cluster_family == "coldspot"
+            resolved[f"spatial_outlier_{autocorr_suffix}"] = cluster_family == "outlier"
+            if not include_diagnostics:
+                resolved.pop(f"candidate_count_{autocorr_suffix}", None)
+                resolved.pop(f"pruning_ratio_{autocorr_suffix}", None)
+                resolved.pop(f"weight_sum_{autocorr_suffix}", None)
+                resolved.pop(f"neighbor_weights_{autocorr_suffix}", None)
+                resolved.pop(f"mode_{autocorr_suffix}", None)
+                resolved.pop(f"weight_mode_{autocorr_suffix}", None)
+                resolved.pop(f"distance_method_{autocorr_suffix}", None)
+            else:
+                resolved[f"variance_sum_{autocorr_suffix}"] = variance_sum
+                resolved[f"total_weight_{autocorr_suffix}"] = total_weight
+                resolved[f"permutations_{autocorr_suffix}"] = permutations
+                resolved[f"significance_level_{autocorr_suffix}"] = significance_level
+            rows.append(resolved)
+
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def summarize_autocorrelation(
+        self,
+        value_column: str,
+        id_column: str = "site_id",
+        autocorr_suffix: str = "autocorr",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        self._require_column(id_column)
+        self._require_column(f"local_cluster_family_{autocorr_suffix}")
+        self._require_column(f"local_cluster_label_{autocorr_suffix}")
+        self._require_column(f"local_moran_i_{autocorr_suffix}")
+        self._require_column(f"local_geary_c_{autocorr_suffix}")
+        self._require_column(f"significant_cluster_{autocorr_suffix}")
+
+        grouped_rows: dict[str, list[Record]] = {}
+        for row in self._rows:
+            family = str(row.get(f"local_cluster_family_{autocorr_suffix}") or "unclassified")
+            grouped_rows.setdefault(family, []).append(row)
+
+        rows: list[Record] = []
+        for family, family_rows in sorted(grouped_rows.items(), key=lambda item: (item[0], len(item[1]))):
+            label_counts: dict[str, int] = {}
+            for row in family_rows:
+                label = str(row.get(f"local_cluster_label_{autocorr_suffix}") or "unclassified")
+                label_counts[label] = label_counts.get(label, 0) + 1
+            mean_centroid = _mean_centroid_geometry(family_rows, self.geometry_column)
+            local_moran_values = [
+                float(row[f"local_moran_i_{autocorr_suffix}"])
+                for row in family_rows
+                if row.get(f"local_moran_i_{autocorr_suffix}") is not None
+            ]
+            local_geary_values = [
+                float(row[f"local_geary_c_{autocorr_suffix}"])
+                for row in family_rows
+                if row.get(f"local_geary_c_{autocorr_suffix}") is not None
+            ]
+            significant_count = sum(1 for row in family_rows if bool(row.get(f"significant_cluster_{autocorr_suffix}")))
+            summary_row: Record = {
+                f"local_cluster_family_{autocorr_suffix}": family,
+                f"feature_count_{autocorr_suffix}": len(family_rows),
+                f"{id_column}s_{autocorr_suffix}": [str(row[id_column]) for row in family_rows],
+                f"label_counts_{autocorr_suffix}": label_counts,
+                f"significant_count_{autocorr_suffix}": significant_count,
+                f"significant_share_{autocorr_suffix}": (significant_count / len(family_rows)) if family_rows else 0.0,
+                f"{value_column}_mean_{autocorr_suffix}": sum(float(row[value_column]) for row in family_rows) / len(family_rows),
+                f"local_moran_i_mean_{autocorr_suffix}": (sum(local_moran_values) / len(local_moran_values)) if local_moran_values else None,
+                f"local_geary_c_mean_{autocorr_suffix}": (sum(local_geary_values) / len(local_geary_values)) if local_geary_values else None,
+                f"global_moran_i_{autocorr_suffix}": family_rows[0].get(f"global_moran_i_{autocorr_suffix}"),
+                f"global_geary_c_{autocorr_suffix}": family_rows[0].get(f"global_geary_c_{autocorr_suffix}"),
+                self.geometry_column: mean_centroid,
+            }
+            rows.append(summary_row)
+
+        rows.sort(
+            key=lambda row: (
+                -int(row[f"feature_count_{autocorr_suffix}"]),
+                str(row[f"local_cluster_family_{autocorr_suffix}"]),
+            )
+        )
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def report_autocorrelation_patterns(
+        self,
+        value_column: str,
+        id_column: str = "site_id",
+        autocorr_suffix: str = "autocorr",
+        include_families: Sequence[str] = ("hotspot", "coldspot", "outlier"),
+        top_ids: int = 5,
+    ) -> "GeoPromptFrame":
+        if top_ids <= 0:
+            raise ValueError("top_ids must be greater than zero")
+
+        summary = self.summarize_autocorrelation(
+            value_column=value_column,
+            id_column=id_column,
+            autocorr_suffix=autocorr_suffix,
+        )
+        summary_rows = summary.to_records()
+        family_filter = {str(value) for value in include_families}
+        if not family_filter:
+            raise ValueError("include_families must contain at least one family")
+
+        total_feature_count = sum(int(row[f"feature_count_{autocorr_suffix}"]) for row in summary_rows)
+        report_rows: list[Record] = []
+        for row in summary_rows:
+            family = str(row[f"local_cluster_family_{autocorr_suffix}"])
+            if family not in family_filter:
+                continue
+            label_counts = dict(row[f"label_counts_{autocorr_suffix}"])
+            primary_labels = [
+                label
+                for label, _count in sorted(label_counts.items(), key=lambda item: (-int(item[1]), str(item[0])))
+            ]
+            feature_count = int(row[f"feature_count_{autocorr_suffix}"])
+            feature_share = (feature_count / total_feature_count) if total_feature_count else 0.0
+            mean_local_moran = row.get(f"local_moran_i_mean_{autocorr_suffix}")
+            intensity_score = (
+                abs(float(mean_local_moran)) * float(row[f"significant_share_{autocorr_suffix}"]) * feature_share
+                if mean_local_moran is not None
+                else 0.0
+            )
+            report_row: Record = {
+                f"local_cluster_family_{autocorr_suffix}": family,
+                f"report_label_{autocorr_suffix}": _autocorr_report_label(family),
+                f"feature_count_{autocorr_suffix}": feature_count,
+                f"feature_share_{autocorr_suffix}": feature_share,
+                f"significant_count_{autocorr_suffix}": row[f"significant_count_{autocorr_suffix}"],
+                f"significant_share_{autocorr_suffix}": row[f"significant_share_{autocorr_suffix}"],
+                f"primary_labels_{autocorr_suffix}": primary_labels,
+                f"representative_ids_{autocorr_suffix}": list(row[f"{id_column}s_{autocorr_suffix}"][:top_ids]),
+                f"intensity_score_{autocorr_suffix}": intensity_score,
+                f"report_priority_{autocorr_suffix}": _autocorr_report_priority(family, intensity_score),
+                f"{value_column}_mean_{autocorr_suffix}": row[f"{value_column}_mean_{autocorr_suffix}"],
+                f"local_moran_i_mean_{autocorr_suffix}": row[f"local_moran_i_mean_{autocorr_suffix}"],
+                f"local_geary_c_mean_{autocorr_suffix}": row[f"local_geary_c_mean_{autocorr_suffix}"],
+                self.geometry_column: row[self.geometry_column],
+            }
+            report_rows.append(report_row)
+
+        report_rows.sort(
+            key=lambda row: (
+                -float(row[f"intensity_score_{autocorr_suffix}"]),
+                -int(row[f"feature_count_{autocorr_suffix}"]),
+                str(row[f"local_cluster_family_{autocorr_suffix}"]),
+            )
+        )
+        for index, row in enumerate(report_rows, start=1):
+            row[f"report_rank_{autocorr_suffix}"] = index
+        return GeoPromptFrame._from_internal_rows(report_rows, geometry_column=self.geometry_column, crs=self.crs)
+
     def snap_geometries(
         self,
         tolerance: float,
@@ -1643,6 +2153,88 @@ class GeoPromptFrame:
 
         rows.sort(key=lambda item: (str(item[f"source_id_{split_suffix}"]), int(item[f"part_index_{split_suffix}"])))
         return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or (splitters.crs if splitters is not None else None))
+
+    def polygon_split(
+        self,
+        splitters: "GeoPromptFrame",
+        id_column: str = "site_id",
+        splitter_id_column: str = "site_id",
+        include_diagnostics: bool = False,
+        split_suffix: str = "split",
+    ) -> "GeoPromptFrame":
+        self._require_column(id_column)
+        splitters._require_column(splitter_id_column)
+        if any(geometry_type(row[self.geometry_column]) != "Polygon" for row in self._rows):
+            raise ValueError("polygon_split requires all geometries to be Polygon")
+        if self.crs and splitters.crs and self.crs != splitters.crs:
+            raise ValueError("frames must share the same CRS before polygon splitting")
+
+        splitter_rows = list(splitters._rows)
+        unsupported_types = [
+            geometry_type(row[splitters.geometry_column])
+            for row in splitter_rows
+            if geometry_type(row[splitters.geometry_column]) not in {"LineString", "Polygon"}
+        ]
+        if unsupported_types:
+            raise ValueError("polygon_split splitters must contain only LineString or Polygon geometries")
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+
+        splitter_index = splitters.spatial_index(mode="geometry") if splitter_rows else SpatialIndex([])
+        rows: list[Record] = []
+
+        for row in self._rows:
+            source_geometry = row[self.geometry_column]
+            source_id = str(row[id_column])
+            source_area = geometry_area(source_geometry)
+            candidate_indexes = sorted(splitter_index.query(geometry_bounds(source_geometry)))
+            applicable_indexes = [
+                index
+                for index in candidate_indexes
+                if geometry_intersects(source_geometry, splitter_rows[index][splitters.geometry_column])
+            ]
+            faces = polygon_split_faces(
+                source_geometry,
+                [splitter_rows[index][splitters.geometry_column] for index in applicable_indexes],
+            )
+            ordered_faces = sorted(
+                faces,
+                key=lambda item: (
+                    round(geometry_centroid(item[1])[0], 12),
+                    round(geometry_centroid(item[1])[1], 12),
+                    round(geometry_area(item[1]), 12),
+                    str(item[1]["coordinates"]),
+                ),
+            )
+            part_rows: list[Record] = []
+            for part_index, (local_splitter_indexes, geometry) in enumerate(ordered_faces, start=1):
+                splitter_ids = sorted(
+                    {
+                        str(splitter_rows[applicable_indexes[local_index]][splitter_id_column])
+                        for local_index in local_splitter_indexes
+                    }
+                )
+                resolved = dict(row)
+                resolved[self.geometry_column] = geometry
+                resolved[f"source_id_{split_suffix}"] = source_id
+                resolved[f"part_id_{split_suffix}"] = f"{source_id}-part-{part_index:05d}"
+                resolved[f"part_index_{split_suffix}"] = part_index
+                resolved[f"splitter_ids_{split_suffix}"] = splitter_ids
+                resolved[f"splitter_count_{split_suffix}"] = len(splitter_ids)
+                resolved[f"area_{split_suffix}"] = geometry_area(geometry)
+                if include_diagnostics:
+                    resolved[f"candidate_splitter_count_{split_suffix}"] = len(candidate_indexes)
+                    resolved[f"applied_splitter_count_{split_suffix}"] = len(applicable_indexes)
+                    resolved[f"split_detected_{split_suffix}"] = len(ordered_faces) > 1
+                    resolved[f"area_ratio_{split_suffix}"] = 0.0 if source_area <= 0.0 else geometry_area(geometry) / source_area
+                part_rows.append(resolved)
+
+            for resolved in part_rows:
+                resolved[f"part_count_{split_suffix}"] = len(part_rows)
+                rows.append(resolved)
+
+        rows.sort(key=lambda item: (str(item[f"source_id_{split_suffix}"]), int(item[f"part_index_{split_suffix}"])))
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or splitters.crs)
 
     def fishnet(
         self,
@@ -2355,6 +2947,837 @@ class GeoPromptFrame:
                 adjacency.setdefault(to_node_id, []).append((from_node_id, edge_cost, index))
         self._cache[cache_key] = adjacency
         return adjacency
+
+    def trajectory_match(
+        self,
+        observations: "GeoPromptFrame",
+        track_id_column: str = "track_id",
+        sequence_column: str = "sequence",
+        observation_id_column: str = "site_id",
+        edge_id_column: str = "edge_id",
+        from_node_id_column: str = "from_node_id",
+        to_node_id_column: str = "to_node_id",
+        cost_column: str = "edge_length",
+        candidate_k: int = 3,
+        max_distance: float | None = None,
+        transition_weight: float = 1.25,
+        transition_mode: TrajectoryTransitionMode = "hmm",
+        gap_penalty: float = 7.5,
+        allow_gaps: bool = True,
+        distance_method: str = "euclidean",
+        include_diagnostics: bool = False,
+        match_suffix: str = "match",
+    ) -> "GeoPromptFrame":
+        if candidate_k <= 0:
+            raise ValueError("candidate_k must be greater than zero")
+        if max_distance is not None and max_distance < 0:
+            raise ValueError("max_distance must be zero or greater")
+        if transition_weight < 0:
+            raise ValueError("transition_weight must be zero or greater")
+        if transition_mode not in {"network_cost", "hmm"}:
+            raise ValueError("transition_mode must be 'network_cost' or 'hmm'")
+        if gap_penalty < 0:
+            raise ValueError("gap_penalty must be zero or greater")
+        if self.crs and observations.crs and self.crs != observations.crs:
+            raise ValueError("frames must share the same CRS before trajectory matching")
+        for column in (edge_id_column, from_node_id_column, to_node_id_column, cost_column):
+            self._require_column(column)
+        for column in (track_id_column, sequence_column, observation_id_column):
+            observations._require_column(column)
+        if any(geometry_type(row[self.geometry_column]) != "LineString" for row in self._rows):
+            raise ValueError("trajectory_match requires LineString geometries on the network frame")
+        if any(geometry_type(row[observations.geometry_column]) != "Point" for row in observations._rows):
+            raise ValueError("trajectory_match requires Point geometries on the observations frame")
+
+        edge_rows = list(self._rows)
+        observation_rows = list(observations._rows)
+        edge_index = self.spatial_index(mode="geometry") if edge_rows else SpatialIndex([])
+        adjacency = self._network_graph(from_node_id_column, to_node_id_column, cost_column, directed=False)
+        edge_columns = [column for column in self.columns if column != self.geometry_column]
+        node_distance_cache: dict[str, dict[str, float]] = {}
+        transition_cache: dict[tuple[int, int, float, float], float] = {}
+
+        grouped_tracks: dict[str, list[Record]] = {}
+        for row in observation_rows:
+            grouped_tracks.setdefault(str(row[track_id_column]), []).append(row)
+
+        rows: list[Record] = []
+        for track_id, track_rows in sorted(grouped_tracks.items(), key=lambda item: item[0]):
+            ordered_track_rows = sorted(
+                track_rows,
+                key=lambda row: (row[sequence_column], str(row[observation_id_column])),
+            )
+            candidate_sets: list[list[dict[str, Any]]] = []
+            for row in ordered_track_rows:
+                point = _as_coordinate(row[observations.geometry_column]["coordinates"])
+                if max_distance is not None:
+                    candidate_indexes = edge_index.query(
+                        (
+                            point[0] - max_distance,
+                            point[1] - max_distance,
+                            point[0] + max_distance,
+                            point[1] + max_distance,
+                        )
+                    )
+                else:
+                    candidate_indexes = list(range(len(edge_rows)))
+
+                candidates: list[dict[str, Any]] = []
+                for edge_index_value in candidate_indexes:
+                    edge_row = edge_rows[edge_index_value]
+                    offset_distance, along_distance = _point_to_polyline_distance_details(
+                        point,
+                        tuple(_as_coordinate(value) for value in edge_row[self.geometry_column]["coordinates"]),
+                        method=distance_method,
+                    )
+                    if max_distance is not None and offset_distance > max_distance:
+                        continue
+                    candidates.append(
+                        {
+                            "edge_index": edge_index_value,
+                            "offset_distance": offset_distance,
+                            "along_distance": along_distance,
+                            "edge_id": str(edge_row[edge_id_column]),
+                        }
+                    )
+                candidates.sort(key=lambda item: (float(item["offset_distance"]), str(item["edge_id"])))
+                candidate_sets.append(candidates[:candidate_k])
+
+            previous_scores: list[dict[str, Any]] | None = None
+            track_states: list[list[dict[str, Any]]] = []
+            previous_point: tuple[float, float] | None = None
+            for row, candidates in zip(ordered_track_rows, candidate_sets, strict=True):
+                current_scores: list[dict[str, Any]] = []
+                point = _as_coordinate(row[observations.geometry_column]["coordinates"])
+                observed_step_distance = coordinate_distance(previous_point, point, method=distance_method) if previous_point is not None else 0.0
+                state_candidates = list(candidates)
+                if allow_gaps:
+                    state_candidates.append(
+                        {
+                            "edge_index": None,
+                            "offset_distance": gap_penalty,
+                            "along_distance": None,
+                            "edge_id": None,
+                            "gap_state": True,
+                        }
+                    )
+                if not state_candidates:
+                    track_states.append([])
+                    previous_scores = None
+                    previous_point = point
+                    continue
+                for candidate in state_candidates:
+                    gap_state = bool(candidate.get("gap_state", False))
+                    best_score = candidate["offset_distance"]
+                    best_previous_state_index: int | None = None
+                    best_transition_cost = 0.0
+                    best_transition_penalty = 0.0
+                    best_transition_mismatch = 0.0
+                    if previous_scores is not None:
+                        best_score = float("inf")
+                        for previous_state_index, previous in enumerate(previous_scores):
+                            if gap_state or previous.get("gap_state", False):
+                                transition_cost = 0.0
+                                transition_penalty = _gap_transition_penalty(
+                                    previous_gap_state=bool(previous.get("gap_state", False)),
+                                    current_gap_state=gap_state,
+                                    gap_penalty=gap_penalty,
+                                )
+                                transition_mismatch = observed_step_distance if transition_penalty > 0.0 else 0.0
+                            else:
+                                transition_cost = _edge_transition_cost(
+                                    previous["edge_index"],
+                                    candidate["edge_index"],
+                                    float(previous["along_distance"]),
+                                    float(candidate["along_distance"]),
+                                    edge_rows,
+                                    adjacency,
+                                    from_node_id_column,
+                                    to_node_id_column,
+                                    cost_column,
+                                    node_distance_cache,
+                                    transition_cache,
+                                )
+                                transition_mismatch = abs(transition_cost - observed_step_distance)
+                                if transition_mode == "hmm":
+                                    transition_penalty = (0.5 * transition_cost) + transition_mismatch
+                                else:
+                                    transition_penalty = transition_cost
+                            total_score = previous["score"] + candidate["offset_distance"] + (transition_weight * transition_penalty)
+                            if total_score < best_score:
+                                best_score = total_score
+                                best_previous_state_index = previous_state_index
+                                best_transition_cost = transition_cost
+                                best_transition_penalty = transition_penalty
+                                best_transition_mismatch = transition_mismatch
+                    current_scores.append(
+                        {
+                            **candidate,
+                            "gap_state": gap_state,
+                            "score": best_score,
+                            "previous_state_index": best_previous_state_index,
+                            "transition_cost": best_transition_cost,
+                            "transition_penalty": best_transition_penalty,
+                            "transition_mismatch": best_transition_mismatch,
+                            "observed_step_distance": observed_step_distance,
+                        }
+                    )
+                track_states.append(current_scores)
+                previous_scores = current_scores
+                previous_point = point
+
+            chosen_state_indexes: list[int | None] = [None] * len(ordered_track_rows)
+            next_state_index: int | None = None
+            for observation_index in range(len(ordered_track_rows) - 1, -1, -1):
+                states = track_states[observation_index]
+                if not states:
+                    next_state_index = None
+                    continue
+                if next_state_index is None or next_state_index >= len(states):
+                    best_state_index = min(
+                        range(len(states)),
+                        key=lambda state_index: (
+                            float(states[state_index]["score"]),
+                            int(bool(states[state_index].get("gap_state", False))),
+                            str(states[state_index].get("edge_id")),
+                        ),
+                    )
+                else:
+                    best_state_index = next_state_index
+                chosen_state_indexes[observation_index] = best_state_index
+                next_state_index = states[best_state_index]["previous_state_index"]
+
+            continuity_states: list[str] = []
+            segment_indexes: list[int | None] = []
+            current_segment_index = 0
+            previous_was_gap = True
+            for row_index, state_index in enumerate(chosen_state_indexes):
+                states = track_states[row_index]
+                if state_index is None or not states:
+                    continuity_states.append("unmatched")
+                    segment_indexes.append(None)
+                    previous_was_gap = True
+                    continue
+                selected_state = states[state_index]
+                if selected_state.get("gap_state", False):
+                    continuity_states.append("gap")
+                    segment_indexes.append(None)
+                    previous_was_gap = True
+                    continue
+                if current_segment_index == 0:
+                    current_segment_index = 1
+                    continuity_states.append("start")
+                elif previous_was_gap:
+                    current_segment_index += 1
+                    continuity_states.append("resume")
+                else:
+                    continuity_states.append("continuation")
+                segment_indexes.append(current_segment_index)
+                previous_was_gap = False
+
+            for row_index, row in enumerate(ordered_track_rows):
+                states = track_states[row_index]
+                resolved = dict(row)
+                resolved[f"track_{match_suffix}"] = track_id
+                resolved[f"candidate_count_{match_suffix}"] = sum(1 for state in states if not state.get("gap_state", False))
+                resolved[f"continuity_state_{match_suffix}"] = continuity_states[row_index]
+                resolved[f"segment_index_{match_suffix}"] = segment_indexes[row_index]
+                if not states or chosen_state_indexes[row_index] is None:
+                    resolved[f"matched_{match_suffix}"] = False
+                    resolved[f"{edge_id_column}_{match_suffix}"] = None
+                    resolved[f"distance_{match_suffix}"] = None
+                    resolved[f"along_distance_{match_suffix}"] = None
+                    resolved[f"transition_cost_{match_suffix}"] = None
+                    if include_diagnostics:
+                        resolved[f"gap_state_{match_suffix}"] = False
+                    rows.append(resolved)
+                    continue
+
+                selected_state = states[chosen_state_indexes[row_index]]
+                if selected_state.get("gap_state", False):
+                    resolved[f"matched_{match_suffix}"] = False
+                    resolved[f"{edge_id_column}_{match_suffix}"] = None
+                    resolved[f"distance_{match_suffix}"] = None
+                    resolved[f"along_distance_{match_suffix}"] = None
+                    resolved[f"transition_cost_{match_suffix}"] = None
+                    if include_diagnostics:
+                        resolved[f"candidate_{edge_id_column}s_{match_suffix}"] = [state["edge_id"] for state in states if not state.get("gap_state", False)]
+                        resolved[f"score_{match_suffix}"] = selected_state["score"]
+                        resolved[f"candidate_k_{match_suffix}"] = candidate_k
+                        resolved[f"gap_state_{match_suffix}"] = True
+                        resolved[f"transition_penalty_{match_suffix}"] = selected_state["transition_penalty"]
+                        resolved[f"transition_mismatch_{match_suffix}"] = selected_state["transition_mismatch"]
+                        resolved[f"observed_step_distance_{match_suffix}"] = selected_state["observed_step_distance"]
+                        resolved[f"transition_mode_{match_suffix}"] = transition_mode
+                    rows.append(resolved)
+                    continue
+
+                matched_edge = edge_rows[selected_state["edge_index"]]
+                for column in edge_columns:
+                    target_name = column if column not in resolved else f"{column}_{match_suffix}"
+                    resolved[target_name] = matched_edge[column]
+                resolved[f"matched_{match_suffix}"] = True
+                resolved[f"{edge_id_column}_{match_suffix}"] = str(matched_edge[edge_id_column])
+                resolved[f"distance_{match_suffix}"] = selected_state["offset_distance"]
+                resolved[f"along_distance_{match_suffix}"] = selected_state["along_distance"]
+                resolved[f"transition_cost_{match_suffix}"] = selected_state["transition_cost"]
+                if include_diagnostics:
+                    resolved[f"candidate_{edge_id_column}s_{match_suffix}"] = [state["edge_id"] for state in states if not state.get("gap_state", False)]
+                    resolved[f"score_{match_suffix}"] = selected_state["score"]
+                    resolved[f"candidate_k_{match_suffix}"] = candidate_k
+                    resolved[f"gap_state_{match_suffix}"] = False
+                    resolved[f"transition_penalty_{match_suffix}"] = selected_state["transition_penalty"]
+                    resolved[f"transition_mismatch_{match_suffix}"] = selected_state["transition_mismatch"]
+                    resolved[f"observed_step_distance_{match_suffix}"] = selected_state["observed_step_distance"]
+                    resolved[f"transition_mode_{match_suffix}"] = transition_mode
+                rows.append(resolved)
+
+        rows.sort(key=lambda row: (str(row[track_id_column]), row[sequence_column], str(row[observation_id_column])))
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=observations.geometry_column, crs=observations.crs or self.crs)
+
+    def summarize_trajectory_segments(
+        self,
+        track_id_column: str = "track_id",
+        sequence_column: str = "sequence",
+        observation_id_column: str = "site_id",
+        edge_id_column: str = "edge_id",
+        match_suffix: str = "match",
+    ) -> "GeoPromptFrame":
+        self._require_column(track_id_column)
+        self._require_column(sequence_column)
+        self._require_column(observation_id_column)
+        self._require_column(f"matched_{match_suffix}")
+        self._require_column(f"continuity_state_{match_suffix}")
+        self._require_column(f"segment_index_{match_suffix}")
+        self._require_column(f"{edge_id_column}_{match_suffix}")
+
+        grouped_rows: dict[tuple[str, int], list[Record]] = {}
+        for row in self._rows:
+            if not bool(row.get(f"matched_{match_suffix}")):
+                continue
+            segment_index = row.get(f"segment_index_{match_suffix}")
+            if segment_index is None:
+                continue
+            grouped_rows.setdefault((str(row[track_id_column]), int(segment_index)), []).append(row)
+
+        rows: list[Record] = []
+        for (track_id, segment_index), segment_rows in sorted(grouped_rows.items(), key=lambda item: (item[0][0], item[0][1])):
+            ordered_rows = sorted(segment_rows, key=lambda row: (row[sequence_column], str(row[observation_id_column])))
+            observation_ids = [str(row[observation_id_column]) for row in ordered_rows]
+            path_edge_ids = _consecutive_distinct_values(str(row[f"{edge_id_column}_{match_suffix}"]) for row in ordered_rows if row.get(f"{edge_id_column}_{match_suffix}") is not None)
+            coordinates = [
+                list(_as_coordinate(row[self.geometry_column]["coordinates"]))
+                for row in ordered_rows
+            ]
+            summary_geometry: Geometry
+            if len(coordinates) == 1:
+                summary_geometry = {"type": "Point", "coordinates": coordinates[0]}
+            else:
+                summary_geometry = {"type": "LineString", "coordinates": coordinates}
+            transition_costs = [
+                float(row[f"transition_cost_{match_suffix}"])
+                for row in ordered_rows
+                if row.get(f"transition_cost_{match_suffix}") is not None
+            ]
+            distances = [
+                float(row[f"distance_{match_suffix}"])
+                for row in ordered_rows
+                if row.get(f"distance_{match_suffix}") is not None
+            ]
+            sequence_span = int(ordered_rows[-1][sequence_column]) - int(ordered_rows[0][sequence_column]) + 1
+            rows.append(
+                {
+                    track_id_column: track_id,
+                    f"segment_index_{match_suffix}": segment_index,
+                    f"observation_ids_{match_suffix}": observation_ids,
+                    f"edge_ids_{match_suffix}": path_edge_ids,
+                    f"observation_count_{match_suffix}": len(ordered_rows),
+                    f"edge_count_{match_suffix}": len(path_edge_ids),
+                    f"start_sequence_{match_suffix}": ordered_rows[0][sequence_column],
+                    f"end_sequence_{match_suffix}": ordered_rows[-1][sequence_column],
+                    f"sequence_span_{match_suffix}": sequence_span,
+                    f"continuity_start_{match_suffix}": ordered_rows[0].get(f"continuity_state_{match_suffix}"),
+                    f"continuity_end_{match_suffix}": ordered_rows[-1].get(f"continuity_state_{match_suffix}"),
+                    f"gap_before_{match_suffix}": ordered_rows[0].get(f"continuity_state_{match_suffix}") == "resume",
+                    f"mean_distance_{match_suffix}": (sum(distances) / len(distances)) if distances else None,
+                    f"max_distance_{match_suffix}": max(distances) if distances else None,
+                    f"transition_count_{match_suffix}": len(transition_costs),
+                    f"mean_transition_cost_{match_suffix}": (sum(transition_costs) / len(transition_costs)) if transition_costs else 0.0,
+                    f"total_transition_cost_{match_suffix}": sum(transition_costs),
+                    f"observation_density_{match_suffix}": (len(ordered_rows) / sequence_span) if sequence_span > 0 else None,
+                    self.geometry_column: summary_geometry,
+                }
+            )
+
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def score_trajectory_segments(
+        self,
+        track_id_column: str = "track_id",
+        match_suffix: str = "match",
+        score_suffix: str = "trajectory",
+        distance_threshold: float = 0.05,
+        transition_cost_threshold: float = 1.0,
+        density_threshold: float = 0.75,
+    ) -> "GeoPromptFrame":
+        self._require_column(track_id_column)
+        self._require_column(f"segment_index_{match_suffix}")
+        self._require_column(f"observation_count_{match_suffix}")
+        self._require_column(f"edge_count_{match_suffix}")
+        self._require_column(f"mean_distance_{match_suffix}")
+        self._require_column(f"max_distance_{match_suffix}")
+        self._require_column(f"mean_transition_cost_{match_suffix}")
+        self._require_column(f"observation_density_{match_suffix}")
+        if distance_threshold <= 0.0:
+            raise ValueError("distance_threshold must be greater than zero")
+        if transition_cost_threshold <= 0.0:
+            raise ValueError("transition_cost_threshold must be greater than zero")
+        if not 0.0 < density_threshold <= 1.0:
+            raise ValueError("density_threshold must be between zero and one")
+
+        rows: list[Record] = []
+        for row in self._rows:
+            mean_distance = float(row[f"mean_distance_{match_suffix}"] or 0.0)
+            max_distance = float(row[f"max_distance_{match_suffix}"] or 0.0)
+            mean_transition_cost = float(row[f"mean_transition_cost_{match_suffix}"] or 0.0)
+            observation_density = float(row[f"observation_density_{match_suffix}"] or 0.0)
+            observation_count = int(row[f"observation_count_{match_suffix}"])
+            edge_count = int(row[f"edge_count_{match_suffix}"])
+            anomaly_flags: list[str] = []
+            if bool(row.get(f"gap_before_{match_suffix}")):
+                anomaly_flags.append("resumed_after_gap")
+            if observation_count <= 1:
+                anomaly_flags.append("single_observation_segment")
+            if mean_distance > distance_threshold:
+                anomaly_flags.append("high_mean_offset_distance")
+            if max_distance > (distance_threshold * 1.5):
+                anomaly_flags.append("high_max_offset_distance")
+            if mean_transition_cost > transition_cost_threshold:
+                anomaly_flags.append("high_transition_cost")
+            if observation_density < density_threshold:
+                anomaly_flags.append("sparse_observation_density")
+            if edge_count > max(1, observation_count):
+                anomaly_flags.append("excess_edge_changes")
+
+            distance_penalty = min(1.0, mean_distance / distance_threshold)
+            transition_penalty = min(1.0, mean_transition_cost / transition_cost_threshold)
+            density_penalty = max(0.0, 1.0 - observation_density)
+            gap_penalty = 0.2 if bool(row.get(f"gap_before_{match_suffix}")) else 0.0
+            single_penalty = 0.2 if observation_count <= 1 else 0.0
+            confidence_score = max(
+                0.0,
+                min(
+                    1.0,
+                    1.0 - ((0.35 * distance_penalty) + (0.35 * transition_penalty) + (0.1 * density_penalty) + gap_penalty + single_penalty),
+                ),
+            )
+            anomaly_level = _trajectory_anomaly_level(confidence_score, len(anomaly_flags))
+            resolved = dict(row)
+            resolved[f"confidence_score_{score_suffix}"] = confidence_score
+            resolved[f"anomaly_flags_{score_suffix}"] = anomaly_flags
+            resolved[f"anomaly_count_{score_suffix}"] = len(anomaly_flags)
+            resolved[f"anomaly_level_{score_suffix}"] = anomaly_level
+            resolved[f"review_segment_{score_suffix}"] = anomaly_level in {"moderate", "high"}
+            rows.append(resolved)
+
+        rows.sort(
+            key=lambda row: (
+                int(row[f"review_segment_{score_suffix}"]),
+                int(row[f"anomaly_count_{score_suffix}"]),
+                -float(row[f"confidence_score_{score_suffix}"]),
+                str(row[track_id_column]),
+                int(row[f"segment_index_{match_suffix}"]),
+            ),
+            reverse=True,
+        )
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def change_detection(
+        self,
+        other: "GeoPromptFrame",
+        id_column: str = "site_id",
+        other_id_column: str | None = None,
+        attribute_columns: Sequence[str] | None = None,
+        max_distance: float | None = None,
+        min_similarity: float = 0.35,
+        geometry_tolerance: float = 1e-9,
+        include_diagnostics: bool = False,
+        change_suffix: str = "change",
+    ) -> "GeoPromptFrame":
+        resolved_other_id_column = other_id_column or id_column
+        self._require_column(id_column)
+        other._require_column(resolved_other_id_column)
+        if max_distance is not None and max_distance < 0:
+            raise ValueError("max_distance must be zero or greater")
+        if not 0.0 <= min_similarity <= 1.0:
+            raise ValueError("min_similarity must be between zero and one")
+        if geometry_tolerance < 0:
+            raise ValueError("geometry_tolerance must be zero or greater")
+        if self.crs and other.crs and self.crs != other.crs:
+            raise ValueError("frames must share the same CRS before change detection")
+
+        left_rows = list(self._rows)
+        right_rows = list(other._rows)
+        right_index = other.spatial_index(mode="geometry") if right_rows else SpatialIndex([])
+        left_centroids = self._centroids()
+        right_centroids = other._centroids()
+        shared_attribute_columns = list(attribute_columns) if attribute_columns is not None else sorted(
+            (set(self.columns) & set(other.columns)) - {self.geometry_column, other.geometry_column, id_column, resolved_other_id_column}
+        )
+
+        pair_scores: list[dict[str, Any]] = []
+        left_candidates: dict[int, list[dict[str, Any]]] = {index: [] for index in range(len(left_rows))}
+        right_candidates: dict[int, list[dict[str, Any]]] = {index: [] for index in range(len(right_rows))}
+
+        for left_index, left_row in enumerate(left_rows):
+            left_geometry = left_row[self.geometry_column]
+            left_centroid = left_centroids[left_index]
+            if max_distance is None:
+                candidate_indexes = list(range(len(right_rows)))
+            else:
+                candidate_indexes = right_index.query(_expand_bounds(geometry_bounds(left_geometry), max_distance))
+            for right_index_value in candidate_indexes:
+                right_row = right_rows[right_index_value]
+                right_geometry = right_row[other.geometry_column]
+                centroid_distance = coordinate_distance(left_centroid, right_centroids[right_index_value], method="euclidean")
+                intersects = geometry_intersects(left_geometry, right_geometry)
+                if max_distance is not None and centroid_distance > max_distance and not intersects:
+                    continue
+                attribute_match_count = sum(1 for column in shared_attribute_columns if left_row.get(column) == right_row.get(column))
+                attribute_similarity = (attribute_match_count / len(shared_attribute_columns)) if shared_attribute_columns else 1.0
+                left_size = _geometry_size_metric(left_geometry)
+                right_size = _geometry_size_metric(right_geometry)
+                size_ratio = _size_ratio(left_size, right_size)
+                overlap_size = _geometry_overlap_size(left_geometry, right_geometry)
+                left_area_share = _coverage_share(overlap_size, left_size, intersects)
+                right_area_share = _coverage_share(overlap_size, right_size, intersects)
+                area_share_score = (left_area_share + right_area_share) / 2.0
+                distance_score = 1.0 if centroid_distance <= geometry_tolerance else 1.0 / (1.0 + centroid_distance)
+                id_score = 1.0 if str(left_row[id_column]) == str(right_row[resolved_other_id_column]) else 0.0
+                type_factor = 1.0 if geometry_type(left_geometry) == geometry_type(right_geometry) else 0.5
+                similarity_score = type_factor * (
+                    (0.25 * area_share_score)
+                    + (0.15 * (1.0 if intersects else 0.0))
+                    + (0.2 * distance_score)
+                    + (0.15 * size_ratio)
+                    + (0.15 * attribute_similarity)
+                    + (0.15 * id_score)
+                )
+                if similarity_score < min_similarity:
+                    continue
+                pair_record = {
+                    "left_index": left_index,
+                    "right_index": right_index_value,
+                    "similarity_score": similarity_score,
+                    "centroid_distance": centroid_distance,
+                    "attribute_match_count": attribute_match_count,
+                    "attribute_similarity": attribute_similarity,
+                    "intersects": intersects,
+                    "size_ratio": size_ratio,
+                    "overlap_size": overlap_size,
+                    "left_area_share": left_area_share,
+                    "right_area_share": right_area_share,
+                    "area_share_score": area_share_score,
+                }
+                pair_scores.append(pair_record)
+                left_candidates[left_index].append(pair_record)
+                right_candidates[right_index_value].append(pair_record)
+
+        for candidate_bucket in left_candidates.values():
+            candidate_bucket.sort(key=lambda item: (-float(item["similarity_score"]), float(item["centroid_distance"]), str(right_rows[item["right_index"]][resolved_other_id_column])))
+        for candidate_bucket in right_candidates.values():
+            candidate_bucket.sort(key=lambda item: (-float(item["similarity_score"]), float(item["centroid_distance"]), str(left_rows[item["left_index"]][id_column])))
+
+        left_matches = {
+            left_index: _primary_change_matches(candidate_bucket)
+            for left_index, candidate_bucket in left_candidates.items()
+        }
+        right_matches = {
+            right_index_value: _primary_change_matches(candidate_bucket, key_name="left_index")
+            for right_index_value, candidate_bucket in right_candidates.items()
+        }
+
+        rows: list[Record] = []
+        matched_right_indexes: set[int] = set()
+        for left_index, left_row in enumerate(left_rows):
+            matched_pairs = left_matches[left_index]
+            if not matched_pairs:
+                resolved = dict(left_row)
+                resolved[f"left_ids_{change_suffix}"] = [str(left_row[id_column])]
+                resolved[f"right_ids_{change_suffix}"] = []
+                resolved[f"change_class_{change_suffix}"] = "removed"
+                resolved[f"event_side_{change_suffix}"] = "left"
+                resolved[f"similarity_score_{change_suffix}"] = None
+                resolved[f"centroid_distance_{change_suffix}"] = None
+                resolved[f"attribute_change_count_{change_suffix}"] = None
+                resolved[f"attribute_changes_{change_suffix}"] = None
+                resolved[f"area_share_score_{change_suffix}"] = None
+                resolved[f"match_area_shares_{change_suffix}"] = []
+                if include_diagnostics:
+                    resolved[f"candidate_count_{change_suffix}"] = len(left_candidates[left_index])
+                rows.append(resolved)
+                continue
+
+            matched_right_indexes.update(pair["right_index"] for pair in matched_pairs)
+            matched_right_ids = [str(right_rows[pair["right_index"]][resolved_other_id_column]) for pair in matched_pairs]
+            best_pair = matched_pairs[0]
+            matched_right_rows = [right_rows[pair["right_index"]] for pair in matched_pairs]
+            attribute_changes = _attribute_change_summary([left_row], matched_right_rows, shared_attribute_columns)
+            area_share_details = [
+                {
+                    "left_id": str(left_row[id_column]),
+                    "right_id": str(right_rows[pair["right_index"]][resolved_other_id_column]),
+                    "left_share": pair["left_area_share"],
+                    "right_share": pair["right_area_share"],
+                    "similarity_score": pair["similarity_score"],
+                }
+                for pair in matched_pairs
+            ]
+            if len(matched_pairs) > 1:
+                change_class: ChangeClass = "split"
+                attribute_change_count = len(attribute_changes)
+                geometry_changed = None
+            else:
+                right_row = right_rows[best_pair["right_index"]]
+                attribute_change_count = len(attribute_changes)
+                geometry_changed = left_row[self.geometry_column] != right_row[other.geometry_column]
+                if not geometry_changed and attribute_change_count == 0:
+                    change_class = "unchanged"
+                elif attribute_change_count == 0 and best_pair["centroid_distance"] > geometry_tolerance:
+                    change_class = "moved"
+                else:
+                    change_class = "modified"
+
+            resolved = dict(left_row)
+            resolved[f"left_ids_{change_suffix}"] = [str(left_row[id_column])]
+            resolved[f"right_ids_{change_suffix}"] = matched_right_ids
+            resolved[f"change_class_{change_suffix}"] = change_class
+            resolved[f"event_side_{change_suffix}"] = "left"
+            resolved[f"similarity_score_{change_suffix}"] = best_pair["similarity_score"]
+            resolved[f"centroid_distance_{change_suffix}"] = best_pair["centroid_distance"]
+            resolved[f"attribute_change_count_{change_suffix}"] = attribute_change_count
+            resolved[f"attribute_changes_{change_suffix}"] = attribute_changes
+            resolved[f"geometry_changed_{change_suffix}"] = geometry_changed
+            resolved[f"area_share_score_{change_suffix}"] = sum(pair["area_share_score"] for pair in matched_pairs) / len(matched_pairs)
+            resolved[f"match_area_shares_{change_suffix}"] = area_share_details
+            if include_diagnostics:
+                resolved[f"candidate_count_{change_suffix}"] = len(left_candidates[left_index])
+                resolved[f"attribute_similarity_{change_suffix}"] = best_pair["attribute_similarity"]
+                resolved[f"size_ratio_{change_suffix}"] = best_pair["size_ratio"]
+            rows.append(resolved)
+
+        for right_index_value, right_row in enumerate(right_rows):
+            matched_left_pairs = right_matches[right_index_value]
+            if not matched_left_pairs:
+                resolved = {key: value for key, value in right_row.items()}
+                resolved[self.geometry_column] = right_row[other.geometry_column]
+                resolved[f"left_ids_{change_suffix}"] = []
+                resolved[f"right_ids_{change_suffix}"] = [str(right_row[resolved_other_id_column])]
+                resolved[f"change_class_{change_suffix}"] = "added"
+                resolved[f"event_side_{change_suffix}"] = "right"
+                resolved[f"similarity_score_{change_suffix}"] = None
+                resolved[f"centroid_distance_{change_suffix}"] = None
+                resolved[f"attribute_change_count_{change_suffix}"] = None
+                resolved[f"attribute_changes_{change_suffix}"] = None
+                resolved[f"area_share_score_{change_suffix}"] = None
+                resolved[f"match_area_shares_{change_suffix}"] = []
+                if include_diagnostics:
+                    resolved[f"candidate_count_{change_suffix}"] = len(right_candidates[right_index_value])
+                rows.append(resolved)
+                continue
+            if len(matched_left_pairs) <= 1:
+                continue
+            resolved = {key: value for key, value in right_row.items()}
+            resolved[self.geometry_column] = right_row[other.geometry_column]
+            matched_left_rows = [left_rows[pair["left_index"]] for pair in matched_left_pairs]
+            attribute_changes = _attribute_change_summary(matched_left_rows, [right_row], shared_attribute_columns)
+            resolved[f"left_ids_{change_suffix}"] = [str(left_rows[pair["left_index"]][id_column]) for pair in matched_left_pairs]
+            resolved[f"right_ids_{change_suffix}"] = [str(right_row[resolved_other_id_column])]
+            resolved[f"change_class_{change_suffix}"] = "merge"
+            resolved[f"event_side_{change_suffix}"] = "right"
+            resolved[f"similarity_score_{change_suffix}"] = matched_left_pairs[0]["similarity_score"]
+            resolved[f"centroid_distance_{change_suffix}"] = matched_left_pairs[0]["centroid_distance"]
+            resolved[f"attribute_change_count_{change_suffix}"] = len(attribute_changes)
+            resolved[f"attribute_changes_{change_suffix}"] = attribute_changes
+            resolved[f"area_share_score_{change_suffix}"] = sum(pair["area_share_score"] for pair in matched_left_pairs) / len(matched_left_pairs)
+            resolved[f"match_area_shares_{change_suffix}"] = [
+                {
+                    "left_id": str(left_rows[pair["left_index"]][id_column]),
+                    "right_id": str(right_row[resolved_other_id_column]),
+                    "left_share": pair["left_area_share"],
+                    "right_share": pair["right_area_share"],
+                    "similarity_score": pair["similarity_score"],
+                }
+                for pair in matched_left_pairs
+            ]
+            if include_diagnostics:
+                resolved[f"candidate_count_{change_suffix}"] = len(right_candidates[right_index_value])
+            rows.append(resolved)
+
+        _annotate_change_event_groups(rows, change_suffix)
+
+        rows.sort(
+            key=lambda row: (
+                str(row.get(f"change_class_{change_suffix}")),
+                tuple(row.get(f"left_ids_{change_suffix}", [])),
+                tuple(row.get(f"right_ids_{change_suffix}", [])),
+            )
+        )
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
+
+    def extract_change_events(
+        self,
+        change_suffix: str = "change",
+    ) -> "GeoPromptFrame":
+        self._require_column(f"event_group_id_{change_suffix}")
+        self._require_column(f"event_summary_{change_suffix}")
+        self._require_column(f"change_class_{change_suffix}")
+        self._require_column(f"event_side_{change_suffix}")
+
+        grouped_rows: dict[str, list[Record]] = {}
+        for row in self._rows:
+            grouped_rows.setdefault(str(row[f"event_group_id_{change_suffix}"]), []).append(row)
+
+        rows: list[Record] = []
+        for event_group_id, event_rows in sorted(grouped_rows.items(), key=lambda item: item[0]):
+            ordered_rows = sorted(
+                event_rows,
+                key=lambda row: (
+                    tuple(row.get(f"left_ids_{change_suffix}", [])),
+                    tuple(row.get(f"right_ids_{change_suffix}", [])),
+                    str(row.get(f"event_side_{change_suffix}")),
+                ),
+            )
+            summary = dict(ordered_rows[0][f"event_summary_{change_suffix}"])
+            rows.append(
+                {
+                    f"event_group_id_{change_suffix}": event_group_id,
+                    f"change_class_{change_suffix}": ordered_rows[0].get(f"change_class_{change_suffix}"),
+                    f"event_side_{change_suffix}": ordered_rows[0].get(f"event_side_{change_suffix}"),
+                    f"left_ids_{change_suffix}": list(summary.get("left_ids", [])),
+                    f"right_ids_{change_suffix}": list(summary.get("right_ids", [])),
+                    f"event_row_count_{change_suffix}": ordered_rows[0].get(f"event_row_count_{change_suffix}", len(ordered_rows)),
+                    f"event_feature_count_{change_suffix}": ordered_rows[0].get(f"event_feature_count_{change_suffix}"),
+                    f"member_geometry_types_{change_suffix}": _distinct_values(geometry_type(row[self.geometry_column]) for row in ordered_rows),
+                    f"event_summary_{change_suffix}": summary,
+                    self.geometry_column: _mean_centroid_geometry(ordered_rows, self.geometry_column),
+                }
+            )
+
+        rows.sort(
+            key=lambda row: (
+                str(row[f"change_class_{change_suffix}"]),
+                tuple(row.get(f"left_ids_{change_suffix}", [])),
+                tuple(row.get(f"right_ids_{change_suffix}", [])),
+            )
+        )
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def compare_change_events(
+        self,
+        other: "GeoPromptFrame",
+        change_suffix: str = "change",
+        diff_suffix: str = "eventdiff",
+        match_mode: str = "exact",
+        min_similarity: float = 0.6,
+    ) -> "GeoPromptFrame":
+        required_columns = (
+            f"change_class_{change_suffix}",
+            f"left_ids_{change_suffix}",
+            f"right_ids_{change_suffix}",
+            f"event_summary_{change_suffix}",
+        )
+        for column in required_columns:
+            self._require_column(column)
+            other._require_column(column)
+        if self.crs and other.crs and self.crs != other.crs:
+            raise ValueError("frames must share the same CRS before change event comparison")
+
+        if match_mode not in {"exact", "equivalent"}:
+            raise ValueError("match_mode must be 'exact' or 'equivalent'")
+        if not 0.0 <= min_similarity <= 1.0:
+            raise ValueError("min_similarity must be between zero and one")
+
+        matched_pairs: list[tuple[tuple[str, tuple[str, ...], tuple[str, ...]], Record | None, Record | None, float | None]]
+        if match_mode == "exact":
+            left_events = {
+                _change_event_signature(row, change_suffix): row
+                for row in self._rows
+            }
+            right_events = {
+                _change_event_signature(row, change_suffix): row
+                for row in other._rows
+            }
+            matched_pairs = [
+                (
+                    signature,
+                    left_events.get(signature),
+                    right_events.get(signature),
+                    1.0 if signature in left_events and signature in right_events else None,
+                )
+                for signature in sorted(set(left_events) | set(right_events))
+            ]
+        else:
+            matched_pairs = _match_equivalent_change_events(
+                self._rows,
+                other._rows,
+                change_suffix=change_suffix,
+                geometry_column=self.geometry_column,
+                min_similarity=min_similarity,
+            )
+
+        rows: list[Record] = []
+        for signature, baseline_row, current_row, match_similarity in matched_pairs:
+            if baseline_row is None:
+                event_status = "emerged"
+            elif current_row is None:
+                event_status = "resolved"
+            else:
+                event_status = "persisted"
+
+            baseline_summary = dict(baseline_row[f"event_summary_{change_suffix}"]) if baseline_row is not None else {}
+            current_summary = dict(current_row[f"event_summary_{change_suffix}"]) if current_row is not None else {}
+            baseline_attribute_columns = list(baseline_summary.get("attribute_columns", []))
+            current_attribute_columns = list(current_summary.get("attribute_columns", []))
+            geometry = current_row[self.geometry_column] if current_row is not None else baseline_row[self.geometry_column]
+            resolved: Record = {
+                f"event_status_{diff_suffix}": event_status,
+                f"change_class_{change_suffix}": signature[0],
+                f"left_ids_{change_suffix}": list(signature[1]),
+                f"right_ids_{change_suffix}": list(signature[2]),
+                f"event_signature_{diff_suffix}": _format_change_event_signature(signature),
+                f"match_mode_{diff_suffix}": match_mode,
+                f"event_similarity_{diff_suffix}": match_similarity,
+                f"baseline_event_group_id_{diff_suffix}": baseline_row.get(f"event_group_id_{change_suffix}") if baseline_row is not None else None,
+                f"current_event_group_id_{diff_suffix}": current_row.get(f"event_group_id_{change_suffix}") if current_row is not None else None,
+                f"baseline_row_count_{diff_suffix}": baseline_summary.get("row_count"),
+                f"current_row_count_{diff_suffix}": current_summary.get("row_count"),
+                f"row_count_delta_{diff_suffix}": _numeric_delta(current_summary.get("row_count"), baseline_summary.get("row_count")),
+                f"baseline_feature_count_{diff_suffix}": baseline_summary.get("feature_count"),
+                f"current_feature_count_{diff_suffix}": current_summary.get("feature_count"),
+                f"feature_count_delta_{diff_suffix}": _numeric_delta(current_summary.get("feature_count"), baseline_summary.get("feature_count")),
+                f"baseline_mean_similarity_score_{diff_suffix}": baseline_summary.get("mean_similarity_score"),
+                f"current_mean_similarity_score_{diff_suffix}": current_summary.get("mean_similarity_score"),
+                f"mean_similarity_score_delta_{diff_suffix}": _numeric_delta(current_summary.get("mean_similarity_score"), baseline_summary.get("mean_similarity_score")),
+                f"baseline_attribute_columns_{diff_suffix}": baseline_attribute_columns,
+                f"current_attribute_columns_{diff_suffix}": current_attribute_columns,
+                f"added_attribute_columns_{diff_suffix}": [column for column in current_attribute_columns if column not in baseline_attribute_columns],
+                f"removed_attribute_columns_{diff_suffix}": [column for column in baseline_attribute_columns if column not in current_attribute_columns],
+                f"baseline_event_summary_{change_suffix}": baseline_summary or None,
+                f"current_event_summary_{change_suffix}": current_summary or None,
+                self.geometry_column: geometry,
+            }
+            rows.append(resolved)
+
+        rows.sort(
+            key=lambda row: (
+                _change_event_status_rank(str(row[f"event_status_{diff_suffix}"])),
+                str(row[f"change_class_{change_suffix}"]),
+                tuple(row[f"left_ids_{change_suffix}"]),
+                tuple(row[f"right_ids_{change_suffix}"]),
+            )
+        )
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
     def corridor_reach(
         self,
@@ -3378,6 +4801,535 @@ def _point_on_segment(point: Coordinate, start: Coordinate, end: Coordinate, tol
         min(start[0], end[0]) - tolerance <= point[0] <= max(start[0], end[0]) + tolerance
         and min(start[1], end[1]) - tolerance <= point[1] <= max(start[1], end[1]) + tolerance
     )
+
+
+def _expand_bounds(bounds: tuple[float, float, float, float], distance: float) -> tuple[float, float, float, float]:
+    return (
+        bounds[0] - distance,
+        bounds[1] - distance,
+        bounds[2] + distance,
+        bounds[3] + distance,
+    )
+
+
+def _geometry_size_metric(geometry: Geometry) -> float:
+    geometry_kind = geometry_type(geometry)
+    if geometry_kind == "Polygon":
+        return geometry_area(geometry)
+    if geometry_kind == "LineString":
+        return geometry_length(geometry)
+    return 1.0
+
+
+def _size_ratio(left: float, right: float) -> float:
+    if left <= 0.0 and right <= 0.0:
+        return 1.0
+    if left <= 0.0 or right <= 0.0:
+        return 0.0
+    return min(left, right) / max(left, right)
+
+
+def _coverage_share(overlap_size: float, geometry_size: float, intersects: bool) -> float:
+    if geometry_size <= 0.0:
+        return 1.0 if intersects else 0.0
+    return max(0.0, min(1.0, overlap_size / geometry_size))
+
+
+def _geometry_overlap_size(left_geometry: Geometry, right_geometry: Geometry) -> float:
+    if not geometry_intersects(left_geometry, right_geometry):
+        return 0.0
+    try:
+        intersections = overlay_intersections([left_geometry], [right_geometry])
+    except RuntimeError:
+        intersections = []
+    if intersections:
+        return sum(_geometry_size_metric(geometry) for _left_index, _right_index, geometries in intersections for geometry in geometries)
+
+    left_bounds = geometry_bounds(left_geometry)
+    right_bounds = geometry_bounds(right_geometry)
+    overlap_width = max(0.0, min(left_bounds[2], right_bounds[2]) - max(left_bounds[0], right_bounds[0]))
+    overlap_height = max(0.0, min(left_bounds[3], right_bounds[3]) - max(left_bounds[1], right_bounds[1]))
+    geometry_kind = geometry_type(left_geometry)
+    if geometry_kind == "Polygon" and geometry_type(right_geometry) == "Polygon":
+        return overlap_width * overlap_height
+    if geometry_kind == "LineString" and geometry_type(right_geometry) == "LineString":
+        return max(overlap_width, overlap_height)
+    return 1.0
+
+
+def _autocorrelation_statistics(
+    values: Sequence[float],
+    neighbor_indexes: Sequence[Sequence[int]],
+    neighbor_weights: Sequence[Sequence[float]],
+) -> dict[str, Any]:
+    row_count = len(values)
+    mean_value = (sum(values) / row_count) if row_count else 0.0
+    centered_values = [value - mean_value for value in values]
+    variance_sum = sum(value * value for value in centered_values)
+    m2 = (variance_sum / row_count) if row_count else 0.0
+
+    weighted_cross_sum = 0.0
+    weighted_difference_sum = 0.0
+    total_weight = 0.0
+    local_moran_values: list[float | None] = []
+    local_geary_values: list[float | None] = []
+    for origin_index, (indexes, weights) in enumerate(zip(neighbor_indexes, neighbor_weights, strict=True)):
+        local_cross_sum = 0.0
+        local_difference_sum = 0.0
+        for neighbor_index, weight in zip(indexes, weights, strict=True):
+            weighted_cross_sum += weight * centered_values[origin_index] * centered_values[neighbor_index]
+            weighted_difference_sum += weight * (values[origin_index] - values[neighbor_index]) ** 2
+            total_weight += weight
+            local_cross_sum += weight * centered_values[neighbor_index]
+            local_difference_sum += weight * (values[origin_index] - values[neighbor_index]) ** 2
+        if m2 > 0.0:
+            local_moran_values.append((centered_values[origin_index] / m2) * local_cross_sum)
+            local_geary_values.append(local_difference_sum / m2)
+        else:
+            local_moran_values.append(None)
+            local_geary_values.append(None)
+
+    global_moran = None
+    global_geary = None
+    if row_count > 0 and variance_sum > 0.0 and total_weight > 0.0:
+        global_moran = (row_count / total_weight) * (weighted_cross_sum / variance_sum)
+        global_geary = ((row_count - 1) / (2.0 * total_weight)) * (weighted_difference_sum / variance_sum) if row_count > 1 else None
+    return {
+        "mean_value": mean_value,
+        "centered_values": centered_values,
+        "variance_sum": variance_sum,
+        "m2": m2,
+        "total_weight": total_weight,
+        "global_moran": global_moran,
+        "global_geary": global_geary,
+        "local_moran_values": local_moran_values,
+        "local_geary_values": local_geary_values,
+    }
+
+
+def _local_cluster_label(
+    centered_value: float,
+    lag_centered_value: float | None,
+    local_moran: float | None,
+    local_p_value: float | None,
+    significance_level: float,
+) -> str | None:
+    if local_moran is None or lag_centered_value is None:
+        return None
+    if local_p_value is not None and local_p_value > significance_level:
+        return "not_significant"
+    if centered_value > 0.0 and lag_centered_value > 0.0:
+        return "high-high"
+    if centered_value < 0.0 and lag_centered_value < 0.0:
+        return "low-low"
+    if centered_value > 0.0 and lag_centered_value < 0.0:
+        return "high-low"
+    if centered_value < 0.0 and lag_centered_value > 0.0:
+        return "low-high"
+    return "mixed"
+
+
+def _local_cluster_code(cluster_label: str | None) -> str | None:
+    if cluster_label is None:
+        return None
+    return {
+        "high-high": "HH",
+        "low-low": "LL",
+        "high-low": "HL",
+        "low-high": "LH",
+        "not_significant": "NS",
+        "mixed": "MX",
+    }.get(cluster_label, cluster_label.upper())
+
+
+def _local_cluster_family(cluster_label: str | None) -> str | None:
+    if cluster_label == "high-high":
+        return "hotspot"
+    if cluster_label == "low-low":
+        return "coldspot"
+    if cluster_label in {"high-low", "low-high"}:
+        return "outlier"
+    if cluster_label == "not_significant":
+        return "not_significant"
+    if cluster_label is None:
+        return None
+    return "mixed"
+
+
+def _autocorr_report_label(family: str) -> str:
+    return {
+        "hotspot": "hotspot cluster",
+        "coldspot": "coldspot cluster",
+        "outlier": "spatial outlier cluster",
+        "mixed": "mixed local pattern",
+        "not_significant": "not significant",
+    }.get(family, family.replace("_", " "))
+
+
+def _autocorr_report_priority(family: str, intensity_score: float) -> str:
+    if family in {"hotspot", "coldspot"} and intensity_score >= 0.2:
+        return "primary"
+    if family == "outlier" or intensity_score >= 0.05:
+        return "secondary"
+    return "background"
+
+
+def _primary_change_matches(candidate_pairs: Sequence[dict[str, Any]], key_name: str = "right_index") -> list[dict[str, Any]]:
+    if not candidate_pairs:
+        return []
+    best_score = float(candidate_pairs[0]["similarity_score"])
+    threshold = max(best_score - 0.1, best_score * 0.9)
+    matches = [pair for pair in candidate_pairs if float(pair["similarity_score"]) >= threshold]
+    return sorted(matches, key=lambda item: (-float(item["similarity_score"]), float(item["centroid_distance"]), int(item[key_name])))
+
+
+def _attribute_change_summary(
+    left_rows: Sequence[Record],
+    right_rows: Sequence[Record],
+    attribute_columns: Sequence[str],
+) -> dict[str, Any]:
+    summaries: dict[str, Any] = {}
+    single_left = len(left_rows) == 1
+    single_right = len(right_rows) == 1
+    for column in attribute_columns:
+        left_values = _distinct_values(row.get(column) for row in left_rows)
+        right_values = _distinct_values(row.get(column) for row in right_rows)
+        if left_values == right_values:
+            continue
+        if single_left and single_right:
+            summaries[column] = {"left": left_values[0], "right": right_values[0]}
+        else:
+            summaries[column] = {"left_values": left_values, "right_values": right_values}
+    return summaries
+
+
+def _distinct_values(values: Iterable[Any]) -> list[Any]:
+    distinct: list[Any] = []
+    for value in values:
+        if value not in distinct:
+            distinct.append(value)
+    return distinct
+
+
+def _consecutive_distinct_values(values: Iterable[Any]) -> list[Any]:
+    distinct: list[Any] = []
+    previous = object()
+    for value in values:
+        if value != previous:
+            distinct.append(value)
+            previous = value
+    return distinct
+
+
+def _mean_centroid_geometry(rows: Sequence[Record], geometry_column: str) -> Geometry:
+    centroids = [geometry_centroid(row[geometry_column]) for row in rows]
+    mean_x = sum(centroid[0] for centroid in centroids) / len(centroids)
+    mean_y = sum(centroid[1] for centroid in centroids) / len(centroids)
+    return {"type": "Point", "coordinates": [mean_x, mean_y]}
+
+
+def _trajectory_anomaly_level(confidence_score: float, anomaly_count: int) -> str:
+    if confidence_score < 0.35 or anomaly_count >= 3:
+        return "high"
+    if confidence_score < 0.7 or anomaly_count >= 1:
+        return "moderate"
+    return "low"
+
+
+def _annotate_change_event_groups(rows: list[Record], change_suffix: str) -> None:
+    grouped_rows: dict[tuple[Any, ...], list[Record]] = {}
+    for row in rows:
+        group_key = (
+            row.get(f"change_class_{change_suffix}"),
+            row.get(f"event_side_{change_suffix}"),
+            tuple(row.get(f"left_ids_{change_suffix}", [])),
+            tuple(row.get(f"right_ids_{change_suffix}", [])),
+        )
+        grouped_rows.setdefault(group_key, []).append(row)
+
+    for group_index, (group_key, grouped) in enumerate(sorted(grouped_rows.items(), key=lambda item: item[0]), start=1):
+        left_ids = sorted({value for row in grouped for value in row.get(f"left_ids_{change_suffix}", [])})
+        right_ids = sorted({value for row in grouped for value in row.get(f"right_ids_{change_suffix}", [])})
+        attribute_columns = sorted(
+            {
+                column
+                for row in grouped
+                for column in (row.get(f"attribute_changes_{change_suffix}") or {}).keys()
+            }
+        )
+        similarity_scores = [
+            float(row[f"similarity_score_{change_suffix}"])
+            for row in grouped
+            if row.get(f"similarity_score_{change_suffix}") is not None
+        ]
+        area_share_scores = [
+            float(row[f"area_share_score_{change_suffix}"])
+            for row in grouped
+            if row.get(f"area_share_score_{change_suffix}") is not None
+        ]
+        summary = {
+            "change_class": group_key[0],
+            "event_side": group_key[1],
+            "left_ids": left_ids,
+            "right_ids": right_ids,
+            "left_count": len(left_ids),
+            "right_count": len(right_ids),
+            "row_count": len(grouped),
+            "feature_count": len(left_ids) + len(right_ids),
+            "attribute_columns": attribute_columns,
+            "mean_similarity_score": (sum(similarity_scores) / len(similarity_scores)) if similarity_scores else None,
+            "mean_area_share_score": (sum(area_share_scores) / len(area_share_scores)) if area_share_scores else None,
+        }
+        event_group_id = f"event-{group_index:05d}"
+        for row in grouped:
+            row[f"event_group_id_{change_suffix}"] = event_group_id
+            row[f"event_row_count_{change_suffix}"] = len(grouped)
+            row[f"event_feature_count_{change_suffix}"] = len(left_ids) + len(right_ids)
+            row[f"event_summary_{change_suffix}"] = summary
+
+
+def _change_event_signature(row: Record, change_suffix: str) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    return (
+        str(row[f"change_class_{change_suffix}"]),
+        tuple(str(value) for value in row.get(f"left_ids_{change_suffix}", [])),
+        tuple(str(value) for value in row.get(f"right_ids_{change_suffix}", [])),
+    )
+
+
+def _format_change_event_signature(signature: tuple[str, tuple[str, ...], tuple[str, ...]]) -> str:
+    change_class, left_ids, right_ids = signature
+    left_part = ",".join(left_ids) if left_ids else "none"
+    right_part = ",".join(right_ids) if right_ids else "none"
+    return f"{change_class}|{left_part}|{right_part}"
+
+
+def _numeric_delta(current: Any, baseline: Any) -> float | None:
+    if current is None or baseline is None:
+        return None
+    return float(current) - float(baseline)
+
+
+def _change_event_status_rank(event_status: str) -> int:
+    return {
+        "emerged": 0,
+        "resolved": 1,
+        "persisted": 2,
+    }.get(event_status, 3)
+
+
+def _match_equivalent_change_events(
+    baseline_rows: Sequence[Record],
+    current_rows: Sequence[Record],
+    change_suffix: str,
+    geometry_column: str,
+    min_similarity: float,
+) -> list[tuple[tuple[str, tuple[str, ...], tuple[str, ...]], Record | None, Record | None, float | None]]:
+    candidate_pairs: list[tuple[float, int, int]] = []
+    for baseline_index, baseline_row in enumerate(baseline_rows):
+        for current_index, current_row in enumerate(current_rows):
+            similarity = _equivalent_change_event_similarity(
+                baseline_row,
+                current_row,
+                change_suffix=change_suffix,
+                geometry_column=geometry_column,
+            )
+            if similarity >= min_similarity:
+                candidate_pairs.append((similarity, baseline_index, current_index))
+
+    candidate_pairs.sort(key=lambda item: (-float(item[0]), item[1], item[2]))
+    matched_baseline_indexes: set[int] = set()
+    matched_current_indexes: set[int] = set()
+    results: list[tuple[tuple[str, tuple[str, ...], tuple[str, ...]], Record | None, Record | None, float | None]] = []
+
+    for similarity, baseline_index, current_index in candidate_pairs:
+        if baseline_index in matched_baseline_indexes or current_index in matched_current_indexes:
+            continue
+        baseline_row = baseline_rows[baseline_index]
+        current_row = current_rows[current_index]
+        matched_baseline_indexes.add(baseline_index)
+        matched_current_indexes.add(current_index)
+        signature = _change_event_pair_signature(baseline_row, current_row, change_suffix)
+        results.append((signature, baseline_row, current_row, similarity))
+
+    for baseline_index, baseline_row in enumerate(baseline_rows):
+        if baseline_index in matched_baseline_indexes:
+            continue
+        signature = _change_event_signature(baseline_row, change_suffix)
+        results.append((signature, baseline_row, None, None))
+
+    for current_index, current_row in enumerate(current_rows):
+        if current_index in matched_current_indexes:
+            continue
+        signature = _change_event_signature(current_row, change_suffix)
+        results.append((signature, None, current_row, None))
+
+    return sorted(
+        results,
+        key=lambda item: (
+            _change_event_status_rank("persisted" if item[1] is not None and item[2] is not None else ("resolved" if item[1] is not None else "emerged")),
+            str(item[0][0]),
+            item[0][1],
+            item[0][2],
+        ),
+    )
+
+
+def _equivalent_change_event_similarity(
+    baseline_row: Record,
+    current_row: Record,
+    change_suffix: str,
+    geometry_column: str,
+) -> float:
+    baseline_summary = dict(baseline_row.get(f"event_summary_{change_suffix}") or {})
+    current_summary = dict(current_row.get(f"event_summary_{change_suffix}") or {})
+    if str(baseline_row.get(f"change_class_{change_suffix}")) != str(current_row.get(f"change_class_{change_suffix}")):
+        return 0.0
+
+    left_similarity = _set_similarity(
+        baseline_row.get(f"left_ids_{change_suffix}", []),
+        current_row.get(f"left_ids_{change_suffix}", []),
+    )
+    right_similarity = _set_similarity(
+        baseline_row.get(f"right_ids_{change_suffix}", []),
+        current_row.get(f"right_ids_{change_suffix}", []),
+    )
+    feature_count_similarity = _count_similarity(
+        baseline_summary.get("feature_count"),
+        current_summary.get("feature_count"),
+    )
+    row_count_similarity = _count_similarity(
+        baseline_summary.get("row_count"),
+        current_summary.get("row_count"),
+    )
+    attribute_similarity = _set_similarity(
+        baseline_summary.get("attribute_columns", []),
+        current_summary.get("attribute_columns", []),
+    )
+    geometry_similarity = _geometry_similarity(
+        baseline_row.get(geometry_column),
+        current_row.get(geometry_column),
+    )
+    side_similarity = 1.0 if str(baseline_row.get(f"event_side_{change_suffix}")) == str(current_row.get(f"event_side_{change_suffix}")) else 0.0
+    return (
+        (0.1 * side_similarity)
+        + (0.2 * left_similarity)
+        + (0.2 * right_similarity)
+        + (0.15 * feature_count_similarity)
+        + (0.1 * row_count_similarity)
+        + (0.1 * attribute_similarity)
+        + (0.15 * geometry_similarity)
+    )
+
+
+def _set_similarity(left_values: Iterable[Any], right_values: Iterable[Any]) -> float:
+    left_set = {str(value) for value in left_values}
+    right_set = {str(value) for value in right_values}
+    if not left_set and not right_set:
+        return 1.0
+    union = left_set | right_set
+    if not union:
+        return 0.0
+    return len(left_set & right_set) / len(union)
+
+
+def _count_similarity(left_value: Any, right_value: Any) -> float:
+    if left_value is None or right_value is None:
+        return 0.0
+    left_count = float(left_value)
+    right_count = float(right_value)
+    if left_count <= 0.0 and right_count <= 0.0:
+        return 1.0
+    denominator = max(left_count, right_count)
+    if denominator <= 0.0:
+        return 0.0
+    return min(left_count, right_count) / denominator
+
+
+def _geometry_similarity(left_geometry: Any, right_geometry: Any) -> float:
+    if not isinstance(left_geometry, dict) or not isinstance(right_geometry, dict):
+        return 0.0
+    distance_value = geometry_distance(left_geometry, right_geometry)
+    return 1.0 / (1.0 + float(distance_value))
+
+
+def _change_event_pair_signature(
+    baseline_row: Record,
+    current_row: Record,
+    change_suffix: str,
+) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    return (
+        str(current_row.get(f"change_class_{change_suffix}") or baseline_row.get(f"change_class_{change_suffix}")),
+        tuple(str(value) for value in (current_row.get(f"left_ids_{change_suffix}") or baseline_row.get(f"left_ids_{change_suffix}") or [])),
+        tuple(str(value) for value in (current_row.get(f"right_ids_{change_suffix}") or baseline_row.get(f"right_ids_{change_suffix}") or [])),
+    )
+
+
+def _gap_transition_penalty(previous_gap_state: bool, current_gap_state: bool, gap_penalty: float) -> float:
+    if previous_gap_state and current_gap_state:
+        return gap_penalty * 0.25
+    if previous_gap_state or current_gap_state:
+        return gap_penalty
+    return 0.0
+
+
+def _edge_transition_cost(
+    previous_edge_index: int,
+    current_edge_index: int,
+    previous_along_distance: float,
+    current_along_distance: float,
+    edge_rows: Sequence[Record],
+    adjacency: dict[str, list[tuple[str, float, int]]],
+    from_node_id_column: str,
+    to_node_id_column: str,
+    cost_column: str,
+    node_distance_cache: dict[str, dict[str, float]],
+    transition_cache: dict[tuple[int, int, float, float], float],
+) -> float:
+    cache_key = (
+        previous_edge_index,
+        current_edge_index,
+        round(previous_along_distance, 6),
+        round(current_along_distance, 6),
+    )
+    if cache_key in transition_cache:
+        return transition_cache[cache_key]
+
+    previous_row = edge_rows[previous_edge_index]
+    current_row = edge_rows[current_edge_index]
+    previous_from_node = str(previous_row[from_node_id_column])
+    previous_to_node = str(previous_row[to_node_id_column])
+    current_from_node = str(current_row[from_node_id_column])
+    current_to_node = str(current_row[to_node_id_column])
+    previous_edge_cost = max(float(previous_row.get(cost_column, 0.0)), 0.0)
+    current_edge_cost = max(float(current_row.get(cost_column, 0.0)), 0.0)
+
+    if previous_edge_index == current_edge_index:
+        best_cost = abs(current_along_distance - previous_along_distance)
+        transition_cache[cache_key] = best_cost
+        return best_cost
+
+    previous_nodes = [
+        (previous_from_node, max(0.0, previous_along_distance)),
+        (previous_to_node, max(0.0, previous_edge_cost - previous_along_distance)),
+    ]
+    current_nodes = [
+        (current_from_node, max(0.0, current_along_distance)),
+        (current_to_node, max(0.0, current_edge_cost - current_along_distance)),
+    ]
+    target_nodes = {node_id for node_id, _node_cost in current_nodes}
+
+    best_cost = float("inf")
+    for node_id, source_edge_cost in previous_nodes:
+        if node_id not in node_distance_cache:
+            node_distance_cache[node_id] = _dijkstra_distances(adjacency, [node_id], stop_nodes=target_nodes)
+        distances = node_distance_cache[node_id]
+        for target_node, target_edge_cost in current_nodes:
+            best_cost = min(best_cost, source_edge_cost + distances.get(target_node, float("inf")) + target_edge_cost)
+
+    if best_cost == float("inf"):
+        best_cost = max(previous_edge_cost, current_edge_cost, 0.0)
+    transition_cache[cache_key] = best_cost
+    return best_cost
 
 
 def _dijkstra_distances(

@@ -152,6 +152,47 @@ def overlay_union_faces(left_geometries: list[Geometry], right_geometries: list[
     return faces
 
 
+def polygon_split_faces(source_geometry: Geometry, splitter_geometries: list[Geometry]) -> list[tuple[list[int], Geometry]]:
+    if geometry_type(source_geometry) != "Polygon":
+        raise ValueError("polygon_split_faces requires a Polygon source geometry")
+    if not splitter_geometries:
+        return [([], source_geometry)]
+
+    _load_shapely()
+    shapely_ops = importlib.import_module("shapely.ops")
+    source_shape = geometry_to_shapely(source_geometry)
+    splitter_shapes: list[Any] = []
+    for geometry in splitter_geometries:
+        geometry_kind = geometry_type(geometry)
+        if geometry_kind == "LineString":
+            splitter_shapes.append(geometry_to_shapely(geometry))
+            continue
+        if geometry_kind == "Polygon":
+            splitter_shapes.append(geometry_to_shapely(geometry).boundary)
+            continue
+        raise ValueError("polygon_split_faces supports only LineString or Polygon splitters")
+
+    noded_boundaries = shapely_ops.unary_union([source_shape.boundary, *splitter_shapes])
+    faces: list[tuple[list[int], Geometry]] = []
+    for face in shapely_ops.polygonize(noded_boundaries):
+        if face.is_empty:
+            continue
+        probe = face.representative_point()
+        if not source_shape.covers(probe):
+            continue
+        exploded = geometry_from_shapely(face)
+        if not exploded:
+            continue
+        splitter_indexes = [
+            index
+            for index, splitter_shape in enumerate(splitter_shapes)
+            if face.boundary.intersects(splitter_shape)
+        ]
+        faces.append((splitter_indexes, exploded[0]))
+
+    return faces or [([], source_geometry)]
+
+
 
 
 def dissolve_geometries(geometries: list[Geometry]) -> list[Geometry]:
@@ -171,4 +212,5 @@ __all__ = [
     "geometry_to_shapely",
     "overlay_intersections",
     "overlay_union_faces",
+    "polygon_split_faces",
 ]
