@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from geoprompt.compare import _stress_feature_records, _stress_region_records
-from geoprompt import GeoPromptFrame, geometry_centroid
+from geoprompt import GeoPromptFrame, geometry_centroid, geometry_convex_hull, geometry_envelope, gravity_model, accessibility_index
 from geoprompt.demo import build_demo_report
 from geoprompt.equations import area_similarity, corridor_strength, directional_alignment, euclidean_distance, haversine_distance, prompt_decay, prompt_interaction
 from geoprompt.io import frame_to_geojson, read_features, read_geojson, read_points, write_geojson
@@ -607,3 +607,361 @@ def test_stress_corpus_generators_create_mixed_geometries() -> None:
     assert any(record["site_id"] == "stress-remote-point" for record in feature_records)
     assert len(region_records) == 16
     assert {record["region_band"] for record in region_records} == {"north", "south"}
+
+
+def test_corridor_reach_finds_features_near_lines() -> None:
+    features = GeoPromptFrame.from_records(
+        [
+            {"site_id": "near-a", "demand": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.1]}},
+            {"site_id": "near-b", "demand": 3.0, "geometry": {"type": "Point", "coordinates": [2.0, -0.05]}},
+            {"site_id": "far-c", "demand": 5.0, "geometry": {"type": "Point", "coordinates": [5.0, 5.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    corridors = GeoPromptFrame.from_records(
+        [
+            {"site_id": "route-1", "capacity": 10.0, "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [3.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    result = features.corridor_reach(
+        corridors,
+        max_distance=0.2,
+        corridor_id_column="site_id",
+        aggregations={"capacity": "sum"},
+    )
+    records = {r["site_id"]: r for r in result.to_records()}
+
+    assert records["near-a"]["count_reach"] == 1
+    assert records["near-a"]["site_ids_reach"] == ["route-1"]
+    assert records["near-a"]["distance_min_reach"] is not None
+    assert records["near-a"]["distance_min_reach"] <= 0.2
+    assert records["near-a"]["corridor_length_total_reach"] > 0
+    assert records["near-a"]["capacity_sum_reach"] == 10.0
+    assert records["near-b"]["count_reach"] == 1
+    assert records["far-c"]["count_reach"] == 0
+    assert records["far-c"]["distance_min_reach"] is None
+
+
+def test_corridor_reach_supports_inner_mode() -> None:
+    features = GeoPromptFrame.from_records(
+        [
+            {"site_id": "near", "geometry": {"type": "Point", "coordinates": [1.0, 0.05]}},
+            {"site_id": "far", "geometry": {"type": "Point", "coordinates": [10.0, 10.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    corridors = GeoPromptFrame.from_records(
+        [{"site_id": "route", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [2.0, 0.0]]}}],
+        crs="EPSG:4326",
+    )
+
+    result = features.corridor_reach(corridors, max_distance=0.1, how="inner")
+    assert len(result) == 1
+    assert result.to_records()[0]["site_id"] == "near"
+
+
+def test_zone_fit_score_ranks_zones_for_features() -> None:
+    features = GeoPromptFrame.from_records(
+        [
+            {"site_id": "inside", "geometry": {"type": "Point", "coordinates": [0.5, 0.5]}},
+            {"site_id": "outside", "geometry": {"type": "Point", "coordinates": [5.0, 5.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    zones = GeoPromptFrame.from_records(
+        [
+            {
+                "region_id": "zone-a",
+                "geometry": {"type": "Polygon", "coordinates": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]]},
+            },
+        ],
+        crs="EPSG:4326",
+    )
+
+    result = features.zone_fit_score(zones, zone_id_column="region_id")
+    records = {r["site_id"]: r for r in result.to_records()}
+
+    assert records["inside"]["best_zone_fit"] == "zone-a"
+    assert records["inside"]["best_score_fit"] > 0
+    assert records["inside"]["zone_count_fit"] == 1
+    assert records["outside"]["best_zone_fit"] == "zone-a"
+    assert records["inside"]["best_score_fit"] > records["outside"]["best_score_fit"]
+
+
+def test_zone_fit_score_respects_max_distance() -> None:
+    features = GeoPromptFrame.from_records(
+        [{"site_id": "far", "geometry": {"type": "Point", "coordinates": [10.0, 10.0]}}],
+        crs="EPSG:4326",
+    )
+    zones = GeoPromptFrame.from_records(
+        [
+            {
+                "region_id": "zone-a",
+                "geometry": {"type": "Polygon", "coordinates": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]]},
+            },
+        ],
+        crs="EPSG:4326",
+    )
+
+    result = features.zone_fit_score(zones, max_distance=1.0)
+    records = result.to_records()
+    assert records[0]["best_zone_fit"] is None
+    assert records[0]["zone_count_fit"] == 0
+
+
+def test_centroid_cluster_assigns_cluster_ids() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "geometry": {"type": "Point", "coordinates": [0.1, 0.0]}},
+            {"site_id": "c", "geometry": {"type": "Point", "coordinates": [10.0, 0.0]}},
+            {"site_id": "d", "geometry": {"type": "Point", "coordinates": [10.1, 0.0]}},
+        ],
+    )
+
+    result = frame.centroid_cluster(k=2)
+    records = sorted(result.to_records(), key=lambda r: r["site_id"])
+
+    assert all("cluster_id" in r for r in records)
+    assert all("cluster_center" in r for r in records)
+    assert all("cluster_distance" in r for r in records)
+    assert records[0]["cluster_id"] == records[1]["cluster_id"]
+    assert records[2]["cluster_id"] == records[3]["cluster_id"]
+    assert records[0]["cluster_id"] != records[2]["cluster_id"]
+
+
+def test_geometry_envelope_creates_bounding_box() -> None:
+    polygon = {
+        "type": "Polygon",
+        "coordinates": [(0.0, 0.0), (2.0, 0.0), (1.0, 3.0), (0.0, 0.0)],
+    }
+    envelope = geometry_envelope(polygon)
+    assert envelope["type"] == "Polygon"
+    coords = list(envelope["coordinates"])
+    xs = [c[0] for c in coords]
+    ys = [c[1] for c in coords]
+    assert min(xs) == 0.0
+    assert max(xs) == 2.0
+    assert min(ys) == 0.0
+    assert max(ys) == 3.0
+
+
+def test_geometry_convex_hull_returns_hull() -> None:
+    polygon = {
+        "type": "Polygon",
+        "coordinates": [
+            (0.0, 0.0), (2.0, 0.0), (1.0, 0.5), (2.0, 2.0), (0.0, 2.0), (0.0, 0.0),
+        ],
+    }
+    hull = geometry_convex_hull(polygon)
+    assert hull["type"] == "Polygon"
+    hull_coords = list(hull["coordinates"])
+    assert len(hull_coords) >= 4
+    xs = [c[0] for c in hull_coords[:-1]]
+    ys = [c[1] for c in hull_coords[:-1]]
+    assert (1.0, 0.5) not in [(x, y) for x, y in zip(xs, ys)]
+
+
+def test_gravity_model_equation() -> None:
+    g = gravity_model(10.0, 20.0, distance_value=5.0, friction=2.0)
+    assert round(g, 2) == 8.0
+
+    g_zero = gravity_model(10.0, 20.0, distance_value=0.0)
+    assert g_zero == float("inf")
+
+
+def test_accessibility_index_equation() -> None:
+    score = accessibility_index(
+        weights=[10.0, 20.0],
+        distances=[1.0, 2.0],
+        friction=2.0,
+    )
+    assert round(score, 2) == 15.0
+
+
+def test_frame_repr() -> None:
+    frame = GeoPromptFrame.from_records(
+        [{"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}}],
+        crs="EPSG:4326",
+    )
+    r = repr(frame)
+    assert "GeoPromptFrame" in r
+    assert "1 rows" in r
+    assert "EPSG:4326" in r
+
+
+def test_frame_getitem_returns_column_values() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "demand": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "demand": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        ],
+    )
+    assert frame["site_id"] == ["a", "b"]
+    assert frame["demand"] == [1.0, 2.0]
+
+
+def test_frame_select_keeps_chosen_columns() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "demand": 1.0, "extra": "x", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        ],
+    )
+    selected = frame.select("site_id", "demand")
+    cols = selected.columns
+    assert "site_id" in cols
+    assert "demand" in cols
+    assert "geometry" in cols
+    assert "extra" not in cols
+
+
+def test_frame_rename_columns() -> None:
+    frame = GeoPromptFrame.from_records(
+        [{"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}}],
+    )
+    renamed = frame.rename_columns({"site_id": "id"})
+    assert "id" in renamed.columns
+    assert "site_id" not in renamed.columns
+    assert renamed.to_records()[0]["id"] == "a"
+
+
+def test_frame_filter_with_callable() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "demand": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "demand": 5.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "demand": 3.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        ],
+    )
+    high = frame.filter(lambda row: row["demand"] > 2.0)
+    assert len(high) == 2
+    assert {r["site_id"] for r in high} == {"b", "c"}
+
+
+def test_frame_filter_with_boolean_mask() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        ],
+    )
+    filtered = frame.filter([True, False])
+    assert len(filtered) == 1
+    assert filtered.to_records()[0]["site_id"] == "a"
+
+
+def test_frame_sort_by_column() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "b", "demand": 3.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "a", "demand": 1.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "demand": 2.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        ],
+    )
+    asc = frame.sort("demand")
+    assert [r["site_id"] for r in asc] == ["a", "c", "b"]
+
+    desc = frame.sort("demand", descending=True)
+    assert [r["site_id"] for r in desc] == ["b", "c", "a"]
+
+
+def test_frame_describe_returns_numeric_stats() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "demand": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "demand": 3.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "demand": 5.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        ],
+    )
+    stats = frame.describe()
+    assert "demand" in stats
+    assert stats["demand"]["count"] == 3
+    assert stats["demand"]["min"] == 1.0
+    assert stats["demand"]["max"] == 5.0
+    assert stats["demand"]["mean"] == 3.0
+    assert stats["demand"]["sum"] == 9.0
+    assert "site_id" not in stats
+
+
+def test_frame_envelopes_and_convex_hulls() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {
+                "site_id": "tri",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[(0.0, 0.0), (2.0, 0.0), (1.0, 3.0)]],
+                },
+            },
+        ],
+    )
+    envelopes = frame.envelopes()
+    hulls = frame.convex_hulls()
+    assert envelopes.to_records()[0]["geometry"]["type"] == "Polygon"
+    assert hulls.to_records()[0]["geometry"]["type"] == "Polygon"
+
+
+def test_gravity_table_produces_pairwise_scores() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "pop": 100.0, "jobs": 50.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "pop": 200.0, "jobs": 80.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        ],
+    )
+    table = frame.gravity_table("pop", "jobs")
+    assert len(table) == 2
+    assert table[0]["origin"] == "a"
+    assert table[0]["destination"] == "b"
+    assert table[0]["gravity"] > 0
+
+
+def test_accessibility_scores_per_origin() -> None:
+    origins = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "geometry": {"type": "Point", "coordinates": [10.0, 0.0]}},
+        ],
+    )
+    targets = GeoPromptFrame.from_records(
+        [
+            {"site_id": "t1", "demand": 5.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "t2", "demand": 10.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        ],
+    )
+    scores = origins.accessibility_scores(targets, weight_column="demand", friction=2.0)
+    assert len(scores) == 2
+    assert scores[0] > scores[1]
+
+
+def test_read_geojson_from_dict() -> None:
+    payload = {
+        "type": "FeatureCollection",
+        "crs": {"type": "name", "properties": {"name": "EPSG:4326"}},
+        "features": [
+            {
+                "type": "Feature",
+                "id": "a",
+                "properties": {"name": "A"},
+                "geometry": {"type": "Point", "coordinates": [1.0, 2.0]},
+            },
+        ],
+    }
+    from geoprompt.io import read_geojson
+    frame = read_geojson(payload)
+    assert len(frame) == 1
+    assert frame.crs == "EPSG:4326"
+
+
+def test_frame_to_records_flat() -> None:
+    from geoprompt.io import frame_to_records_flat
+    frame = GeoPromptFrame.from_records(
+        [{"site_id": "a", "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}}],
+    )
+    flat = frame_to_records_flat(frame)
+    assert len(flat) == 1
+    assert flat[0]["geometry_type"] == "Point"
+    assert flat[0]["geometry_centroid_x"] == 1.0
+    assert flat[0]["geometry_centroid_y"] == 2.0
+    assert "geometry" not in flat[0]

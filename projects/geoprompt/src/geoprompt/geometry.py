@@ -425,6 +425,50 @@ def geometry_distance(origin: Geometry, destination: Geometry, method: DistanceM
     return coordinate_distance(geometry_centroid(origin), geometry_centroid(destination), method=method)
 
 
+def geometry_envelope(geometry: Geometry) -> Geometry:
+    min_x, min_y, max_x, max_y = geometry_bounds(geometry)
+    return {
+        "type": "Polygon",
+        "coordinates": (
+            (min_x, min_y),
+            (max_x, min_y),
+            (max_x, max_y),
+            (min_x, max_y),
+            (min_x, min_y),
+        ),
+    }
+
+
+def geometry_convex_hull(geometry: Geometry) -> Geometry:
+    vertices = geometry_vertices(geometry)
+    if geometry_type(geometry) == "Polygon":
+        vertices = vertices[:-1]
+    unique: list[Coordinate] = []
+    seen: set[Coordinate] = set()
+    for vertex in vertices:
+        if vertex not in seen:
+            unique.append(vertex)
+            seen.add(vertex)
+    if len(unique) <= 1:
+        return geometry
+    if len(unique) == 2:
+        return {"type": "LineString", "coordinates": tuple(unique)}
+    points = sorted(unique, key=lambda p: (p[0], p[1]))
+    lower: list[Coordinate] = []
+    for point in points:
+        while len(lower) >= 2 and _cross_product(lower[-2], lower[-1], point) <= 0:
+            lower.pop()
+        lower.append(point)
+    upper: list[Coordinate] = []
+    for point in reversed(points):
+        while len(upper) >= 2 and _cross_product(upper[-2], upper[-1], point) <= 0:
+            upper.pop()
+        upper.append(point)
+    hull = lower[:-1] + upper[:-1]
+    hull.append(hull[0])
+    return {"type": "Polygon", "coordinates": tuple(hull)}
+
+
 __all__ = [
     "Coordinate",
     "Geometry",
@@ -432,9 +476,11 @@ __all__ = [
     "geometry_bounds",
     "geometry_centroid",
     "geometry_contains",
+    "geometry_convex_hull",
+    "geometry_distance",
+    "geometry_envelope",
     "geometry_intersects_bounds",
     "geometry_intersects",
-    "geometry_distance",
     "geometry_length",
     "geometry_type",
     "geometry_vertices",

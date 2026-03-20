@@ -9,7 +9,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Lane: Spatial package design
 - Domain: Reusable custom spatial analysis
 - Stack: Python, JSON fixtures, lightweight geometry frame, custom equations
-- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, catchment competition summaries, buffer, buffer joins, coverage summaries, overlay summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
+- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, catchment competition summaries, corridor reach, zone fit scoring, centroid clustering, buffer, buffer joins, coverage summaries, overlay summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, gravity model, accessibility index, convex hull, envelope, frame utilities, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
 
 ## Overview
 
@@ -40,6 +40,13 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 - Overlay summaries for overlap metrics when you need counts and shares instead of derived geometry outputs
 - Dissolve workflows with `GeoPromptFrame.dissolve(...)`
 - Overlay operations with `GeoPromptFrame.clip(...)` and `GeoPromptFrame.overlay_intersections(...)`
+- Corridor reach analysis with `GeoPromptFrame.corridor_reach(...)` for route-proximity screening
+- Zone fit scoring with `GeoPromptFrame.zone_fit_score(...)` for multi-factor zone matching
+- Centroid clustering with `GeoPromptFrame.centroid_cluster(...)` for deterministic spatial grouping
+- Gravity model and accessibility index equations for interaction and access scoring
+- Geometry helpers: `geometry_convex_hull(...)`, `geometry_envelope(...)`, `GeoPromptFrame.envelopes()`, `GeoPromptFrame.convex_hulls()`
+- Frame utilities: `select(...)`, `rename_columns(...)`, `filter(...)`, `sort(...)`, `describe()`, `__repr__`, `__getitem__`
+- Flat record export with `frame_to_records_flat(...)` and in-memory GeoJSON loading with `read_geojson(dict)`
 - Geographic distance support for longitude/latitude point workflows through haversine distance
 - Pairwise interaction analysis without requiring pandas or geopandas
 - A demo CLI that exports a real review plot and JSON report from checked-in mixed geometry features
@@ -239,6 +246,64 @@ regions = gp.read_features("data/benchmark_regions.json", crs="EPSG:4326")
 dissolved = regions.dissolve(by="region_band", aggregations={"region_name": "count"})
 
 print(dissolved.head())
+```
+
+Corridor-reach example:
+
+```python
+import geoprompt as gp
+
+assets = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+corridors = assets.filter(lambda r: r["geometry"]["type"] == "LineString")
+
+reach = assets.corridor_reach(
+    corridors,
+    max_distance=0.05,
+    aggregations={"capacity_index": "sum"},
+)
+
+print(reach.head(3))
+```
+
+Zone-fit-score example:
+
+```python
+import geoprompt as gp
+
+features = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+zones = gp.read_features("data/benchmark_regions.json", crs="EPSG:4326")
+
+scored = features.zone_fit_score(zones, zone_id_column="region_id")
+
+print(scored.head(3))
+```
+
+Clustering example:
+
+```python
+import geoprompt as gp
+
+features = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+
+clustered = features.centroid_cluster(k=3)
+
+print(clustered.head(5))
+```
+
+Frame utilities example:
+
+```python
+import geoprompt as gp
+
+features = gp.read_features("data/benchmark_features.json", crs="EPSG:4326")
+
+high_demand = features.filter(lambda r: r["demand_index"] > 0.8)
+sorted_features = features.sort("demand_index", descending=True)
+selected = features.select("site_id", "demand_index")
+
+print(repr(features))
+print(features["demand_index"])
+print(features.describe())
 ```
 
 GeoJSON example:

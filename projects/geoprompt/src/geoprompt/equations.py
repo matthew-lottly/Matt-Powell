@@ -112,16 +112,49 @@ def directional_alignment(origin: Coordinate, destination: Coordinate, preferred
     return math.cos(delta)
 
 
+def gravity_model(
+    origin_weight: float,
+    destination_weight: float,
+    distance_value: float,
+    friction: float = 2.0,
+) -> float:
+    if distance_value <= 0:
+        return float("inf") if origin_weight > 0 and destination_weight > 0 else 0.0
+    if friction <= 0:
+        raise ValueError("friction must be greater than zero")
+    return float(origin_weight) * float(destination_weight) / math.pow(distance_value, friction)
+
+
+def accessibility_index(
+    weights: list[float],
+    distances: list[float],
+    friction: float = 2.0,
+) -> float:
+    if len(weights) != len(distances):
+        raise ValueError("weights and distances must have the same length")
+    if friction <= 0:
+        raise ValueError("friction must be greater than zero")
+    total = 0.0
+    for weight, distance_value in zip(weights, distances, strict=True):
+        if distance_value <= 0:
+            total += float(weight) * 1e12
+        else:
+            total += float(weight) / math.pow(distance_value, friction)
+    return total
+
+
 __all__ = [
     "Coordinate",
     "DistanceMethod",
     "EARTH_RADIUS_KM",
+    "accessibility_index",
     "area_similarity",
     "coordinate_distance",
     "corridor_strength",
     "directional_alignment",
     "directional_bearing",
     "euclidean_distance",
+    "gravity_model",
     "haversine_distance",
     "prompt_decay",
     "prompt_influence",

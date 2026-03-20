@@ -79,8 +79,14 @@ def read_features(path: str | Path, geometry: str = "geometry", crs: str | None 
     return _frame_from_path(path, geometry=geometry, crs=crs)
 
 
-def read_geojson(path: str | Path, geometry: str = "geometry", crs: str | None = None) -> GeoPromptFrame:
-    return _frame_from_path(path, geometry=geometry, crs=crs)
+def read_geojson(source: str | Path | dict, geometry: str = "geometry", crs: str | None = None) -> GeoPromptFrame:
+    if isinstance(source, dict):
+        return GeoPromptFrame.from_records(
+            _records_from_payload(source, geometry=geometry),
+            geometry=geometry,
+            crs=crs or _extract_crs(source),
+        )
+    return _frame_from_path(source, geometry=geometry, crs=crs)
 
 
 def _as_geojson_geometry(geometry: dict[str, Any]) -> dict[str, Any]:
@@ -124,8 +130,32 @@ def write_geojson(path: str | Path, frame: GeoPromptFrame, geometry: str = "geom
     return write_json(path, frame_to_geojson(frame, geometry=geometry, id_column=id_column))
 
 
+def frame_to_records_flat(frame: GeoPromptFrame, geometry: str = "geometry") -> list[dict[str, Any]]:
+    from .geometry import geometry_bounds, geometry_centroid
+
+    flat: list[dict[str, Any]] = []
+    for row in frame.to_records():
+        record: dict[str, Any] = {}
+        for key, value in row.items():
+            if key == geometry and isinstance(value, dict):
+                record[f"{geometry}_type"] = value.get("type")
+                gbounds = geometry_bounds(value)
+                centroid = geometry_centroid(value)
+                record[f"{geometry}_centroid_x"] = centroid[0]
+                record[f"{geometry}_centroid_y"] = centroid[1]
+                record[f"{geometry}_min_x"] = gbounds[0]
+                record[f"{geometry}_min_y"] = gbounds[1]
+                record[f"{geometry}_max_x"] = gbounds[2]
+                record[f"{geometry}_max_y"] = gbounds[3]
+            else:
+                record[key] = value
+        flat.append(record)
+    return flat
+
+
 __all__ = [
     "frame_to_geojson",
+    "frame_to_records_flat",
     "read_features",
     "read_geojson",
     "read_points",

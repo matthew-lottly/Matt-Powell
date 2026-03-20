@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.1.9
+
+### New Tools
+- Added `GeoPromptFrame.corridor_reach(...)` for route-like screening that finds features within a distance of line corridors, with distance and corridor length summaries.
+- Added `GeoPromptFrame.zone_fit_score(...)` for scoring how well features fit zones using containment, overlap, area similarity, and configurable distance limits.
+- Added `GeoPromptFrame.centroid_cluster(...)` for deterministic k-means centroid-distance clustering that assigns cluster ids, centers, and distances.
+
+### New Equations
+- Added `gravity_model(...)` for classic gravity/Huff-style interaction scoring between origin and destination weights scaled by distance friction.
+- Added `accessibility_index(...)` for computing cumulative accessibility from a set of weighted destinations at given distances.
+
+### New Geometry Helpers
+- Added `geometry_envelope(...)` for computing a bounding-box polygon from any geometry.
+- Added `geometry_convex_hull(...)` for computing the convex hull of any geometry using a pure-Python Andrew's monotone chain algorithm.
+
+### Frame Utilities
+- Added `GeoPromptFrame.select(...)` for column projection that keeps only named columns plus the geometry column.
+- Added `GeoPromptFrame.rename_columns(...)` for renaming columns via a mapping dict.
+- Added `GeoPromptFrame.filter(...)` for row filtering using a callable predicate or boolean mask.
+- Added `GeoPromptFrame.sort(...)` for sorting rows by a named column with ascending or descending order.
+- Added `GeoPromptFrame.describe()` for summary statistics (count, min, max, mean, sum) on numeric columns.
+- Added `GeoPromptFrame.envelopes()` for replacing geometries with their bounding-box envelopes.
+- Added `GeoPromptFrame.convex_hulls()` for replacing geometries with their convex hulls.
+- Added `GeoPromptFrame.gravity_table(...)` for pairwise gravity-model interaction scoring.
+- Added `GeoPromptFrame.accessibility_scores(...)` for per-origin cumulative accessibility against a target frame.
+- Added `GeoPromptFrame.__repr__` so frames display row count, column count, and CRS.
+- Added `GeoPromptFrame.__getitem__` so `frame["column"]` returns a list of column values.
+
+### IO Improvements
+- `read_geojson(...)` now accepts a dict payload in addition to file paths, so in-memory GeoJSON can be loaded directly.
+- Added `frame_to_records_flat(...)` for flattening geometry into centroid, bounds, and type columns.
+
 ## 0.1.8
 
 - Added `GeoPromptFrame.overlay_summary(...)` for per-feature intersection counts, overlap metrics, and proportional area or length summaries.
