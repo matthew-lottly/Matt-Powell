@@ -1,8 +1,14 @@
 import json
+import math
+import time
+from itertools import permutations
 from pathlib import Path
+from typing import Any, cast
+
+import pytest
 
 from geoprompt.compare import _stress_feature_records, _stress_region_records
-from geoprompt import GeoPromptFrame, geometry_centroid, geometry_convex_hull, geometry_envelope, gravity_model, accessibility_index
+from geoprompt import GeoPromptFrame, accessibility_index, geometry_area, geometry_bounds, geometry_centroid, geometry_convex_hull, geometry_envelope, gravity_model
 from geoprompt.demo import build_demo_report
 from geoprompt.equations import area_similarity, corridor_strength, directional_alignment, euclidean_distance, haversine_distance, prompt_decay, prompt_interaction
 from geoprompt.io import frame_to_geojson, read_features, read_geojson, read_points, write_flat_csv, write_geojson, write_records_json
@@ -432,6 +438,20 @@ def test_buffer_converts_points_to_polygons() -> None:
     assert all(record["site_id"] for record in buffered)
 
 
+def test_buffer_matches_shapely_area_when_available() -> None:
+    shapely_geometry = pytest.importorskip("shapely.geometry")
+
+    frame = GeoPromptFrame.from_records(
+        [{"site_id": "anchor", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}}],
+        crs="EPSG:4326",
+    )
+
+    record = frame.buffer(distance=2.0, resolution=8).to_records()[0]
+    reference_area = float(shapely_geometry.Point(0.0, 0.0).buffer(2.0, quad_segs=8).area)
+
+    assert geometry_area(record["geometry"]) == pytest.approx(reference_area)
+
+
 def test_buffer_join_extends_point_reach_to_polygon() -> None:
     service_points = GeoPromptFrame.from_records(
         [{"site_id": "anchor", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}}],
@@ -745,6 +765,30 @@ def test_overlay_difference_returns_only_left_side_faces() -> None:
     assert all(record["zone_ids_difference"] == [] for record in records)
     assert all(record["removed_area_difference"] == 2.0 for record in records)
     assert all(record["removed_share_difference"] == (2.0 / 6.0) for record in records)
+
+
+def test_overlay_difference_matches_shapely_difference_area_when_available() -> None:
+    shapely_geometry = pytest.importorskip("shapely.geometry")
+
+    left = GeoPromptFrame.from_records(
+        [
+            {"region_id": "left-a", "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [3.0, 0.0], [3.0, 2.0], [0.0, 2.0], [0.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+    right = GeoPromptFrame.from_records(
+        [
+            {"zone_id": "right-a", "geometry": {"type": "Polygon", "coordinates": [[1.0, 0.0], [2.0, 0.0], [2.0, 2.0], [1.0, 2.0], [1.0, 0.0]]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    records = left.overlay_difference(right, left_id_column="region_id", right_id_column="zone_id").to_records()
+    reference = shapely_geometry.Polygon([(0.0, 0.0), (3.0, 0.0), (3.0, 2.0), (0.0, 2.0)]).difference(
+        shapely_geometry.Polygon([(1.0, 0.0), (2.0, 0.0), (2.0, 2.0), (1.0, 2.0)])
+    )
+
+    assert sum(geometry_area(record["geometry"]) for record in records) == pytest.approx(float(reference.area))
 
 
 def test_overlay_symmetric_difference_excludes_overlap_faces() -> None:
@@ -1616,6 +1660,44 @@ def test_clip_and_overlay_intersections() -> None:
     assert any(record["region_id"] == "southeast-sector" and record["site_id"] == "delta-point" for record in intersections)
 
 
+def test_clip_matches_shapely_intersection_area_when_available() -> None:
+    shapely_geometry = pytest.importorskip("shapely.geometry")
+
+    polygons = GeoPromptFrame.from_records(
+        [
+            {
+                "name": "A",
+                "geometry": {"type": "Polygon", "coordinates": [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [0.0, 0.0]]},
+            },
+            {
+                "name": "B",
+                "geometry": {"type": "Polygon", "coordinates": [[2.0, 0.0], [4.0, 0.0], [4.0, 2.0], [2.0, 2.0], [2.0, 0.0]]},
+            },
+        ],
+        crs="EPSG:4326",
+    )
+    mask = GeoPromptFrame.from_records(
+        [
+            {
+                "geometry": {"type": "Polygon", "coordinates": [[1.0, -1.0], [3.0, -1.0], [3.0, 1.0], [1.0, 1.0], [1.0, -1.0]]},
+            }
+        ],
+        crs="EPSG:4326",
+    )
+
+    clipped = polygons.clip(mask).to_records()
+    reference_mask = shapely_geometry.Polygon([(1.0, -1.0), (3.0, -1.0), (3.0, 1.0), (1.0, 1.0)])
+    reference_area = sum(
+        float(shapely_geometry.Polygon(coords).intersection(reference_mask).area)
+        for coords in (
+            [(0.0, 0.0), (2.0, 0.0), (2.0, 2.0), (0.0, 2.0)],
+            [(2.0, 0.0), (4.0, 0.0), (4.0, 2.0), (2.0, 2.0)],
+        )
+    )
+
+    assert sum(geometry_area(record["geometry"]) for record in clipped) == pytest.approx(reference_area)
+
+
 def test_overlay_summary_returns_overlap_metrics_and_aggregates() -> None:
     regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
     features = read_features(PROJECT_ROOT / "data" / "benchmark_features.json", crs="EPSG:4326")
@@ -1726,10 +1808,11 @@ def test_directional_alignment() -> None:
 
 
 def test_build_demo_report(tmp_path: Path) -> None:
-    report = build_demo_report(
+    report = cast(dict[str, Any], build_demo_report(
         input_path=PROJECT_ROOT / "data" / "sample_features.json",
         output_dir=tmp_path,
-    )
+    ))
+    summary = cast(dict[str, Any], report["summary"])
 
     assert report["package"] == "geoprompt"
     assert len(report["records"]) == 6
@@ -1737,10 +1820,10 @@ def test_build_demo_report(tmp_path: Path) -> None:
     assert len(report["top_area_similarity"]) == 5
     assert len(report["top_nearest_neighbors"]) == 6
     assert len(report["top_geographic_neighbors"]) == 6
-    assert report["summary"]["geometry_types"] == ["LineString", "Point", "Polygon"]
-    assert report["summary"]["crs"] == "EPSG:4326"
-    assert report["summary"]["projected_bounds_3857"]["min_x"] < -12000000
-    assert report["summary"]["valley_window_feature_count"] == 3
+    assert summary["geometry_types"] == ["LineString", "Point", "Polygon"]
+    assert summary["crs"] == "EPSG:4326"
+    assert cast(dict[str, Any], summary["projected_bounds_3857"])["min_x"] < -12000000
+    assert summary["valley_window_feature_count"] == 3
     assert (tmp_path / "charts" / "neighborhood-pressure-review.png").exists()
 
 
@@ -2141,9 +2224,9 @@ def test_geometry_envelope_creates_bounding_box() -> None:
         "type": "Polygon",
         "coordinates": [(0.0, 0.0), (2.0, 0.0), (1.0, 3.0), (0.0, 0.0)],
     }
-    envelope = geometry_envelope(polygon)
+    envelope = cast(dict[str, Any], geometry_envelope(polygon))
     assert envelope["type"] == "Polygon"
-    coords = list(envelope["coordinates"])
+    coords = list(cast(Any, envelope["coordinates"]))
     xs = [c[0] for c in coords]
     ys = [c[1] for c in coords]
     assert min(xs) == 0.0
@@ -2159,9 +2242,9 @@ def test_geometry_convex_hull_returns_hull() -> None:
             (0.0, 0.0), (2.0, 0.0), (1.0, 0.5), (2.0, 2.0), (0.0, 2.0), (0.0, 0.0),
         ],
     }
-    hull = geometry_convex_hull(polygon)
+    hull = cast(dict[str, Any], geometry_convex_hull(polygon))
     assert hull["type"] == "Polygon"
-    hull_coords = list(hull["coordinates"])
+    hull_coords = list(cast(Any, hull["coordinates"]))
     assert len(hull_coords) >= 4
     xs = [c[0] for c in hull_coords[:-1]]
     ys = [c[1] for c in hull_coords[:-1]]
@@ -2422,11 +2505,11 @@ def test_frame_to_records_flat() -> None:
     assert "geometry" not in flat[0]
 
 
-def test_comparison_report_benchmarks_new_methods() -> None:
+def test_comparison_report_benchmark_registry_new_methods() -> None:
     import geoprompt.compare as compare
 
     original_benchmark = compare._benchmark
-    compare._benchmark = lambda operation, func, repeats=20: ({"operation": operation, "repeats": 1}, func())
+    compare._benchmark = lambda operation, func, repeats=20: ({"operation": operation, "repeats": 1}, None)
     try:
         report = compare.build_comparison_report()
     finally:
@@ -2437,8 +2520,20 @@ def test_comparison_report_benchmarks_new_methods() -> None:
         for dataset in report["datasets"]
         for benchmark in dataset["benchmarks"]
     }
+    benchmark_counts = {
+        str(dataset["dataset"]): len(dataset["benchmarks"])
+        for dataset in report["datasets"]
+    }
+    benchmark_ops_by_dataset = {
+        str(dataset["dataset"]): [benchmark["operation"] for benchmark in dataset["benchmarks"]]
+        for dataset in report["datasets"]
+    }
     assert all("performance" in dataset for dataset in report["datasets"])
     assert all("query_bounds_pruning_ratio" in dataset["performance"] for dataset in report["datasets"])
+    assert benchmark_counts["sample"] >= 55
+    assert benchmark_counts["benchmark"] >= 65
+    assert benchmark_counts["stress"] >= 55
+    assert all(len(operations) == len(set(operations)) for operations in benchmark_ops_by_dataset.values())
     assert "sample.geoprompt.spatial_index_query" in benchmark_ops
     assert "sample.geoprompt.centroid_cluster" in benchmark_ops
     assert "benchmark.geoprompt.zone_fit_score" in benchmark_ops
@@ -2462,6 +2557,46 @@ def test_comparison_report_benchmarks_new_methods() -> None:
     assert "sample.geoprompt.compare_change_events_equivalent" in benchmark_ops
     assert "sample.geoprompt.snap_geometries" in benchmark_ops
     assert "sample.geoprompt.clean_topology" in benchmark_ops
+    assert "sample.geoprompt.raster_sample" in benchmark_ops
+    assert "sample.geoprompt.zonal_stats" in benchmark_ops
+    assert "sample.geoprompt.reclassify" in benchmark_ops
+    assert "sample.geoprompt.resample" in benchmark_ops
+    assert "sample.geoprompt.raster_clip" in benchmark_ops
+    assert "sample.geoprompt.mosaic" in benchmark_ops
+    assert "sample.geoprompt.to_points" in benchmark_ops
+    assert "sample.geoprompt.to_polygons" in benchmark_ops
+    assert "sample.geoprompt.contours" in benchmark_ops
+    assert "sample.geoprompt.hillshade" in benchmark_ops
+    assert "sample.geoprompt.slope_aspect" in benchmark_ops
+    assert "sample.geoprompt.idw_interpolation" in benchmark_ops
+    assert "sample.geoprompt.kriging_surface" in benchmark_ops
+    assert "sample.geoprompt.thiessen_polygons" in benchmark_ops
+    assert "sample.geoprompt.spatial_weights_matrix" in benchmark_ops
+    assert "sample.geoprompt.hotspot_getis_ord" in benchmark_ops
+    assert "sample.geoprompt.local_outlier_factor_spatial" in benchmark_ops
+    assert "sample.geoprompt.kernel_density" in benchmark_ops
+    assert "sample.geoprompt.standard_deviational_ellipse" in benchmark_ops
+    assert "sample.geoprompt.center_of_minimum_distance" in benchmark_ops
+    assert "sample.geoprompt.spatial_regression" in benchmark_ops
+    assert "sample.geoprompt.geographically_weighted_summary" in benchmark_ops
+    assert "sample.geoprompt.join_by_largest_overlap" in benchmark_ops
+    assert "sample.geoprompt.erase" in benchmark_ops
+    assert "sample.geoprompt.identity_overlay" in benchmark_ops
+    assert "sample.geoprompt.multipart_to_singlepart" in benchmark_ops
+    assert "sample.geoprompt.singlepart_to_multipart" in benchmark_ops
+    assert "sample.geoprompt.eliminate_slivers" in benchmark_ops
+    assert "sample.geoprompt.simplify" in benchmark_ops
+    assert "sample.geoprompt.densify" in benchmark_ops
+    assert "sample.geoprompt.smooth_geometry" in benchmark_ops
+    assert "sample.geoprompt.snap_to_network_nodes" in benchmark_ops
+    assert "sample.geoprompt.origin_destination_matrix" in benchmark_ops
+    assert "sample.geoprompt.k_shortest_paths" in benchmark_ops
+    assert "sample.geoprompt.network_trace" in benchmark_ops
+    assert "sample.geoprompt.route_sequence_optimize" in benchmark_ops
+    assert "sample.geoprompt.trajectory_staypoint_detection" in benchmark_ops
+    assert "sample.geoprompt.trajectory_simplify" in benchmark_ops
+    assert "sample.geoprompt.spatiotemporal_cube" in benchmark_ops
+    assert "sample.geoprompt.geohash_encode" in benchmark_ops
     assert "benchmark.geoprompt.line_split" in benchmark_ops
     assert "benchmark.geoprompt.polygon_split" in benchmark_ops
     assert "benchmark.geoprompt.trajectory_match" in benchmark_ops
@@ -2470,3 +2605,2430 @@ def test_comparison_report_benchmarks_new_methods() -> None:
     assert "benchmark.geoprompt.shortest_path" in benchmark_ops
     assert "benchmark.geoprompt.service_area" in benchmark_ops
     assert "benchmark.geoprompt.location_allocate" in benchmark_ops
+
+
+def test_comparison_report_benchmark_performance_budgets() -> None:
+    import geoprompt.compare as compare
+
+    def single_run_benchmark(operation: str, func: Any, repeats: int = 20) -> tuple[dict[str, Any], Any]:
+        started_at = time.perf_counter()
+        result = func()
+        elapsed = time.perf_counter() - started_at
+        return (
+            {
+                "operation": operation,
+                "median_seconds": elapsed,
+                "min_seconds": elapsed,
+                "max_seconds": elapsed,
+                "repeats": 1,
+            },
+            result,
+        )
+
+    target_operations = {
+        "benchmark.geoprompt.overlay_summary_grouped",
+        "benchmark.geoprompt.overlay_group_comparison",
+        "stress.geoprompt.compare_change_events",
+        "stress.geoprompt.compare_change_events_equivalent",
+    }
+    original_benchmark = compare._benchmark
+    compare._benchmark = single_run_benchmark
+    try:
+        report = compare.build_comparison_report(
+            benchmark_filter=lambda operation: operation in target_operations,
+        )
+    finally:
+        compare._benchmark = original_benchmark
+
+    benchmark_timings = {
+        str(benchmark["operation"]): float(benchmark.get("median_seconds", 0.0) or 0.0)
+        for dataset in report["datasets"]
+        for benchmark in dataset["benchmarks"]
+    }
+
+    assert set(benchmark_timings) == target_operations
+    assert benchmark_timings["benchmark.geoprompt.overlay_summary_grouped"] < 0.45
+    assert benchmark_timings["benchmark.geoprompt.overlay_group_comparison"] < 0.5
+    assert benchmark_timings["stress.geoprompt.compare_change_events"] < 2.0
+    assert benchmark_timings["stress.geoprompt.compare_change_events_equivalent"] < 2.25
+
+
+def test_comparison_report_benchmark_filter_limits_operations() -> None:
+    import geoprompt.compare as compare
+
+    target_operations = {
+        "sample.geoprompt.query_bounds",
+        "sample.reference.query_bounds",
+    }
+    expected_operations_by_dataset = {
+        "sample": [
+            "sample.geoprompt.query_bounds",
+            "sample.reference.query_bounds",
+        ],
+        "benchmark": [],
+        "stress": [],
+    }
+    original_benchmark = compare._benchmark
+    compare._benchmark = lambda operation, func, repeats=20: ({"operation": operation, "repeats": 1}, None)
+    try:
+        report = compare.build_comparison_report(
+            benchmark_filter=lambda operation: operation in target_operations,
+        )
+    finally:
+        compare._benchmark = original_benchmark
+
+    benchmark_ops = {
+        str(benchmark["operation"])
+        for dataset in report["datasets"]
+        for benchmark in dataset["benchmarks"]
+    }
+    benchmark_ops_by_dataset = {
+        str(dataset["dataset"]): [str(benchmark["operation"]) for benchmark in dataset["benchmarks"]]
+        for dataset in report["datasets"]
+    }
+
+    assert benchmark_ops == target_operations
+    assert benchmark_ops_by_dataset == expected_operations_by_dataset
+
+
+# ======================================================================
+# Tests for the 40 new tools
+# ======================================================================
+
+
+def _make_point_frame(points: list[dict], crs: str | None = "EPSG:4326") -> GeoPromptFrame:
+    return GeoPromptFrame.from_records(points, geometry="geometry", crs=crs)
+
+
+def _sample_point_grid():
+    """5x5 grid of points with elevation-like values."""
+    rows = []
+    idx = 0
+    for y in range(5):
+        for x in range(5):
+            idx += 1
+            rows.append({
+                "site_id": f"pt-{idx:03d}",
+                "geometry": {"type": "Point", "coordinates": [float(x), float(y)]},
+                "elevation": float(x + y) * 10.0,
+                "value": float(idx),
+                "weight": 1.0,
+                "time": float(idx),
+            })
+    return _make_point_frame(rows)
+
+
+def _sample_zone_frame():
+    """Two polygon zones covering different parts of the grid."""
+    return _make_point_frame([
+        {
+            "zone_id": "zone-A",
+            "geometry": {"type": "Polygon", "coordinates": [(0, 0), (3, 0), (3, 3), (0, 3), (0, 0)]},
+        },
+        {
+            "zone_id": "zone-B",
+            "geometry": {"type": "Polygon", "coordinates": [(2, 2), (5, 2), (5, 5), (2, 5), (2, 2)]},
+        },
+    ])
+
+
+def _sample_network_frame():
+    """Simple 3-edge network: A -> B -> C -> D."""
+    return GeoPromptFrame.from_records([
+        {
+            "edge_id": "e1", "from_node_id": "A", "to_node_id": "B",
+            "from_node": (0.0, 0.0),
+            "to_node": (1.0, 0.0),
+            "edge_length": 1.0,
+            "geometry": {"type": "LineString", "coordinates": [(0.0, 0.0), (1.0, 0.0)]},
+        },
+        {
+            "edge_id": "e2", "from_node_id": "B", "to_node_id": "C",
+            "from_node": (1.0, 0.0),
+            "to_node": (2.0, 0.0),
+            "edge_length": 1.0,
+            "geometry": {"type": "LineString", "coordinates": [(1.0, 0.0), (2.0, 0.0)]},
+        },
+        {
+            "edge_id": "e3", "from_node_id": "C", "to_node_id": "D",
+            "from_node": (2.0, 0.0),
+            "to_node": (3.0, 0.0),
+            "edge_length": 1.0,
+            "geometry": {"type": "LineString", "coordinates": [(2.0, 0.0), (3.0, 0.0)]},
+        },
+    ], geometry="geometry", crs="EPSG:4326")
+
+
+# Tool 1: raster_sample
+def test_raster_sample():
+    source = _sample_point_grid()
+    query_pts = _make_point_frame([
+        {"site_id": "q1", "geometry": {"type": "Point", "coordinates": [0.1, 0.1]}},
+        {"site_id": "q2", "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+    ])
+    result = source.raster_sample(query_pts, value_column="elevation", k=1)
+    records = result.to_records()
+    assert len(records) == 2
+    assert records[0]["elevation_sample"] is not None
+    assert records[0]["distance_sample"] is not None
+
+
+# Tool 2: zonal_stats
+def test_zonal_stats():
+    pts = _sample_point_grid()
+    zones = _sample_zone_frame()
+    result = pts.zonal_stats(zones, value_column="value", zone_id_column="zone_id")
+    records = result.to_records()
+    assert len(records) == 2
+    for row in records:
+        assert "value_count_zonal" in row
+        assert "value_mean_zonal" in row
+    assert records[0]["value_count_zonal"] >= 1
+
+
+# Tool 3: reclassify
+def test_reclassify():
+    frame = _sample_point_grid()
+    result = frame.reclassify(
+        "elevation",
+        breaks=[(0.0, 30.0, "low"), (30.0, 60.0, "medium"), (60.0, 100.0, "high")],
+    )
+    assert len(result) == len(frame)
+    classes = set(result["elevation_class"])
+    assert "low" in classes
+
+
+# Tool 4: resample
+def test_resample():
+    frame = _sample_point_grid()
+    every_other = frame.resample(method="every_nth", n=2)
+    assert len(every_other) == 13  # ceil(25/2)
+    thinned = frame.resample(method="spatial_thin", min_distance=1.5)
+    assert len(thinned) < len(frame)
+    sampled = frame.resample(method="random", sample_size=5, random_seed=42)
+    assert len(sampled) == 5
+
+
+# Tool 5: raster_clip
+def test_raster_clip():
+    frame = _sample_point_grid()
+    clipped = frame.raster_clip(0.5, 0.5, 2.5, 2.5)
+    assert len(clipped) < len(frame)
+    for row in clipped:
+        cx, cy = row["geometry"]["coordinates"]
+        assert 0.5 <= cx <= 2.5
+        assert 0.5 <= cy <= 2.5
+
+
+# Tool 6: mosaic
+def test_mosaic():
+    f1 = _make_point_frame([
+        {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}, "val": 1},
+    ])
+    f2 = _make_point_frame([
+        {"site_id": "a", "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}, "val": 2},
+        {"site_id": "b", "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}, "val": 3},
+    ])
+    first = f1.mosaic(f2, conflict_resolution="first")
+    assert len(first) == 2  # "a" kept from f1, "b" from f2
+    last = f1.mosaic(f2, conflict_resolution="last")
+    assert len(last) == 2
+
+
+# Tool 7: to_points
+def test_to_points():
+    frame = _make_point_frame([
+        {"site_id": "p1", "geometry": {"type": "Polygon", "coordinates": [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]}},
+    ])
+    result = frame.to_points()
+    records = result.to_records()
+    assert len(records) == 1
+    assert records[0]["geometry"]["type"] == "Point"
+
+
+# Tool 8: to_polygons
+def test_to_polygons():
+    frame = _make_point_frame([
+        {"site_id": "p1", "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+    ])
+    result = frame.to_polygons(buffer_distance=0.5)
+    records = result.to_records()
+    assert len(records) == 1
+    assert records[0]["geometry"]["type"] == "Polygon"
+
+
+# Tool 9: contours
+def test_contours():
+    frame = _sample_point_grid()
+    result = frame.contours(value_column="elevation", interval_count=3, grid_resolution=10)
+    assert len(result) > 0
+    for row in result:
+        assert "level_contour" in row
+        assert row["geometry"]["type"] == "LineString"
+
+
+# Tool 10: hillshade
+def test_hillshade():
+    frame = _sample_point_grid()
+    result = frame.hillshade(elevation_column="elevation", grid_resolution=10)
+    assert len(result) > 0
+    for row in result:
+        assert 0 <= row["value_hillshade"] <= 255
+        assert 0.0 <= row["shade_hillshade"] <= 1.0
+
+
+# Tool 11: slope_aspect
+def test_slope_aspect():
+    frame = _sample_point_grid()
+    result = frame.slope_aspect(elevation_column="elevation", grid_resolution=10)
+    assert len(result) > 0
+    for row in result:
+        assert "slope_degrees_terrain" in row
+        assert "aspect_degrees_terrain" in row
+        assert row["slope_degrees_terrain"] >= 0.0
+        assert 0.0 <= row["aspect_degrees_terrain"] <= 360.0
+
+
+# Tool 12: idw_interpolation
+def test_idw_interpolation():
+    frame = _sample_point_grid()
+    result = frame.idw_interpolation(value_column="elevation", grid_resolution=6)
+    assert len(result) == 36  # 6x6 grid
+    for row in result:
+        assert "value_idw" in row
+        assert row["geometry"]["type"] == "Point"
+
+
+# Tool 13: kriging_surface
+def test_kriging_surface():
+    frame = _sample_point_grid()
+    result = frame.kriging_surface(value_column="elevation", grid_resolution=5)
+    assert len(result) == 25  # 5x5 grid
+    for row in result:
+        assert "value_kriging" in row
+        assert "variance_kriging" in row
+        assert row["method_kriging"] == "ordinary_kriging"
+        assert row["variance_kriging"] >= 0.0
+
+
+def test_kriging_surface_recovers_source_points_when_nugget_is_zero() -> None:
+    frame = _make_point_frame([
+        {"site_id": "p1", "elevation": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "p2", "elevation": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        {"site_id": "p3", "elevation": 3.0, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+        {"site_id": "p4", "elevation": 4.0, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+    ])
+
+    records = frame.kriging_surface(
+        value_column="elevation",
+        grid_resolution=2,
+        variogram_range=2.0,
+        variogram_sill=1.0,
+        variogram_nugget=0.0,
+    ).to_records()
+
+    assert [record["value_kriging"] for record in records] == pytest.approx([1.0, 2.0, 3.0, 4.0])
+    assert [record["variance_kriging"] for record in records] == pytest.approx([0.0, 0.0, 0.0, 0.0])
+
+
+def _assert_kriging_matches_pykrige(
+    points: list[dict[str, Any]],
+    grid_x: list[float],
+    grid_y: list[float],
+    variogram_range: float,
+    variogram_sill: float,
+    variogram_nugget: float,
+    variogram_model: str = "spherical",
+) -> None:
+    ordinary_kriging = pytest.importorskip("pykrige.ok").OrdinaryKriging
+    pykrige_model_name = "hole-effect" if variogram_model == "hole_effect" else variogram_model
+
+    frame = _make_point_frame(points)
+    records = frame.kriging_surface(
+        value_column="value",
+        grid_resolution=len(grid_x),
+        variogram_range=variogram_range,
+        variogram_sill=variogram_sill,
+        variogram_nugget=variogram_nugget,
+        variogram_model=cast(Any, variogram_model),
+    ).to_records()
+    reference = ordinary_kriging(
+        [float(cast(Any, point["geometry"])["coordinates"][0]) for point in points],
+        [float(cast(Any, point["geometry"])["coordinates"][1]) for point in points],
+        [float(point["value"]) for point in points],
+        variogram_model=pykrige_model_name,
+        variogram_parameters={"range": variogram_range, "sill": variogram_sill, "nugget": variogram_nugget},
+        coordinates_type="euclidean",
+        exact_values=variogram_nugget <= 0.0,
+    )
+    z_values, variances = reference.execute("grid", grid_x, grid_y)
+
+    assert [record["value_kriging"] for record in records] == pytest.approx(
+        [float(value) for row in z_values for value in row],
+        rel=1e-6,
+        abs=1e-6,
+    )
+    assert [record["variance_kriging"] for record in records] == pytest.approx(
+        [float(value) for row in variances for value in row],
+        rel=1e-6,
+        abs=1e-6,
+    )
+
+
+def test_kriging_surface_matches_pykrige_when_available() -> None:
+    _assert_kriging_matches_pykrige(
+        points=[
+            {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "p2", "value": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "p3", "value": 3.0, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+            {"site_id": "p4", "value": 4.0, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+        ],
+        grid_x=[0.0, 0.5, 1.0],
+        grid_y=[0.0, 0.5, 1.0],
+        variogram_range=2.0,
+        variogram_sill=1.0,
+        variogram_nugget=0.0,
+    )
+
+
+@pytest.mark.parametrize(
+    ("points", "grid_x", "grid_y", "variogram_range", "variogram_sill", "variogram_nugget", "variogram_model"),
+    [
+        (
+            [
+                {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 2.5, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "p3", "value": 3.5, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+                {"site_id": "p4", "value": 5.0, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+            ],
+            [0.0, 0.5, 1.0],
+            [0.0, 0.5, 1.0],
+            2.5,
+            2.0,
+            0.2,
+            "spherical",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 2.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 4.0, "geometry": {"type": "Point", "coordinates": [2.5, 0.0]}},
+                {"site_id": "p3", "value": 6.0, "geometry": {"type": "Point", "coordinates": [0.5, 1.5]}},
+                {"site_id": "p4", "value": 8.5, "geometry": {"type": "Point", "coordinates": [2.5, 1.5]}},
+            ],
+            [0.0, 1.25, 2.5],
+            [0.0, 0.75, 1.5],
+            1.75,
+            3.0,
+            0.05,
+            "spherical",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 1.8, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "p3", "value": 3.7, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+                {"site_id": "p4", "value": 4.5, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+            ],
+            [0.0, 0.5, 1.0],
+            [0.0, 0.5, 1.0],
+            2.0,
+            1.5,
+            0.1,
+            "exponential",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 2.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 4.5, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "p3", "value": 5.5, "geometry": {"type": "Point", "coordinates": [0.0, 2.0]}},
+                {"site_id": "p4", "value": 8.0, "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+            ],
+            [0.0, 1.0, 2.0],
+            [0.0, 1.0, 2.0],
+            2.4,
+            2.2,
+            0.15,
+            "gaussian",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "p3", "value": 3.0, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+                {"site_id": "p4", "value": 4.4, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+            ],
+            [0.0, 0.5, 1.0],
+            [0.0, 0.5, 1.0],
+            2.0,
+            1.6,
+            0.1,
+            "hole_effect",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 2.2, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "p3", "value": 3.4, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "p4", "value": 2.8, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+                {"site_id": "p5", "value": 4.6, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+                {"site_id": "p6", "value": 5.9, "geometry": {"type": "Point", "coordinates": [2.0, 1.0]}},
+                {"site_id": "p7", "value": 4.1, "geometry": {"type": "Point", "coordinates": [0.0, 2.0]}},
+                {"site_id": "p8", "value": 6.3, "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+                {"site_id": "p9", "value": 7.4, "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+            ],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            2.8,
+            2.5,
+            0.05,
+            "spherical",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 2.1, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "p3", "value": 3.5, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "p4", "value": 2.9, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+                {"site_id": "p5", "value": 4.7, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+                {"site_id": "p6", "value": 6.0, "geometry": {"type": "Point", "coordinates": [2.0, 1.0]}},
+                {"site_id": "p7", "value": 4.3, "geometry": {"type": "Point", "coordinates": [0.0, 2.0]}},
+                {"site_id": "p8", "value": 6.5, "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+                {"site_id": "p9", "value": 7.7, "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+            ],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            2.4,
+            2.1,
+            0.08,
+            "exponential",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "p3", "value": 3.1, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "p4", "value": 2.7, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+                {"site_id": "p5", "value": 4.2, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+                {"site_id": "p6", "value": 5.4, "geometry": {"type": "Point", "coordinates": [2.0, 1.0]}},
+                {"site_id": "p7", "value": 3.8, "geometry": {"type": "Point", "coordinates": [0.0, 2.0]}},
+                {"site_id": "p8", "value": 5.8, "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+                {"site_id": "p9", "value": 6.9, "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+            ],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            2.2,
+            1.7,
+            0.09,
+            "hole_effect",
+        ),
+        (
+            [
+                {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "p2", "value": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "p3", "value": 3.1, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "p4", "value": 2.7, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+                {"site_id": "p5", "value": 4.2, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+                {"site_id": "p6", "value": 5.4, "geometry": {"type": "Point", "coordinates": [2.0, 1.0]}},
+                {"site_id": "p7", "value": 3.8, "geometry": {"type": "Point", "coordinates": [0.0, 2.0]}},
+                {"site_id": "p8", "value": 5.8, "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+                {"site_id": "p9", "value": 6.9, "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+            ],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            [0.0, 2.0 / 3.0, 4.0 / 3.0, 2.0],
+            2.4,
+            2.2,
+            0.1,
+            "gaussian",
+        ),
+    ],
+)
+def test_kriging_surface_matches_pykrige_across_parameter_regimes_when_available(
+    points: list[dict[str, Any]],
+    grid_x: list[float],
+    grid_y: list[float],
+    variogram_range: float,
+    variogram_sill: float,
+    variogram_nugget: float,
+    variogram_model: str,
+) -> None:
+    _assert_kriging_matches_pykrige(
+        points=points,
+        grid_x=grid_x,
+        grid_y=grid_y,
+        variogram_range=variogram_range,
+        variogram_sill=variogram_sill,
+        variogram_nugget=variogram_nugget,
+        variogram_model=variogram_model,
+    )
+
+
+# Tool 14: thiessen_polygons
+def test_thiessen_polygons():
+    frame = _make_point_frame([
+        {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "c", "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+    ])
+    result = frame.thiessen_polygons(grid_resolution=20)
+    assert len(result) == 3
+    for row in result:
+        assert row["geometry"]["type"] == "Polygon"
+        assert row["cell_count_voronoi"] > 0
+
+
+def test_thiessen_polygons_uses_exact_voronoi_when_shapely_available() -> None:
+    pytest.importorskip("shapely")
+
+    frame = _make_point_frame([
+        {"site_id": "left", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "right", "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+    ])
+
+    records = sorted(frame.thiessen_polygons().to_records(), key=lambda item: str(item["site_id"]))
+    left_bounds = geometry_bounds(records[0]["geometry"])
+    right_bounds = geometry_bounds(records[1]["geometry"])
+
+    assert records[0]["method_voronoi"] == "shapely_exact"
+    assert records[1]["method_voronoi"] == "shapely_exact"
+    assert left_bounds[2] == pytest.approx(1.0)
+    assert right_bounds[0] == pytest.approx(1.0)
+    assert records[0]["area_voronoi"] == pytest.approx(records[1]["area_voronoi"])
+
+
+# Tool 15: spatial_weights_matrix
+def test_spatial_weights_matrix():
+    frame = _sample_point_grid()
+    w = frame.spatial_weights_matrix(k=3)
+    assert w["n"] == 25
+    assert len(w["weights"]) == 25
+    for wid, neighbors in w["weights"].items():
+        assert len(neighbors) == 3
+
+
+# Tool 16: hotspot_getis_ord
+def test_hotspot_getis_ord():
+    frame = _sample_point_grid()
+    result = frame.hotspot_getis_ord(
+        value_column="elevation",
+        mode="k_nearest",
+        k=4,
+    )
+    assert len(result) == 25
+    for row in result:
+        assert "gi_star_getis" in row
+        assert "p_value_getis" in row
+        assert row["implementation_getis"] in ("analytic", "pysal")
+        assert row["classification_getis"] in ("hotspot", "coldspot", "not_significant")
+
+
+def test_hotspot_getis_ord_matches_pysal_when_available() -> None:
+    esda = pytest.importorskip("esda")
+    libpysal_weights = pytest.importorskip("libpysal.weights")
+
+    frame = _make_point_frame([
+        {"site_id": "a", "value": 10.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "value": 9.5, "geometry": {"type": "Point", "coordinates": [0.2, 0.1]}},
+        {"site_id": "c", "value": 9.0, "geometry": {"type": "Point", "coordinates": [0.1, 0.2]}},
+        {"site_id": "d", "value": 1.0, "geometry": {"type": "Point", "coordinates": [5.0, 5.0]}},
+        {"site_id": "e", "value": 1.5, "geometry": {"type": "Point", "coordinates": [5.2, 5.1]}},
+        {"site_id": "f", "value": 2.0, "geometry": {"type": "Point", "coordinates": [5.1, 5.2]}},
+    ])
+
+    records = frame.hotspot_getis_ord(
+        value_column="value",
+        mode="k_nearest",
+        k=2,
+        include_self=True,
+    ).to_records()
+    reference = esda.G_Local(
+        [10.0, 9.5, 9.0, 1.0, 1.5, 2.0],
+        libpysal_weights.KNN.from_array(
+            [(0.0, 0.0), (0.2, 0.1), (0.1, 0.2), (5.0, 5.0), (5.2, 5.1), (5.1, 5.2)],
+            k=2,
+        ),
+        transform="B",
+        permutations=0,
+        star=True,
+        keep_simulations=False,
+        island_weight=0,
+    )
+
+    for row, z_score, p_value in zip(records, reference.Zs, reference.p_norm, strict=True):
+        assert row["implementation_getis"] == "pysal"
+        assert row["gi_star_getis"] == pytest.approx(float(z_score))
+        assert row["p_value_getis"] == pytest.approx(float(p_value))
+
+
+# Tool 17: local_outlier_factor_spatial
+def test_local_outlier_factor_spatial():
+    frame = _sample_point_grid()
+    result = frame.local_outlier_factor_spatial(k=3)
+    assert len(result) == 25
+    for row in result:
+        assert "lof_lof" in row
+        assert isinstance(row["outlier_lof"], bool)
+
+
+# Tool 18: kernel_density
+def test_kernel_density():
+    frame = _sample_point_grid()
+    result = frame.kernel_density(grid_resolution=5)
+    assert len(result) == 25
+    for row in result:
+        assert "density_kde" in row
+        assert row["density_kde"] >= 0.0
+
+
+# Tool 19: standard_deviational_ellipse
+def test_standard_deviational_ellipse():
+    frame = _sample_point_grid()
+    result = frame.standard_deviational_ellipse()
+    records = result.to_records()
+    assert len(records) == 1
+    row = records[0]
+    assert "sigma_x_sde" in row
+    assert "sigma_y_sde" in row
+    assert "rotation_degrees_sde" in row
+    assert row["geometry"]["type"] == "Polygon"
+
+
+# Tool 20: center_of_minimum_distance
+def test_center_of_minimum_distance():
+    frame = _sample_point_grid()
+    result = frame.center_of_minimum_distance()
+    records = result.to_records()
+    assert len(records) == 1
+    row = records[0]
+    assert "center_x_cmd" in row
+    assert "center_y_cmd" in row
+    assert 0.0 <= row["center_x_cmd"] <= 4.0
+    assert 0.0 <= row["center_y_cmd"] <= 4.0
+
+
+# Tool 21: spatial_regression
+def test_spatial_regression():
+    frame = _sample_point_grid()
+    result = frame.spatial_regression(
+        dependent_column="elevation",
+        independent_columns=["value"],
+        k_neighbors=3,
+    )
+    assert len(result) == 25
+    for row in result:
+        assert "predicted_reg" in row
+        assert "residual_reg" in row
+        assert "r_squared_reg" in row
+        assert "intercept_reg" in row
+        assert "coeff_value_reg" in row
+        assert "coefficient_standard_errors_reg" in row
+        assert "coefficient_t_statistics_reg" in row
+        assert "coefficient_p_values_reg" in row
+        assert "rmse_reg" in row
+        assert 0.0 <= row["r_squared_reg"] <= 1.0
+
+
+def test_spatial_regression_matches_exact_linear_relation() -> None:
+    frame = _make_point_frame([
+        {"site_id": "r1", "x": 0.0, "y": 2.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "r2", "x": 1.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        {"site_id": "r3", "x": 2.0, "y": 8.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "r4", "x": 3.0, "y": 11.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        {"site_id": "r5", "x": 4.0, "y": 14.0, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+    ])
+
+    records = frame.spatial_regression(
+        dependent_column="y",
+        independent_columns=["x"],
+        k_neighbors=2,
+    ).to_records()
+
+    first = records[0]
+    assert abs(float(first["intercept_reg"]) - 2.0) < 1e-9
+    assert abs(float(first["coeff_x_reg"]) - 3.0) < 1e-9
+    assert float(first["r_squared_reg"]) > 0.999999
+    assert float(first["rmse_reg"]) < 1e-9
+    assert all(abs(float(record["residual_reg"])) < 1e-9 for record in records)
+    assert float(first["intercept_p_value_reg"]) <= 1.0
+    assert float(first["p_value_x_reg"]) <= 1.0
+
+
+def test_spatial_regression_matches_statsmodels_when_available() -> None:
+    statsmodels_api = pytest.importorskip("statsmodels.api")
+
+    frame = _make_point_frame([
+        {"site_id": "r1", "x1": 0.0, "x2": 1.0, "y": 1.4, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "r2", "x1": 1.0, "x2": 0.0, "y": 2.2, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        {"site_id": "r3", "x1": 2.0, "x2": 1.0, "y": 3.9, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "r4", "x1": 3.0, "x2": 2.0, "y": 5.7, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        {"site_id": "r5", "x1": 4.0, "x2": 3.0, "y": 7.8, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+        {"site_id": "r6", "x1": 5.0, "x2": 2.0, "y": 8.6, "geometry": {"type": "Point", "coordinates": [5.0, 0.0]}},
+    ])
+
+    records = frame.spatial_regression(
+        dependent_column="y",
+        independent_columns=["x1", "x2"],
+        k_neighbors=2,
+    ).to_records()
+    design = statsmodels_api.add_constant([[0.0, 1.0], [1.0, 0.0], [2.0, 1.0], [3.0, 2.0], [4.0, 3.0], [5.0, 2.0]])
+    model = statsmodels_api.OLS([1.4, 2.2, 3.9, 5.7, 7.8, 8.6], design).fit()
+    first = records[0]
+
+    assert cast(list[float], first["coefficients_reg"]) == pytest.approx([float(value) for value in model.params], rel=1e-7, abs=1e-7)
+    assert cast(list[float], first["coefficient_standard_errors_reg"]) == pytest.approx([float(value) for value in model.bse], rel=1e-7, abs=1e-7)
+    assert cast(list[float], first["coefficient_t_statistics_reg"]) == pytest.approx([float(value) for value in model.tvalues], rel=1e-7, abs=1e-7)
+    assert cast(list[float], first["coefficient_p_values_reg"]) == pytest.approx([float(value) for value in model.pvalues], rel=1e-7, abs=1e-7)
+    assert [float(record["predicted_reg"]) for record in records] == pytest.approx([float(value) for value in model.fittedvalues], rel=1e-7, abs=1e-7)
+    assert [float(record["residual_reg"]) for record in records] == pytest.approx([float(value) for value in model.resid], rel=1e-7, abs=1e-7)
+    assert float(first["r_squared_reg"]) == pytest.approx(float(model.rsquared), rel=1e-9, abs=1e-9)
+    assert float(first["adj_r_squared_reg"]) == pytest.approx(float(model.rsquared_adj), rel=1e-9, abs=1e-9)
+    assert float(first["sigma2_reg"]) == pytest.approx(float(model.scale), rel=1e-9, abs=1e-9)
+    assert float(first["dof_reg"]) == pytest.approx(float(model.df_resid), rel=1e-9, abs=1e-9)
+    assert float(first["rmse_reg"]) == pytest.approx(
+        math.sqrt(sum(float(value) * float(value) for value in model.resid) / len(records)),
+        rel=1e-9,
+        abs=1e-9,
+    )
+
+
+@pytest.mark.parametrize(
+    ("rows", "independent_columns"),
+    [
+        (
+            [
+                {"site_id": "n1", "x1": 0.0, "x2": 1.0, "y": 1.4, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "n2", "x1": 1.0, "x2": 0.0, "y": 2.2, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "n3", "x1": 2.0, "x2": 1.0, "y": 3.9, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "n4", "x1": 3.0, "x2": 2.0, "y": 5.7, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+                {"site_id": "n5", "x1": 4.0, "x2": 3.0, "y": 7.8, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+                {"site_id": "n6", "x1": 5.0, "x2": 2.0, "y": 8.6, "geometry": {"type": "Point", "coordinates": [5.0, 0.0]}},
+            ],
+            ["x1", "x2"],
+        ),
+        (
+            [
+                {"site_id": "c1", "x1": 0.0, "x2": 1.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "c2", "x1": 1.0, "x2": 0.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "c3", "x1": 2.0, "x2": 1.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "c4", "x1": 3.0, "x2": 2.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+                {"site_id": "c5", "x1": 4.0, "x2": 3.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+                {"site_id": "c6", "x1": 5.0, "x2": 2.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [5.0, 0.0]}},
+            ],
+            ["x1", "x2"],
+        ),
+        (
+            [
+                {"site_id": "r1", "x1": 0.0, "x2": 0.0, "y": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+                {"site_id": "r2", "x1": 1.0, "x2": 2.0, "y": 3.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+                {"site_id": "r3", "x1": 2.0, "x2": 4.0, "y": 5.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+                {"site_id": "r4", "x1": 3.0, "x2": 6.0, "y": 7.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+                {"site_id": "r5", "x1": 4.0, "x2": 8.0, "y": 9.0, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+            ],
+            ["x1", "x2"],
+        ),
+    ],
+)
+def test_spatial_regression_matches_statsmodels_across_stress_cases_when_available(
+    rows: list[dict[str, Any]],
+    independent_columns: list[str],
+) -> None:
+    statsmodels_api = pytest.importorskip("statsmodels.api")
+
+    frame = _make_point_frame(rows)
+    records = frame.spatial_regression(
+        dependent_column="y",
+        independent_columns=independent_columns,
+        k_neighbors=2,
+    ).to_records()
+    design = statsmodels_api.add_constant([[float(row[column]) for column in independent_columns] for row in rows])
+    model = statsmodels_api.OLS([float(row["y"]) for row in rows], design).fit()
+    first = records[0]
+
+    assert cast(list[float], first["coefficients_reg"]) == pytest.approx([float(value) for value in model.params], rel=1e-6, abs=1e-6)
+    assert cast(list[float], first["coefficient_standard_errors_reg"]) == pytest.approx([float(value) for value in model.bse], rel=1e-6, abs=1e-6)
+    assert cast(list[float], first["coefficient_t_statistics_reg"]) == pytest.approx([float(value) for value in model.tvalues], rel=1e-6, abs=1e-6)
+    assert cast(list[float], first["coefficient_p_values_reg"]) == pytest.approx([float(value) for value in model.pvalues], rel=1e-6, abs=1e-6)
+    assert [float(record["predicted_reg"]) for record in records] == pytest.approx([float(value) for value in model.fittedvalues], rel=1e-6, abs=1e-6)
+    assert [float(record["residual_reg"]) for record in records] == pytest.approx([float(value) for value in model.resid], rel=1e-6, abs=1e-6)
+    assert float(first["r_squared_reg"]) == pytest.approx(float(model.rsquared), rel=1e-6, abs=1e-6)
+    assert float(first["adj_r_squared_reg"]) == pytest.approx(float(model.rsquared_adj), rel=1e-6, abs=1e-6)
+    assert float(first["sigma2_reg"]) == pytest.approx(float(model.scale), rel=1e-6, abs=1e-6)
+    assert float(first["dof_reg"]) == pytest.approx(float(model.df_resid), rel=1e-6, abs=1e-6)
+    assert float(first["rmse_reg"]) == pytest.approx(
+        math.sqrt(sum(float(value) * float(value) for value in model.resid) / len(records)),
+        rel=1e-6,
+        abs=1e-6,
+    )
+
+
+# Tool 22: geographically_weighted_summary
+def test_geographically_weighted_summary():
+    frame = _sample_point_grid()
+    result = frame.geographically_weighted_summary(
+        dependent_column="elevation",
+        independent_columns=["value"],
+        bandwidth=2.0,
+    )
+    assert len(result) == 25
+    for row in result:
+        assert "predicted_gwr" in row
+        assert "residual_gwr" in row
+        assert "intercept_gwr" in row
+        assert "coeff_value_gwr" in row
+
+
+def test_geographically_weighted_summary_reflects_local_nonstationarity() -> None:
+    frame = _make_point_frame([
+        {"site_id": "w1", "x": 1.0, "y": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "w2", "x": 2.0, "y": 2.0, "geometry": {"type": "Point", "coordinates": [0.5, 0.0]}},
+        {"site_id": "w3", "x": 3.0, "y": 3.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        {"site_id": "e1", "x": 1.0, "y": 6.0, "geometry": {"type": "Point", "coordinates": [10.0, 0.0]}},
+        {"site_id": "e2", "x": 2.0, "y": 7.0, "geometry": {"type": "Point", "coordinates": [10.5, 0.0]}},
+        {"site_id": "e3", "x": 3.0, "y": 8.0, "geometry": {"type": "Point", "coordinates": [11.0, 0.0]}},
+    ])
+
+    records = frame.geographically_weighted_summary(
+        dependent_column="y",
+        independent_columns=["x"],
+        bandwidth=1.0,
+    ).to_records()
+    coefficients = {str(record["site_id"]): float(record["coeff_x_gwr"]) for record in records}
+
+    assert coefficients["w1"] == pytest.approx(1.0, abs=1e-3)
+    assert coefficients["e1"] == pytest.approx(1.0, abs=1e-3)
+    assert float(records[0]["predicted_gwr"]) != pytest.approx(float(records[-1]["predicted_gwr"]))
+
+
+def test_geographically_weighted_summary_bandwidth_changes_local_coefficients() -> None:
+    frame = _make_point_frame([
+        {"site_id": "a", "x": 1.0, "y": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "x": 2.0, "y": 2.0, "geometry": {"type": "Point", "coordinates": [0.8, 0.0]}},
+        {"site_id": "c", "x": 3.0, "y": 3.0, "geometry": {"type": "Point", "coordinates": [1.6, 0.0]}},
+        {"site_id": "d", "x": 1.0, "y": 4.0, "geometry": {"type": "Point", "coordinates": [4.0, 0.0]}},
+        {"site_id": "e", "x": 2.0, "y": 6.0, "geometry": {"type": "Point", "coordinates": [4.8, 0.0]}},
+        {"site_id": "f", "x": 3.0, "y": 8.0, "geometry": {"type": "Point", "coordinates": [5.6, 0.0]}},
+    ])
+
+    narrow = frame.geographically_weighted_summary(
+        dependent_column="y",
+        independent_columns=["x"],
+        bandwidth=0.9,
+    ).to_records()
+    wide = frame.geographically_weighted_summary(
+        dependent_column="y",
+        independent_columns=["x"],
+        bandwidth=10.0,
+    ).to_records()
+
+    narrow_coefficients = [float(record["coeff_x_gwr"]) for record in narrow]
+    wide_coefficients = [float(record["coeff_x_gwr"]) for record in wide]
+
+    assert max(narrow_coefficients) - min(narrow_coefficients) > 0.5
+    assert max(wide_coefficients) - min(wide_coefficients) < 0.1
+
+
+def test_weighted_local_summary_matches_geographically_weighted_summary_alias() -> None:
+    frame = _sample_point_grid()
+
+    legacy_records = frame.geographically_weighted_summary(
+        dependent_column="elevation",
+        independent_columns=["value"],
+        bandwidth=2.0,
+        gwr_suffix="alias",
+    ).to_records()
+    alias_records = frame.weighted_local_summary(
+        dependent_column="elevation",
+        independent_columns=["value"],
+        bandwidth=2.0,
+        summary_suffix="alias",
+    ).to_records()
+
+    assert alias_records == legacy_records
+
+
+# Tool 23: join_by_largest_overlap
+def test_join_by_largest_overlap():
+    left = _make_point_frame([
+        {"site_id": "L1", "geometry": {"type": "Polygon", "coordinates": [(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)]}},
+    ])
+    right = _make_point_frame([
+        {"site_id": "R1", "geometry": {"type": "Polygon", "coordinates": [(1, 1), (3, 1), (3, 3), (1, 3), (1, 1)]}},
+        {"site_id": "R2", "geometry": {"type": "Polygon", "coordinates": [(5, 5), (6, 5), (6, 6), (5, 6), (5, 5)]}},
+    ])
+    result = left.join_by_largest_overlap(right)
+    records = result.to_records()
+    assert len(records) == 1
+    assert records[0]["overlap_area_overlap"] > 0
+
+
+# Tool 24: erase
+def test_erase():
+    source = _make_point_frame([
+        {"site_id": "s1", "geometry": {"type": "Polygon", "coordinates": [(0, 0), (4, 0), (4, 4), (0, 4), (0, 0)]}},
+    ])
+    mask = _make_point_frame([
+        {"site_id": "m1", "geometry": {"type": "Polygon", "coordinates": [(2, 2), (6, 2), (6, 6), (2, 6), (2, 6), (2, 2)]}},
+    ])
+    result = source.erase(mask)
+    assert len(result) >= 1
+
+
+# Tool 25: identity_overlay
+def test_identity_overlay():
+    left = _make_point_frame([
+        {"site_id": "L1", "geometry": {"type": "Polygon", "coordinates": [(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)]}},
+    ])
+    right = _make_point_frame([
+        {"site_id": "R1", "val": 99, "geometry": {"type": "Polygon", "coordinates": [(1, 1), (3, 1), (3, 3), (1, 3), (1, 1)]}},
+    ])
+    result = left.identity_overlay(right)
+    assert len(result) >= 1
+    has_identity_val = any(r.get("val_identity") == 99 for r in result)
+    assert has_identity_val
+
+
+# Tool 26: multipart_to_singlepart
+def test_multipart_to_singlepart():
+    frame = _make_point_frame([
+        {"site_id": "s1", "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+        {"site_id": "s2", "geometry": {"type": "Point", "coordinates": [3.0, 4.0]}},
+    ])
+    result = frame.multipart_to_singlepart()
+    assert len(result) >= 2
+    for row in result:
+        assert "part_id_part" in row
+
+
+# Tool 27: singlepart_to_multipart
+def test_singlepart_to_multipart():
+    frame = _make_point_frame([
+        {"site_id": "group1", "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+        {"site_id": "group1", "geometry": {"type": "Point", "coordinates": [3.0, 4.0]}},
+        {"site_id": "group2", "geometry": {"type": "Point", "coordinates": [5.0, 6.0]}},
+    ])
+    result = frame.singlepart_to_multipart(group_column="site_id")
+    assert len(result) == 2
+    records = result.to_records()
+    for row in records:
+        assert "part_count_multi" in row
+        assert len(cast(Any, row["part_geometries_multi"])) == row["part_count_multi"]
+    group1 = next(row for row in records if row["site_id"] == "group1")
+    round_tripped = result.filter(lambda row: row["site_id"] == "group1").multipart_to_singlepart().to_records()
+    assert len(round_tripped) == 2
+    assert {tuple(cast(Any, row["geometry"])["coordinates"]) for row in round_tripped} == {
+        (1.0, 2.0),
+        (3.0, 4.0),
+    }
+
+
+# Tool 28: eliminate_slivers
+def test_eliminate_slivers():
+    frame = _make_point_frame([
+        {"site_id": "big", "geometry": {"type": "Polygon", "coordinates": [(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)]}},
+        {"site_id": "tiny", "geometry": {"type": "Polygon", "coordinates": [(0, 0), (0.001, 0), (0.001, 0.001), (0, 0.001), (0, 0)]}},
+    ])
+    result = frame.eliminate_slivers(min_area=0.01)
+    records = result.to_records()
+    assert len(records) == 1
+    assert records[0]["site_id"] == "big"
+
+
+# Tool 29: simplify
+def test_simplify():
+    frame = _make_point_frame([
+        {"site_id": "line", "geometry": {"type": "LineString", "coordinates": [
+            (0.0, 0.0), (0.5, 0.001), (1.0, 0.0), (1.5, -0.001), (2.0, 0.0),
+        ]}},
+    ])
+    result = frame.simplify(tolerance=0.01)
+    records = result.to_records()
+    assert len(records) == 1
+    assert records[0]["vertex_count_simplified"] <= 5
+
+
+# Tool 30: densify
+def test_densify():
+    frame = _make_point_frame([
+        {"site_id": "line", "geometry": {"type": "LineString", "coordinates": [(0.0, 0.0), (1.0, 0.0)]}},
+    ])
+    result = frame.densify(max_segment_length=0.25)
+    records = result.to_records()
+    assert records[0]["vertex_count_densified"] >= 5
+
+
+# Tool 31: smooth_geometry
+def test_smooth_geometry():
+    frame = _make_point_frame([
+        {"site_id": "line", "geometry": {"type": "LineString", "coordinates": [
+            (0.0, 0.0), (1.0, 1.0), (2.0, 0.0), (3.0, 1.0),
+        ]}},
+    ])
+    result = frame.smooth_geometry(iterations=2)
+    records = result.to_records()
+    assert records[0]["vertex_count_smoothed"] > 4
+
+
+# Tool 32: snap_to_network_nodes
+def test_snap_to_network_nodes():
+    network = _sample_network_frame()
+    points = _make_point_frame([
+        {"site_id": "q1", "geometry": {"type": "Point", "coordinates": [0.1, 0.05]}},
+        {"site_id": "q2", "geometry": {"type": "Point", "coordinates": [2.8, 0.1]}},
+    ])
+    result = network.snap_to_network_nodes(points)
+    records = result.to_records()
+    assert len(records) == 2
+    # node_id_snapped contains the coordinate key, not the node id
+    assert records[0]["snap_distance_snapped"] < 0.2
+    assert records[1]["snap_distance_snapped"] < 0.3
+
+
+# Tool 33: origin_destination_matrix
+def test_origin_destination_matrix():
+    network = _sample_network_frame()
+    origins = _make_point_frame([
+        {"site_id": "o1", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+    ])
+    destinations = _make_point_frame([
+        {"site_id": "d1", "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+    ])
+    result = network.origin_destination_matrix(origins, destinations)
+    records = result.to_records()
+    assert len(records) == 1
+    assert records[0]["network_cost_od"] is not None
+    assert records[0]["reachable_od"] is True
+
+
+# Tool 34: k_shortest_paths
+def test_k_shortest_paths():
+    network = _sample_network_frame()
+    result = network.k_shortest_paths(
+        origin=(0.0, 0.0),
+        destination=(3.0, 0.0),
+        k=2,
+    )
+    assert len(result) >= 3  # at least the primary path with 3 edges
+
+
+def test_k_shortest_paths_returns_unique_ranked_alternatives() -> None:
+    network = GeoPromptFrame.from_records(
+        [
+            {
+                "edge_id": "ab",
+                "from_node_id": "A",
+                "to_node_id": "B",
+                "from_node": (0.0, 0.0),
+                "to_node": (1.0, 0.0),
+                "edge_length": 1.0,
+                "geometry": {"type": "LineString", "coordinates": [(0.0, 0.0), (1.0, 0.0)]},
+            },
+            {
+                "edge_id": "bd",
+                "from_node_id": "B",
+                "to_node_id": "D",
+                "from_node": (1.0, 0.0),
+                "to_node": (2.0, 1.0),
+                "edge_length": 1.4,
+                "geometry": {"type": "LineString", "coordinates": [(1.0, 0.0), (2.0, 1.0)]},
+            },
+            {
+                "edge_id": "ac",
+                "from_node_id": "A",
+                "to_node_id": "C",
+                "from_node": (0.0, 0.0),
+                "to_node": (1.0, 1.0),
+                "edge_length": 1.2,
+                "geometry": {"type": "LineString", "coordinates": [(0.0, 0.0), (1.0, 1.0)]},
+            },
+            {
+                "edge_id": "cd",
+                "from_node_id": "C",
+                "to_node_id": "D",
+                "from_node": (1.0, 1.0),
+                "to_node": (2.0, 1.0),
+                "edge_length": 1.0,
+                "geometry": {"type": "LineString", "coordinates": [(1.0, 1.0), (2.0, 1.0)]},
+            },
+        ],
+        geometry="geometry",
+        crs="EPSG:4326",
+    )
+
+    result = network.k_shortest_paths(origin="A", destination="D", k=3).to_records()
+
+    path_signatures: dict[int, list[str]] = {}
+    for row in result:
+        path_signatures.setdefault(int(row["path_rank_ksp"]), []).append(str(row["edge_id"]))
+
+    assert path_signatures == {
+        1: ["ac", "cd"],
+        2: ["ab", "bd"],
+    }
+
+
+# Tool 35: network_trace
+def test_network_trace():
+    network = _sample_network_frame()
+    result = network.network_trace(start=(0.0, 0.0), direction="downstream")
+    assert len(result) >= 1
+    for row in result:
+        assert "trace_cost_trace" in row
+
+
+# Tool 36: route_sequence_optimize
+def test_route_sequence_optimize():
+    network = _sample_network_frame()
+    stops = _make_point_frame([
+        {"site_id": "s1", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "s2", "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "s3", "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+    ])
+    result = network.route_sequence_optimize(stops)
+    assert len(result) == 3
+    orders = sorted(row["visit_order_route"] for row in result)
+    assert orders == [1, 2, 3]
+    assert all(row["method_route"] == "greedy_2opt" for row in result.to_records())
+
+
+def test_route_sequence_optimize_improves_greedy_route_with_two_opt() -> None:
+    node_coordinates = {
+        "A": (0.0, 0.0),
+        "B": (1.0, 0.0),
+        "C": (2.0, 0.0),
+        "D": (3.0, 0.0),
+        "E": (4.0, 0.0),
+    }
+    costs = {
+        ("A", "B"): 14.0,
+        ("A", "C"): 1.0,
+        ("A", "D"): 17.0,
+        ("A", "E"): 8.0,
+        ("B", "C"): 15.0,
+        ("B", "D"): 16.0,
+        ("B", "E"): 18.0,
+        ("C", "D"): 8.0,
+        ("C", "E"): 12.0,
+        ("D", "E"): 8.0,
+    }
+
+    network_rows = []
+    for edge_index, ((from_node_id, to_node_id), edge_length) in enumerate(costs.items(), start=1):
+        network_rows.append(
+            {
+                "edge_id": f"edge-{edge_index:02d}",
+                "from_node_id": from_node_id,
+                "to_node_id": to_node_id,
+                "from_node": node_coordinates[from_node_id],
+                "to_node": node_coordinates[to_node_id],
+                "edge_length": edge_length,
+                "geometry": {"type": "LineString", "coordinates": [node_coordinates[from_node_id], node_coordinates[to_node_id]]},
+            }
+        )
+    network = GeoPromptFrame.from_records(network_rows, crs="EPSG:4326")
+    stops = GeoPromptFrame.from_records(
+        [
+            {"site_id": node_id.lower(), "node_id": node_id, "geometry": {"type": "Point", "coordinates": node_coordinates[node_id]}}
+            for node_id in ["A", "B", "C", "D", "E"]
+        ],
+        crs="EPSG:4326",
+    )
+
+    records = network.route_sequence_optimize(
+        stops,
+        stop_node_column="node_id",
+    ).to_records()
+
+    greedy_cost = 35.0
+    optimized_cost = float(records[0]["total_cost_route"])
+
+    assert [record["site_id"] for record in records] == ["a", "c", "e", "d", "b"]
+    assert optimized_cost < greedy_cost
+    assert optimized_cost == pytest.approx(34.0)
+    assert all(record["reachable_route"] is True for record in records)
+
+
+def test_route_sequence_optimize_matches_bruteforce_optimum_on_multiple_tiny_networks() -> None:
+    cases = [
+        {
+            "name": "chain_four",
+            "directed": False,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 0.0), "C": (2.0, 0.0), "D": (3.0, 0.0)},
+            "edges": [
+                ("edge-01", "A", "B", 1.0),
+                ("edge-02", "B", "C", 1.0),
+                ("edge-03", "C", "D", 1.0),
+            ],
+            "stop_order": ["A", "B", "C", "D"],
+        },
+        {
+            "name": "diamond_four",
+            "directed": False,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 1.0), "C": (1.0, -1.0), "D": (2.0, 0.0)},
+            "edges": [
+                ("edge-01", "A", "B", 1.0),
+                ("edge-02", "A", "C", 1.2),
+                ("edge-03", "B", "D", 1.0),
+                ("edge-04", "C", "D", 1.0),
+                ("edge-05", "B", "C", 0.9),
+            ],
+            "stop_order": ["A", "B", "C", "D"],
+        },
+        {
+            "name": "five_stop_improvement",
+            "directed": False,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 0.0), "C": (2.0, 0.0), "D": (3.0, 0.0), "E": (4.0, 0.0)},
+            "edges": [
+                ("edge-01", "A", "B", 14.0),
+                ("edge-02", "A", "C", 1.0),
+                ("edge-03", "A", "D", 17.0),
+                ("edge-04", "A", "E", 8.0),
+                ("edge-05", "B", "C", 15.0),
+                ("edge-06", "B", "D", 16.0),
+                ("edge-07", "B", "E", 18.0),
+                ("edge-08", "C", "D", 8.0),
+                ("edge-09", "C", "E", 12.0),
+                ("edge-10", "D", "E", 8.0),
+            ],
+            "stop_order": ["A", "B", "C", "D", "E"],
+        },
+        {
+            "name": "directed_asymmetric_five",
+            "directed": True,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 0.0), "C": (2.0, 0.0), "D": (3.0, 0.0), "E": (4.0, 0.0)},
+            "edges": [
+                ("edge-01", "A", "B", 9.0),
+                ("edge-02", "A", "C", 1.0),
+                ("edge-03", "A", "D", 8.0),
+                ("edge-04", "A", "E", 10.0),
+                ("edge-05", "B", "A", 9.0),
+                ("edge-06", "B", "C", 9.0),
+                ("edge-07", "B", "D", 1.0),
+                ("edge-08", "B", "E", 7.0),
+                ("edge-09", "C", "A", 8.0),
+                ("edge-10", "C", "B", 1.0),
+                ("edge-11", "C", "D", 4.0),
+                ("edge-12", "C", "E", 8.0),
+                ("edge-13", "D", "A", 8.0),
+                ("edge-14", "D", "B", 6.0),
+                ("edge-15", "D", "C", 5.0),
+                ("edge-16", "D", "E", 1.0),
+                ("edge-17", "E", "A", 10.0),
+                ("edge-18", "E", "B", 7.0),
+                ("edge-19", "E", "C", 6.0),
+                ("edge-20", "E", "D", 3.0),
+            ],
+            "stop_order": ["A", "B", "C", "D", "E"],
+        },
+        {
+            "name": "undirected_six_dense",
+            "directed": False,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 1.0), "C": (2.0, 0.0), "D": (3.0, 1.0), "E": (4.0, 0.0), "F": (5.0, 1.0)},
+            "edges": [
+                ("edge-01", "A", "B", 1.0),
+                ("edge-02", "A", "C", 2.4),
+                ("edge-03", "A", "D", 4.8),
+                ("edge-04", "A", "E", 6.2),
+                ("edge-05", "A", "F", 7.8),
+                ("edge-06", "B", "C", 1.1),
+                ("edge-07", "B", "D", 2.2),
+                ("edge-08", "B", "E", 4.7),
+                ("edge-09", "B", "F", 6.3),
+                ("edge-10", "C", "D", 1.0),
+                ("edge-11", "C", "E", 2.1),
+                ("edge-12", "C", "F", 4.4),
+                ("edge-13", "D", "E", 1.2),
+                ("edge-14", "D", "F", 2.0),
+                ("edge-15", "E", "F", 1.1),
+            ],
+            "stop_order": ["A", "B", "C", "D", "E", "F"],
+        },
+        {
+            "name": "directed_six_dense",
+            "directed": True,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 1.0), "C": (2.0, 0.0), "D": (3.0, 1.0), "E": (4.0, 0.0), "F": (5.0, 1.0)},
+            "edges": [
+                ("edge-01", "A", "B", 1.0),
+                ("edge-02", "A", "C", 3.4),
+                ("edge-03", "A", "D", 5.5),
+                ("edge-04", "A", "E", 6.7),
+                ("edge-05", "A", "F", 8.9),
+                ("edge-06", "B", "A", 2.2),
+                ("edge-07", "B", "C", 1.0),
+                ("edge-08", "B", "D", 2.8),
+                ("edge-09", "B", "E", 4.8),
+                ("edge-10", "B", "F", 6.4),
+                ("edge-11", "C", "A", 2.9),
+                ("edge-12", "C", "B", 1.1),
+                ("edge-13", "C", "D", 1.0),
+                ("edge-14", "C", "E", 2.6),
+                ("edge-15", "C", "F", 4.7),
+                ("edge-16", "D", "A", 5.7),
+                ("edge-17", "D", "B", 2.1),
+                ("edge-18", "D", "C", 1.3),
+                ("edge-19", "D", "E", 1.0),
+                ("edge-20", "D", "F", 2.4),
+                ("edge-21", "E", "A", 6.8),
+                ("edge-22", "E", "B", 4.6),
+                ("edge-23", "E", "C", 2.2),
+                ("edge-24", "E", "D", 1.2),
+                ("edge-25", "E", "F", 1.0),
+                ("edge-26", "F", "A", 8.3),
+                ("edge-27", "F", "B", 6.1),
+                ("edge-28", "F", "C", 4.3),
+                ("edge-29", "F", "D", 2.0),
+                ("edge-30", "F", "E", 1.4),
+            ],
+            "stop_order": ["A", "B", "C", "D", "E", "F"],
+        },
+        {
+            "name": "undirected_seven_dense",
+            "directed": False,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 1.0), "C": (2.0, 0.0), "D": (3.0, 1.0), "E": (4.0, 0.0), "F": (5.0, 1.0), "G": (6.0, 0.0)},
+            "edges": [
+                ("edge-01", "A", "B", 1.0),
+                ("edge-02", "A", "C", 2.0),
+                ("edge-03", "A", "D", 4.1),
+                ("edge-04", "A", "E", 6.2),
+                ("edge-05", "A", "F", 8.0),
+                ("edge-06", "A", "G", 10.1),
+                ("edge-07", "B", "C", 1.0),
+                ("edge-08", "B", "D", 2.1),
+                ("edge-09", "B", "E", 4.3),
+                ("edge-10", "B", "F", 6.1),
+                ("edge-11", "B", "G", 8.2),
+                ("edge-12", "C", "D", 1.0),
+                ("edge-13", "C", "E", 2.0),
+                ("edge-14", "C", "F", 4.2),
+                ("edge-15", "C", "G", 6.0),
+                ("edge-16", "D", "E", 1.0),
+                ("edge-17", "D", "F", 2.1),
+                ("edge-18", "D", "G", 4.1),
+                ("edge-19", "E", "F", 1.0),
+                ("edge-20", "E", "G", 2.0),
+                ("edge-21", "F", "G", 1.0),
+            ],
+            "stop_order": ["A", "B", "C", "D", "E", "F", "G"],
+        },
+        {
+            "name": "directed_seven_dense",
+            "directed": True,
+            "node_coordinates": {"A": (0.0, 0.0), "B": (1.0, 1.0), "C": (2.0, 0.0), "D": (3.0, 1.0), "E": (4.0, 0.0), "F": (5.0, 1.0), "G": (6.0, 0.0)},
+            "edges": [
+                ("edge-01", "A", "B", 1.0),
+                ("edge-02", "A", "C", 2.6),
+                ("edge-03", "A", "D", 4.9),
+                ("edge-04", "A", "E", 7.2),
+                ("edge-05", "A", "F", 8.8),
+                ("edge-06", "A", "G", 10.9),
+                ("edge-07", "B", "A", 2.3),
+                ("edge-08", "B", "C", 1.0),
+                ("edge-09", "B", "D", 2.4),
+                ("edge-10", "B", "E", 4.8),
+                ("edge-11", "B", "F", 6.6),
+                ("edge-12", "B", "G", 8.7),
+                ("edge-13", "C", "A", 2.8),
+                ("edge-14", "C", "B", 1.2),
+                ("edge-15", "C", "D", 1.0),
+                ("edge-16", "C", "E", 2.5),
+                ("edge-17", "C", "F", 4.7),
+                ("edge-18", "C", "G", 6.5),
+                ("edge-19", "D", "A", 5.4),
+                ("edge-20", "D", "B", 2.0),
+                ("edge-21", "D", "C", 1.3),
+                ("edge-22", "D", "E", 1.0),
+                ("edge-23", "D", "F", 2.2),
+                ("edge-24", "D", "G", 4.6),
+                ("edge-25", "E", "A", 7.1),
+                ("edge-26", "E", "B", 4.5),
+                ("edge-27", "E", "C", 2.1),
+                ("edge-28", "E", "D", 1.2),
+                ("edge-29", "E", "F", 1.0),
+                ("edge-30", "E", "G", 2.4),
+                ("edge-31", "F", "A", 8.6),
+                ("edge-32", "F", "B", 6.3),
+                ("edge-33", "F", "C", 4.2),
+                ("edge-34", "F", "D", 2.0),
+                ("edge-35", "F", "E", 1.4),
+                ("edge-36", "F", "G", 1.0),
+                ("edge-37", "G", "A", 10.4),
+                ("edge-38", "G", "B", 8.1),
+                ("edge-39", "G", "C", 6.1),
+                ("edge-40", "G", "D", 4.0),
+                ("edge-41", "G", "E", 2.2),
+                ("edge-42", "G", "F", 1.3),
+            ],
+            "stop_order": ["A", "B", "C", "D", "E", "F", "G"],
+        },
+    ]
+
+    for case in cases:
+        node_coordinates = case["node_coordinates"]
+        directed = bool(case["directed"])
+        network_rows = [
+            {
+                "edge_id": edge_id,
+                "from_node_id": from_node_id,
+                "to_node_id": to_node_id,
+                "from_node": node_coordinates[from_node_id],
+                "to_node": node_coordinates[to_node_id],
+                "edge_length": edge_length,
+                "geometry": {"type": "LineString", "coordinates": [node_coordinates[from_node_id], node_coordinates[to_node_id]]},
+            }
+            for edge_id, from_node_id, to_node_id, edge_length in case["edges"]
+        ]
+        network = GeoPromptFrame.from_records(network_rows, crs="EPSG:4326")
+        stops = GeoPromptFrame.from_records(
+            [
+                {"site_id": node_id.lower(), "node_id": node_id, "geometry": {"type": "Point", "coordinates": node_coordinates[node_id]}}
+                for node_id in case["stop_order"]
+            ],
+            crs="EPSG:4326",
+        )
+
+        records = network.route_sequence_optimize(
+            stops,
+            stop_node_column="node_id",
+            directed=directed,
+        ).to_records()
+        route_nodes = [record["node_id"] for record in records]
+        node_ids = list(case["stop_order"])
+        shortest_costs = {
+            origin: {destination: (0.0 if origin == destination else float("inf")) for destination in node_ids}
+            for origin in node_ids
+        }
+        for row in network_rows:
+            shortest_costs[row["from_node_id"]][row["to_node_id"]] = float(row["edge_length"])
+            if not directed:
+                shortest_costs[row["to_node_id"]][row["from_node_id"]] = float(row["edge_length"])
+        for via in node_ids:
+            for origin in node_ids:
+                for destination in node_ids:
+                    shortest_costs[origin][destination] = min(
+                        shortest_costs[origin][destination],
+                        shortest_costs[origin][via] + shortest_costs[via][destination],
+                    )
+
+        def path_cost(path: list[str]) -> float:
+            return sum(shortest_costs[path[index]][path[index + 1]] for index in range(len(path) - 1))
+
+        optimal_sequence = min(
+            ([node_ids[0], *list(permutation)] for permutation in permutations(node_ids[1:])),
+            key=path_cost,
+        )
+
+        assert path_cost(route_nodes) == pytest.approx(path_cost(optimal_sequence)), case["name"]
+        assert float(records[0]["total_cost_route"]) == pytest.approx(path_cost(route_nodes)), case["name"]
+
+
+def test_route_sequence_optimize_retains_unreachable_stops() -> None:
+    network = GeoPromptFrame.from_records(
+        [
+            {
+                "edge_id": "e1",
+                "from_node_id": "A",
+                "to_node_id": "B",
+                "from_node": (0.0, 0.0),
+                "to_node": (1.0, 0.0),
+                "edge_length": 1.0,
+                "geometry": {"type": "LineString", "coordinates": [(0.0, 0.0), (1.0, 0.0)]},
+            },
+            {
+                "edge_id": "e2",
+                "from_node_id": "B",
+                "to_node_id": "C",
+                "from_node": (1.0, 0.0),
+                "to_node": (2.0, 0.0),
+                "edge_length": 1.0,
+                "geometry": {"type": "LineString", "coordinates": [(1.0, 0.0), (2.0, 0.0)]},
+            },
+            {
+                "edge_id": "e3",
+                "from_node_id": "X",
+                "to_node_id": "Y",
+                "from_node": (10.0, 0.0),
+                "to_node": (11.0, 0.0),
+                "edge_length": 1.0,
+                "geometry": {"type": "LineString", "coordinates": [(10.0, 0.0), (11.0, 0.0)]},
+            },
+        ],
+        geometry="geometry",
+        crs="EPSG:4326",
+    )
+    stops = _make_point_frame([
+        {"site_id": "s1", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "s2", "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "s3", "geometry": {"type": "Point", "coordinates": [11.0, 0.0]}},
+    ])
+
+    records = network.route_sequence_optimize(stops).to_records()
+
+    assert [record["site_id"] for record in records] == ["s1", "s2", "s3"]
+    assert [record["reachable_route"] for record in records] == [True, True, False]
+    assert records[-1]["visit_order_route"] == 3
+    assert records[-1]["stop_count_route"] == 3
+
+
+# Tool 37: trajectory_staypoint_detection
+def test_trajectory_staypoint_detection():
+    frame = _make_point_frame([
+        {"site_id": "t1", "time": 0.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "t2", "time": 1.0, "geometry": {"type": "Point", "coordinates": [0.001, 0.001]}},
+        {"site_id": "t3", "time": 2.0, "geometry": {"type": "Point", "coordinates": [0.002, 0.0]}},
+        {"site_id": "t4", "time": 3.0, "geometry": {"type": "Point", "coordinates": [5.0, 5.0]}},
+        {"site_id": "t5", "time": 4.0, "geometry": {"type": "Point", "coordinates": [5.001, 5.001]}},
+    ])
+    result = frame.trajectory_staypoint_detection(time_column="time", max_radius=0.01, min_duration=1.0)
+    staypoints = [r for r in result if r["is_staypoint_staypoint"]]
+    assert len(staypoints) >= 2
+
+
+def test_trajectory_staypoint_detection_uses_chronological_order() -> None:
+    frame = _make_point_frame([
+        {"site_id": "late", "time": 2.0, "geometry": {"type": "Point", "coordinates": [0.0004, 0.0]}},
+        {"site_id": "early", "time": 0.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "middle", "time": 1.0, "geometry": {"type": "Point", "coordinates": [0.0002, 0.0]}},
+        {"site_id": "move", "time": 3.0, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+    ])
+
+    records = frame.trajectory_staypoint_detection(
+        time_column="time",
+        max_radius=0.01,
+        min_duration=1.0,
+    ).to_records()
+
+    assert [record["site_id"] for record in records] == ["early", "middle", "late", "move"]
+    assert [record["is_staypoint_staypoint"] for record in records] == [True, True, True, False]
+    assert all(record["duration_staypoint"] == 2.0 for record in records[:3])
+
+
+# Tool 38: trajectory_simplify
+def test_trajectory_simplify():
+    frame = _make_point_frame([
+        {"site_id": f"t{i}", "geometry": {"type": "Point", "coordinates": [float(i), 0.001 * (i % 2)]}}
+        for i in range(10)
+    ])
+    result = frame.trajectory_simplify(tolerance=0.01)
+    assert len(result) < len(frame)
+
+
+def test_trajectory_simplify_uses_time_column_order() -> None:
+    frame = _make_point_frame([
+        {"site_id": "mid", "time": 1.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.001]}},
+        {"site_id": "end", "time": 2.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "start", "time": 0.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+    ])
+
+    records = frame.trajectory_simplify(tolerance=0.01, time_column="time").to_records()
+
+    assert [record["site_id"] for record in records] == ["start", "end"]
+    assert [record["time"] for record in records] == [0.0, 2.0]
+    assert [record["original_index_traj_simplified"] for record in records] == [2, 1]
+
+
+# Tool 39: spatiotemporal_cube
+def test_spatiotemporal_cube():
+    frame = _sample_point_grid()
+    result = frame.spatiotemporal_cube(
+        time_column="time",
+        value_column="value",
+        time_intervals=3,
+        grid_resolution=3,
+        aggregation="count",
+    )
+    assert len(result) > 0
+    for row in result:
+        assert "time_bin_cube" in row
+        assert "value_cube" in row
+        assert row["geometry"]["type"] == "Point"
+
+
+def test_spatiotemporal_cube_assigns_boundary_points_once() -> None:
+    frame = _make_point_frame([
+        {"site_id": "a", "time": 0.0, "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "time": 1.0, "value": 2.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.5]}},
+        {"site_id": "c", "time": 2.0, "value": 3.0, "geometry": {"type": "Point", "coordinates": [2.0, 1.0]}},
+    ])
+
+    records = frame.spatiotemporal_cube(
+        time_column="time",
+        value_column="value",
+        time_intervals=2,
+        grid_resolution=2,
+        aggregation="count",
+    ).to_records()
+
+    assert sum(float(record["value_cube"]) for record in records) == pytest.approx(3.0)
+    assert sum(int(record["point_count_cube"]) for record in records) == 3
+    assert {(int(record["time_bin_cube"]), int(record["grid_row_cube"]), int(record["grid_col_cube"])) for record in records} == {
+        (0, 0, 0),
+        (1, 1, 1),
+    }
+
+
+def test_spatiotemporal_cube_aggregations_match_expected_rollups() -> None:
+    frame = _make_point_frame([
+        {"site_id": "a", "time": 0.0, "value": 2.0, "geometry": {"type": "Point", "coordinates": [0.1, 0.1]}},
+        {"site_id": "b", "time": 0.1, "value": 4.0, "geometry": {"type": "Point", "coordinates": [0.2, 0.2]}},
+        {"site_id": "c", "time": 1.1, "value": 6.0, "geometry": {"type": "Point", "coordinates": [1.8, 1.8]}},
+        {"site_id": "d", "time": 1.2, "value": 10.0, "geometry": {"type": "Point", "coordinates": [1.9, 1.9]}},
+    ])
+
+    sum_records = frame.spatiotemporal_cube(
+        time_column="time",
+        value_column="value",
+        time_intervals=2,
+        grid_resolution=2,
+        aggregation="sum",
+    ).to_records()
+    mean_records = frame.spatiotemporal_cube(
+        time_column="time",
+        value_column="value",
+        time_intervals=2,
+        grid_resolution=2,
+        aggregation="mean",
+    ).to_records()
+    min_records = frame.spatiotemporal_cube(
+        time_column="time",
+        value_column="value",
+        time_intervals=2,
+        grid_resolution=2,
+        aggregation="min",
+    ).to_records()
+    max_records = frame.spatiotemporal_cube(
+        time_column="time",
+        value_column="value",
+        time_intervals=2,
+        grid_resolution=2,
+        aggregation="max",
+    ).to_records()
+
+    assert [float(record["value_cube"]) for record in sum_records] == pytest.approx([6.0, 16.0])
+    assert [float(record["value_cube"]) for record in mean_records] == pytest.approx([3.0, 8.0])
+    assert [float(record["value_cube"]) for record in min_records] == pytest.approx([2.0, 6.0])
+    assert [float(record["value_cube"]) for record in max_records] == pytest.approx([4.0, 10.0])
+    assert [int(record["point_count_cube"]) for record in sum_records] == [2, 2]
+
+
+# Tool 40: geohash_encode
+def test_geohash_encode():
+    frame = _make_point_frame([
+        {"site_id": "a", "geometry": {"type": "Point", "coordinates": [-111.92, 40.78]}},
+        {"site_id": "b", "geometry": {"type": "Point", "coordinates": [-73.99, 40.73]}},
+    ])
+    result = frame.geohash_encode(precision=6)
+    assert len(result) == 2
+    for row in result:
+        assert "hash_geohash" in row
+        assert len(row["hash_geohash"]) == 6
+        assert "precision_geohash" in row
+    # Geohashes for different regions should be different
+    hashes = result["hash_geohash"]
+    assert hashes[0] != hashes[1]
+
+
+def test_new_tools_validate_crs_mismatch() -> None:
+    source = _sample_point_grid()
+    shifted = _make_point_frame(
+        [{"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}}],
+        crs="EPSG:3857",
+    )
+    zones = _sample_zone_frame()
+    zones_3857 = GeoPromptFrame.from_records(zones.to_records(), crs="EPSG:3857")
+    left = _make_point_frame([
+        {"site_id": "p1", "geometry": {"type": "Polygon", "coordinates": [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]}},
+    ])
+    right = GeoPromptFrame.from_records(left.to_records(), crs="EPSG:3857")
+
+    with pytest.raises(ValueError, match="CRS"):
+        source.raster_sample(shifted, value_column="value")
+    with pytest.raises(ValueError, match="CRS"):
+        source.zonal_stats(zones_3857, value_column="value", zone_id_column="zone_id")
+    with pytest.raises(ValueError, match="CRS"):
+        left.join_by_largest_overlap(right)
+    with pytest.raises(ValueError, match="CRS"):
+        left.erase(right)
+
+
+def test_new_tools_validate_basic_parameters() -> None:
+    frame = _sample_point_grid()
+
+    with pytest.raises(ValueError, match="either breaks or mapping"):
+        frame.reclassify("value")
+    with pytest.raises(ValueError, match="greater than zero"):
+        frame.resample(method="every_nth", n=0)
+    with pytest.raises(ValueError, match="greater than zero"):
+        frame.resample(method="spatial_thin", min_distance=0.0)
+    with pytest.raises(ValueError, match="greater than zero"):
+        frame.to_polygons(buffer_distance=0.0)
+    with pytest.raises(ValueError, match="max_distance is required"):
+        frame.hotspot_getis_ord(value_column="value", mode="distance_band")
+    with pytest.raises(ValueError, match="greater than zero"):
+        frame.local_outlier_factor_spatial(k=0)
+    with pytest.raises(ValueError, match="bandwidth must be greater than zero"):
+        frame.kernel_density(bandwidth=0.0)
+    with pytest.raises(ValueError, match="zero or greater"):
+        frame.simplify(tolerance=-1.0)
+    with pytest.raises(ValueError, match="greater than zero"):
+        frame.densify(max_segment_length=0.0)
+    with pytest.raises(ValueError, match="at least 1"):
+        frame.smooth_geometry(iterations=0)
+    with pytest.raises(ValueError, match="greater than zero"):
+        frame.spatiotemporal_cube(time_column="time", value_column="value", time_intervals=0)
+    with pytest.raises(ValueError, match="greater than zero"):
+        frame.spatiotemporal_cube(time_column="time", value_column="value", grid_resolution=0)
+    with pytest.raises(ValueError, match="variogram_model"):
+        frame.kriging_surface(value_column="elevation", variogram_model=cast(Any, "linear"))
+    with pytest.raises(ValueError, match="between 1 and 12"):
+        frame.geohash_encode(precision=0)
+
+
+def test_new_tools_empty_inputs_short_circuit() -> None:
+    empty = GeoPromptFrame._from_internal_rows([], geometry_column="geometry", crs="EPSG:4326")
+
+    assert len(empty.resample()) == 0
+    assert len(empty.raster_clip(0.0, 0.0, 1.0, 1.0)) == 0
+    assert len(empty.thiessen_polygons()) == 0
+    assert len(empty.kernel_density()) == 0
+    assert len(empty.standard_deviational_ellipse()) == 0
+    assert len(empty.center_of_minimum_distance()) == 0
+    assert len(empty.trajectory_simplify()) == 0
+
+
+def test_snap_to_network_nodes_can_leave_points_unmatched() -> None:
+    network = _sample_network_frame()
+    far_points = _make_point_frame([
+        {"site_id": "far", "geometry": {"type": "Point", "coordinates": [100.0, 100.0]}},
+    ])
+
+    result = network.snap_to_network_nodes(far_points, max_distance=0.01)
+    records = result.to_records()
+
+    assert records[0]["node_id_snapped"] is None
+    assert records[0]["snap_distance_snapped"] is None
+
+
+def test_network_methods_handle_disconnected_graphs() -> None:
+    network = GeoPromptFrame.from_records(
+        [
+            {
+                "edge_id": "e1",
+                "from_node_id": "A",
+                "to_node_id": "B",
+                "from_node": (0.0, 0.0),
+                "to_node": (1.0, 0.0),
+                "edge_length": 1.0,
+                "geometry": {"type": "LineString", "coordinates": [(0.0, 0.0), (1.0, 0.0)]},
+            },
+            {
+                "edge_id": "e2",
+                "from_node_id": "C",
+                "to_node_id": "D",
+                "from_node": (10.0, 0.0),
+                "to_node": (11.0, 0.0),
+                "edge_length": 1.0,
+                "geometry": {"type": "LineString", "coordinates": [(10.0, 0.0), (11.0, 0.0)]},
+            },
+        ],
+        geometry="geometry",
+        crs="EPSG:4326",
+    )
+    origins = _make_point_frame([
+        {"site_id": "o1", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+    ])
+    destinations = _make_point_frame([
+        {"site_id": "d1", "geometry": {"type": "Point", "coordinates": [11.0, 0.0]}},
+    ])
+
+    od_records = network.origin_destination_matrix(origins, destinations).to_records()
+    assert od_records[0]["network_cost_od"] is None
+    assert od_records[0]["reachable_od"] is False
+    assert len(network.k_shortest_paths(origin="A", destination="D", k=2)) == 0
+
+
+def test_trajectory_staypoint_detection_marks_short_stops_as_non_staypoints() -> None:
+    frame = _make_point_frame([
+        {"site_id": "t1", "time": 0.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "t2", "time": 0.25, "geometry": {"type": "Point", "coordinates": [0.0005, 0.0005]}},
+        {"site_id": "t3", "time": 0.5, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+    ])
+
+    result = frame.trajectory_staypoint_detection(time_column="time", max_radius=0.01, min_duration=1.0)
+
+    assert all(record["is_staypoint_staypoint"] is False for record in result)
+
+
+def test_spatiotemporal_cube_count_aggregation_returns_nonzero_bins() -> None:
+    frame = _make_point_frame([
+        {"site_id": "a", "time": 0.0, "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+    ])
+
+    result = frame.spatiotemporal_cube(
+        time_column="time",
+        value_column="value",
+        time_intervals=4,
+        grid_resolution=4,
+        aggregation="count",
+    )
+
+    assert len(result) >= 1
+    assert any(float(row["value_cube"]) > 0.0 for row in result)
+
+
+def test_spatial_weights_matrix_supports_inverse_distance_weights() -> None:
+    frame = _sample_point_grid()
+
+    result = frame.spatial_weights_matrix(k=2, weight_mode="inverse_distance")
+
+    assert result["weight_mode"] == "inverse_distance"
+    assert all(all(weight > 0.0 for weight in neighbors.values()) for neighbors in result["weights"].values())
+
+
+# ======================================================================
+# Chunk 1: Weighted Summary vs Real GWR — scope discipline
+# ======================================================================
+
+
+def test_weighted_local_summary_sparse_neighborhood_stability() -> None:
+    """Verify local coefficients remain finite under sparse local neighborhoods."""
+    frame = _make_point_frame([
+        {"site_id": "a", "x": 1.0, "y": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "x": 2.0, "y": 4.0, "geometry": {"type": "Point", "coordinates": [100.0, 100.0]}},
+    ])
+    records = frame.weighted_local_summary(
+        dependent_column="y",
+        independent_columns=["x"],
+        bandwidth=0.5,
+    ).to_records()
+    assert all(math.isfinite(float(r["predicted_local"])) for r in records)
+    assert all(math.isfinite(float(r["intercept_local"])) for r in records)
+
+
+def test_weighted_local_summary_local_r_squared_is_not_populated() -> None:
+    """Verify local_r_squared remains None — not silently populated."""
+    frame = _sample_point_grid()
+    records = frame.weighted_local_summary(
+        dependent_column="elevation",
+        independent_columns=["value"],
+        bandwidth=2.0,
+    ).to_records()
+    assert all(r["local_r_squared_local"] is None for r in records)
+
+
+def test_weighted_local_summary_reproducible_across_runs() -> None:
+    """Verify identical calls produce identical output."""
+    frame = _sample_point_grid()
+    a = frame.weighted_local_summary(
+        dependent_column="elevation",
+        independent_columns=["value"],
+        bandwidth=2.0,
+    ).to_records()
+    b = frame.weighted_local_summary(
+        dependent_column="elevation",
+        independent_columns=["value"],
+        bandwidth=2.0,
+    ).to_records()
+    assert a == b
+
+
+# ======================================================================
+# Chunk 2: Kriging Proof Expansion — wider layouts, nugget-heavy
+# ======================================================================
+
+
+def test_kriging_surface_nugget_heavy_smoothing() -> None:
+    """Large nugget should smooth predictions away from source values."""
+    frame = _make_point_frame([
+        {"site_id": "p1", "value": 0.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "p2", "value": 10.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        {"site_id": "p3", "value": 0.0, "geometry": {"type": "Point", "coordinates": [0.0, 1.0]}},
+        {"site_id": "p4", "value": 10.0, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+    ])
+    records = frame.kriging_surface(
+        value_column="value",
+        grid_resolution=2,
+        variogram_range=2.0,
+        variogram_sill=1.0,
+        variogram_nugget=5.0,
+    ).to_records()
+    predictions = [float(r["value_kriging"]) for r in records]
+    # With high nugget, predictions should stay between 0 and 10
+    assert all(0.0 <= p <= 10.0 for p in predictions)
+    # And variance should be positive everywhere since nugget > 0
+    assert all(float(r["variance_kriging"]) > 0.0 for r in records)
+
+
+def test_kriging_surface_short_range_isolates_predictions() -> None:
+    """Very short range should make distant points nearly independent."""
+    frame = _make_point_frame([
+        {"site_id": "p1", "value": 100.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "p2", "value": 0.0, "geometry": {"type": "Point", "coordinates": [10.0, 10.0]}},
+    ])
+    records = frame.kriging_surface(
+        value_column="value",
+        grid_resolution=2,
+        variogram_range=0.1,
+        variogram_sill=1.0,
+        variogram_nugget=0.0,
+    ).to_records()
+    # The grid corners are at the source points
+    predictions = {(float(cast(Any, r["geometry"])["coordinates"][0]),
+                     float(cast(Any, r["geometry"])["coordinates"][1])): float(r["value_kriging"])
+                    for r in records}
+    assert predictions[(0.0, 0.0)] == pytest.approx(100.0)
+    assert predictions[(10.0, 10.0)] == pytest.approx(0.0)
+
+
+def test_kriging_surface_high_sill_increases_variance() -> None:
+    """Higher sill should produce higher variance at off-source grid points."""
+    frame = _make_point_frame([
+        {"site_id": "p1", "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "p2", "value": 2.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "p3", "value": 3.0, "geometry": {"type": "Point", "coordinates": [1.0, 2.0]}},
+    ])
+    low = frame.kriging_surface(
+        value_column="value", grid_resolution=3,
+        variogram_range=2.0, variogram_sill=1.0, variogram_nugget=0.0,
+    ).to_records()
+    high = frame.kriging_surface(
+        value_column="value", grid_resolution=3,
+        variogram_range=2.0, variogram_sill=10.0, variogram_nugget=0.0,
+    ).to_records()
+    low_var = sum(float(r["variance_kriging"]) for r in low)
+    high_var = sum(float(r["variance_kriging"]) for r in high)
+    assert high_var > low_var
+
+
+@pytest.mark.parametrize("variogram_model", ["spherical", "exponential", "gaussian", "hole_effect"])
+def test_kriging_surface_matches_pykrige_irregular_five_point_when_available(variogram_model: str) -> None:
+    """Verify parity on an irregular 5-point layout with nonzero nugget across all variogram families."""
+    points = [
+        {"site_id": "p1", "value": 1.5, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "p2", "value": 3.2, "geometry": {"type": "Point", "coordinates": [1.5, 0.3]}},
+        {"site_id": "p3", "value": 2.1, "geometry": {"type": "Point", "coordinates": [0.7, 1.8]}},
+        {"site_id": "p4", "value": 4.8, "geometry": {"type": "Point", "coordinates": [2.2, 1.1]}},
+        {"site_id": "p5", "value": 3.6, "geometry": {"type": "Point", "coordinates": [1.0, 0.9]}},
+    ]
+    # grid must match internal bounding-box linspace: x in [0,2.2], y in [0,1.8], res=4
+    res = 4
+    gx = [0.0 + i * (2.2 / (res - 1)) for i in range(res)]
+    gy = [0.0 + i * (1.8 / (res - 1)) for i in range(res)]
+    _assert_kriging_matches_pykrige(
+        points=points,
+        grid_x=gx,
+        grid_y=gy,
+        variogram_range=2.5,
+        variogram_sill=2.0,
+        variogram_nugget=0.15,
+        variogram_model=variogram_model,
+    )
+
+
+# ======================================================================
+# Chunk 3: Route Solver Quality Envelope — adversarial, equal-cost
+# ======================================================================
+
+
+def test_route_sequence_optimize_adversarial_noncollinear() -> None:
+    """Non-collinear layout where greedy nearest-neighbor doesn't trivially find the optimum."""
+    # Diamond layout: A at origin, B right, C top, D far right-top
+    node_coords = {"A": (0.0, 0.0), "B": (2.0, 0.0), "C": (1.0, 3.0), "D": (3.0, 3.0)}
+    edges = [
+        ("e1", "A", "B"), ("e2", "A", "C"), ("e3", "A", "D"),
+        ("e4", "B", "C"), ("e5", "B", "D"), ("e6", "C", "D"),
+    ]
+    network = GeoPromptFrame.from_records([
+        {"edge_id": eid, "from_node_id": f, "to_node_id": t,
+         "from_node": node_coords[f], "to_node": node_coords[t],
+         "edge_length": math.dist(node_coords[f], node_coords[t]),
+         "geometry": {"type": "LineString", "coordinates": [node_coords[f], node_coords[t]]}}
+        for eid, f, t in edges
+    ], crs="EPSG:4326")
+    stops = GeoPromptFrame.from_records([
+        {"site_id": n.lower(), "node_id": n, "geometry": {"type": "Point", "coordinates": node_coords[n]}}
+        for n in ["A", "B", "C", "D"]
+    ], crs="EPSG:4326")
+    records = network.route_sequence_optimize(stops, stop_node_column="node_id").to_records()
+    route_cost = float(records[0]["total_cost_route"])
+    # Brute-force optimum over all open-path permutations using Euclidean distances
+    best = min(
+        sum(math.dist(node_coords[p[i]], node_coords[p[i + 1]]) for i in range(len(p) - 1))
+        for p in permutations(["A", "B", "C", "D"])
+    )
+    assert route_cost == pytest.approx(best, rel=1e-6)
+
+
+def test_route_sequence_optimize_equal_cost_multiple_optima() -> None:
+    """When multiple paths tie in cost, the tool should still report the correct optimal cost."""
+    node_coords = {"A": (0.0, 0.0), "B": (1.0, 0.0), "C": (0.0, 1.0)}
+    edges = [
+        ("e1", "A", "B", 1.0),
+        ("e2", "A", "C", 1.0),
+        ("e3", "B", "C", 1.0),
+    ]
+    network = GeoPromptFrame.from_records([
+        {"edge_id": eid, "from_node_id": f, "to_node_id": t, "from_node": node_coords[f],
+         "to_node": node_coords[t], "edge_length": c,
+         "geometry": {"type": "LineString", "coordinates": [node_coords[f], node_coords[t]]}}
+        for eid, f, t, c in edges
+    ], crs="EPSG:4326")
+    stops = GeoPromptFrame.from_records([
+        {"site_id": n.lower(), "node_id": n, "geometry": {"type": "Point", "coordinates": node_coords[n]}}
+        for n in ["A", "B", "C"]
+    ], crs="EPSG:4326")
+    records = network.route_sequence_optimize(stops, stop_node_column="node_id").to_records()
+    # A->B->C and A->C->B both cost 2.0; tool should report 2.0 regardless
+    assert float(records[0]["total_cost_route"]) == pytest.approx(2.0)
+
+
+def test_route_sequence_optimize_mixed_reachability_metadata() -> None:
+    """Mixed reachable/unreachable stops keep correct metadata and ordering."""
+    network = GeoPromptFrame.from_records([
+        {"edge_id": "e1", "from_node_id": "A", "to_node_id": "B",
+         "from_node": (0.0, 0.0), "to_node": (1.0, 0.0), "edge_length": 1.0,
+         "geometry": {"type": "LineString", "coordinates": [(0.0, 0.0), (1.0, 0.0)]}},
+        {"edge_id": "e2", "from_node_id": "B", "to_node_id": "C",
+         "from_node": (1.0, 0.0), "to_node": (2.0, 0.0), "edge_length": 1.0,
+         "geometry": {"type": "LineString", "coordinates": [(1.0, 0.0), (2.0, 0.0)]}},
+        {"edge_id": "e3", "from_node_id": "X", "to_node_id": "Y",
+         "from_node": (50.0, 50.0), "to_node": (51.0, 50.0), "edge_length": 1.0,
+         "geometry": {"type": "LineString", "coordinates": [(50.0, 50.0), (51.0, 50.0)]}},
+        {"edge_id": "e4", "from_node_id": "P", "to_node_id": "Q",
+         "from_node": (80.0, 80.0), "to_node": (81.0, 80.0), "edge_length": 1.0,
+         "geometry": {"type": "LineString", "coordinates": [(80.0, 80.0), (81.0, 80.0)]}},
+    ], crs="EPSG:4326")
+    stops = _make_point_frame([
+        {"site_id": "s1", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "s2", "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "s3", "geometry": {"type": "Point", "coordinates": [51.0, 50.0]}},
+        {"site_id": "s4", "geometry": {"type": "Point", "coordinates": [81.0, 80.0]}},
+    ])
+    records = network.route_sequence_optimize(stops).to_records()
+    reachable = [r["reachable_route"] for r in records]
+    orders = [r["visit_order_route"] for r in records]
+    assert reachable.count(True) >= 1
+    assert reachable.count(False) >= 1
+    assert orders == sorted(orders)
+    assert records[0]["stop_count_route"] == 4
+
+
+# ======================================================================
+# Chunk 4: Hotspot and Local Statistics
+# ======================================================================
+
+
+def test_hotspot_getis_ord_uniform_field_not_significant() -> None:
+    """A uniform field should produce no significant hotspots or coldspots."""
+    frame = _make_point_frame([
+        {"site_id": f"u{i}", "value": 5.0, "geometry": {"type": "Point", "coordinates": [float(i % 4), float(i // 4)]}}
+        for i in range(16)
+    ])
+    records = frame.hotspot_getis_ord(
+        value_column="value", mode="k_nearest", k=3, include_self=True,
+    ).to_records()
+    assert all(r["classification_getis"] == "not_significant" for r in records)
+
+
+def test_hotspot_getis_ord_classification_stability() -> None:
+    """Re-running the same input should produce the same classification."""
+    frame = _make_point_frame([
+        {"site_id": "a", "value": 10.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "value": 9.5, "geometry": {"type": "Point", "coordinates": [0.2, 0.1]}},
+        {"site_id": "c", "value": 9.0, "geometry": {"type": "Point", "coordinates": [0.1, 0.2]}},
+        {"site_id": "d", "value": 1.0, "geometry": {"type": "Point", "coordinates": [5.0, 5.0]}},
+        {"site_id": "e", "value": 1.5, "geometry": {"type": "Point", "coordinates": [5.2, 5.1]}},
+        {"site_id": "f", "value": 2.0, "geometry": {"type": "Point", "coordinates": [5.1, 5.2]}},
+    ])
+    r1 = frame.hotspot_getis_ord(value_column="value", mode="k_nearest", k=2, include_self=True).to_records()
+    r2 = frame.hotspot_getis_ord(value_column="value", mode="k_nearest", k=2, include_self=True).to_records()
+    assert [r["classification_getis"] for r in r1] == [r["classification_getis"] for r in r2]
+    assert [r["gi_star_getis"] for r in r1] == [r["gi_star_getis"] for r in r2]
+
+
+def test_hotspot_getis_ord_matches_pysal_clustered_layout_when_available() -> None:
+    """Compact clustered layout parity against PySAL."""
+    esda = pytest.importorskip("esda")
+    libpysal_weights = pytest.importorskip("libpysal.weights")
+
+    points = [
+        {"site_id": "c1", "value": 9.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "c2", "value": 8.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        {"site_id": "c3", "value": 2.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "c4", "value": 1.0, "geometry": {"type": "Point", "coordinates": [3.0, 0.0]}},
+        {"site_id": "c5", "value": 5.0, "geometry": {"type": "Point", "coordinates": [1.5, 1.0]}},
+    ]
+    frame = _make_point_frame(points)
+    records = frame.hotspot_getis_ord(
+        value_column="value", mode="k_nearest", k=2, include_self=True,
+    ).to_records()
+    coords = [cast(Any, p["geometry"])["coordinates"] for p in points]
+    vals = [p["value"] for p in points]
+    reference = esda.G_Local(
+        vals,
+        libpysal_weights.KNN.from_array(coords, k=2),
+        transform="B", permutations=0, star=True, keep_simulations=False, island_weight=0,
+    )
+    for row, z_ref, p_ref in zip(records, reference.Zs, reference.p_norm, strict=True):
+        assert row["gi_star_getis"] == pytest.approx(float(z_ref), rel=1e-6)
+        assert row["p_value_getis"] == pytest.approx(float(p_ref), rel=1e-6)
+
+
+# ======================================================================
+# Chunk 5: Thiessen/Voronoi Scope Cleanup
+# ======================================================================
+
+
+def test_thiessen_polygons_duplicate_sites_handled() -> None:
+    """Two sites at the same location should both get a result without error."""
+    frame = _make_point_frame([
+        {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "c", "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+    ])
+    records = frame.thiessen_polygons().to_records()
+    assert len(records) == 3
+
+
+def test_thiessen_polygons_four_corners_symmetric_layout() -> None:
+    """Square-corner layout should yield roughly equal-area Voronoi cells."""
+    pytest.importorskip("shapely")
+    frame = _make_point_frame([
+        {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        {"site_id": "c", "geometry": {"type": "Point", "coordinates": [0.0, 2.0]}},
+        {"site_id": "d", "geometry": {"type": "Point", "coordinates": [2.0, 2.0]}},
+    ])
+    records = frame.thiessen_polygons().to_records()
+    areas = [float(r["area_voronoi"]) for r in records]
+    assert max(areas) / min(areas) < 1.5  # square symmetry gives equal cells
+
+
+def test_thiessen_polygons_fallback_produces_valid_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When Shapely is unavailable, the grid fallback still produces polygons."""
+    import importlib
+    original_import = importlib.import_module
+
+    def patched_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name.startswith("shapely"):
+            raise ImportError("mocked shapely unavailable")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib, "import_module", patched_import)
+    frame = _make_point_frame([
+        {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+    ])
+    records = frame.thiessen_polygons(grid_resolution=10).to_records()
+    assert len(records) == 2
+    assert all(r["geometry"]["type"] == "Polygon" for r in records)
+    assert all(r["method_voronoi"] == "grid_approximation" for r in records)
+
+
+# ======================================================================
+# Chunk 6: Regression Breadth — larger fixtures, multicollinearity
+# ======================================================================
+
+
+def test_spatial_regression_larger_fixture_matches_statsmodels_when_available() -> None:
+    """10-observation 3-predictor parity against statsmodels.OLS."""
+    statsmodels_api = pytest.importorskip("statsmodels.api")
+
+    rows = [
+        {"site_id": f"r{i}", "x1": float(i), "x2": float(i * i), "x3": float(i % 3),
+         "y": 2.0 + 0.5 * i - 0.1 * i * i + 1.5 * (i % 3) + (0.1 * ((-1) ** i)),
+         "geometry": {"type": "Point", "coordinates": [float(i), 0.0]}}
+        for i in range(10)
+    ]
+    frame = _make_point_frame(rows)
+    records = frame.spatial_regression(
+        dependent_column="y", independent_columns=["x1", "x2", "x3"], k_neighbors=2,
+    ).to_records()
+    design = statsmodels_api.add_constant([[r["x1"], r["x2"], r["x3"]] for r in rows])
+    model = statsmodels_api.OLS([r["y"] for r in rows], design).fit()
+    first = records[0]
+    assert cast(list[float], first["coefficients_reg"]) == pytest.approx(
+        [float(v) for v in model.params], rel=1e-6, abs=1e-6)
+    assert float(first["r_squared_reg"]) == pytest.approx(float(model.rsquared), rel=1e-6)
+    assert float(first["adj_r_squared_reg"]) == pytest.approx(float(model.rsquared_adj), rel=1e-6)
+    assert [float(r["predicted_reg"]) for r in records] == pytest.approx(
+        [float(v) for v in model.fittedvalues], rel=1e-6, abs=1e-6)
+    assert [float(r["residual_reg"]) for r in records] == pytest.approx(
+        [float(v) for v in model.resid], rel=1e-6, abs=1e-6)
+    assert cast(list[float], first["coefficient_standard_errors_reg"]) == pytest.approx(
+        [float(v) for v in model.bse], rel=1e-6, abs=1e-6)
+
+
+def test_spatial_regression_near_singular_design_stability() -> None:
+    """Near-collinear predictors should still yield finite output."""
+    rows = [
+        {"site_id": f"s{i}", "x1": float(i), "x2": float(i) + 1e-8,
+         "y": 3.0 + 2.0 * i,
+         "geometry": {"type": "Point", "coordinates": [float(i), 0.0]}}
+        for i in range(6)
+    ]
+    frame = _make_point_frame(rows)
+    records = frame.spatial_regression(
+        dependent_column="y", independent_columns=["x1", "x2"], k_neighbors=2,
+    ).to_records()
+    assert all(math.isfinite(float(r["predicted_reg"])) for r in records)
+    assert all(math.isfinite(float(r["residual_reg"])) for r in records)
+
+
+def test_spatial_regression_high_leverage_point() -> None:
+    """A single high-leverage point should still yield finite output and sensible R²."""
+    rows = [
+        {"site_id": f"p{i}", "x": float(i), "y": 2.0 * i + 1.0,
+         "geometry": {"type": "Point", "coordinates": [float(i), 0.0]}}
+        for i in range(5)
+    ] + [
+        {"site_id": "outlier", "x": 100.0, "y": 201.0,
+         "geometry": {"type": "Point", "coordinates": [100.0, 0.0]}},
+    ]
+    frame = _make_point_frame(rows)
+    records = frame.spatial_regression(
+        dependent_column="y", independent_columns=["x"], k_neighbors=2,
+    ).to_records()
+    assert math.isfinite(float(records[0]["r_squared_reg"]))
+    assert float(records[0]["r_squared_reg"]) > 0.99
+
+
+# ======================================================================
+# Chunk 7: Raster-Derived Surface Honesty — analytical fixtures
+# ======================================================================
+
+
+def test_contours_level_range_within_value_bounds() -> None:
+    """Contour levels should sit within the value range of the input."""
+    frame = _sample_point_grid()
+    records = frame.contours(value_column="elevation", interval_count=3, grid_resolution=10).to_records()
+    v_min = min(float(r["elevation"]) for r in frame.to_records())
+    v_max = max(float(r["elevation"]) for r in frame.to_records())
+    levels = {float(r["level_contour"]) for r in records}
+    assert all(v_min <= level <= v_max for level in levels)
+
+
+def test_hillshade_deterministic_output() -> None:
+    """Identical calls produce identical output."""
+    frame = _sample_point_grid()
+    a = frame.hillshade(elevation_column="elevation", grid_resolution=5).to_records()
+    b = frame.hillshade(elevation_column="elevation", grid_resolution=5).to_records()
+    assert a == b
+
+
+def test_slope_aspect_flat_surface_zero_slope() -> None:
+    """A perfectly flat surface should have zero slope everywhere."""
+    frame = _make_point_frame([
+        {"site_id": f"p{i}", "elevation": 5.0,
+         "geometry": {"type": "Point", "coordinates": [float(i % 5), float(i // 5)]}}
+        for i in range(25)
+    ])
+    records = frame.slope_aspect(elevation_column="elevation", grid_resolution=5).to_records()
+    assert all(float(r["slope_degrees_terrain"]) == pytest.approx(0.0) for r in records)
+
+
+def test_slope_aspect_tilted_surface_positive_slope() -> None:
+    """A tilted plane should yield consistent positive slope."""
+    frame = _make_point_frame([
+        {"site_id": f"p{i}", "elevation": float(i % 5) * 10.0,
+         "geometry": {"type": "Point", "coordinates": [float(i % 5), float(i // 5)]}}
+        for i in range(25)
+    ])
+    records = frame.slope_aspect(elevation_column="elevation", grid_resolution=5).to_records()
+    assert all(float(r["slope_degrees_terrain"]) > 0.0 for r in records)
+
+
+# ======================================================================
+# Chunk 8: Spatiotemporal Cube Hardening
+# ======================================================================
+
+
+def test_spatiotemporal_cube_exact_boundary_timestamps() -> None:
+    """Points at exact time-bin boundaries should be assigned to exactly one bin."""
+    frame = _make_point_frame([
+        {"site_id": "a", "time": 0.0, "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.5, 0.5]}},
+        {"site_id": "b", "time": 0.5, "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.5, 0.5]}},
+        {"site_id": "c", "time": 1.0, "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.5, 0.5]}},
+    ])
+    records = frame.spatiotemporal_cube(
+        time_column="time", value_column="value", time_intervals=2,
+        grid_resolution=1, aggregation="count",
+    ).to_records()
+    total = sum(float(r["value_cube"]) for r in records)
+    assert total == pytest.approx(3.0)
+
+
+def test_spatiotemporal_cube_sparse_bins_only_nonempty() -> None:
+    """Only bins with data in them should appear in the output."""
+    frame = _make_point_frame([
+        {"site_id": "a", "time": 0.0, "value": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"site_id": "b", "time": 10.0, "value": 1.0, "geometry": {"type": "Point", "coordinates": [9.0, 9.0]}},
+    ])
+    records = frame.spatiotemporal_cube(
+        time_column="time", value_column="value", time_intervals=10,
+        grid_resolution=10, aggregation="count",
+    ).to_records()
+    assert all(int(r["point_count_cube"]) > 0 for r in records)
+    assert len(records) == 2
+
+
+def test_spatiotemporal_cube_sum_equals_input_total() -> None:
+    """Sum aggregation should reproduce the total of all input values."""
+    frame = _make_point_frame([
+        {"site_id": f"p{i}", "time": float(i), "value": float(i + 1),
+         "geometry": {"type": "Point", "coordinates": [float(i % 3), float(i // 3)]}}
+        for i in range(9)
+    ])
+    records = frame.spatiotemporal_cube(
+        time_column="time", value_column="value", time_intervals=3,
+        grid_resolution=3, aggregation="sum",
+    ).to_records()
+    assert sum(float(r["value_cube"]) for r in records) == pytest.approx(sum(float(i + 1) for i in range(9)))
+
+
+# ======================================================================
+# Chunk 9: Validation Infrastructure — optional dependency matrix
+# ======================================================================
+
+
+def test_optional_dependency_shapely_import() -> None:
+    """Verify Shapely can be imported in the test environment."""
+    pytest.importorskip("shapely")
+
+
+def test_optional_dependency_pysal_import() -> None:
+    """Verify PySAL can be imported in the test environment."""
+    pytest.importorskip("esda")
+    pytest.importorskip("libpysal")
+
+
+def test_optional_dependency_pykrige_import() -> None:
+    """Verify PyKrige can be imported in the test environment."""
+    pytest.importorskip("pykrige")
+
+
+def test_optional_dependency_statsmodels_import() -> None:
+    """Verify statsmodels can be imported in the test environment."""
+    pytest.importorskip("statsmodels")
+
+
+# ======================================================================
+# Chunk 10: Naming and Claim Discipline — additional alias checks
+# ======================================================================
+
+
+def test_weighted_local_summary_is_exported() -> None:
+    """Verify weighted_local_summary is accessible on GeoPromptFrame."""
+    assert hasattr(GeoPromptFrame, "weighted_local_summary")
+    assert callable(getattr(GeoPromptFrame, "weighted_local_summary"))
+
+
+def test_geographically_weighted_summary_still_works_as_compatibility_name() -> None:
+    """Legacy name should remain callable and produce same output as alias."""
+    frame = _sample_point_grid()
+    legacy = frame.geographically_weighted_summary(
+        dependent_column="elevation", independent_columns=["value"], bandwidth=2.0,
+        gwr_suffix="test",
+    ).to_records()
+    alias = frame.weighted_local_summary(
+        dependent_column="elevation", independent_columns=["value"], bandwidth=2.0,
+        summary_suffix="test",
+    ).to_records()
+    assert legacy == alias

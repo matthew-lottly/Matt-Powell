@@ -21,17 +21,19 @@ def export_pressure_plot(records: list[dict[str, object]], output_path: Path) ->
     figure.patch.set_facecolor("#f4f2eb")
     axis.set_facecolor("#f4f2eb")
 
-    xs = [geometry_centroid(record["geometry"])[0] for record in records]
-    ys = [geometry_centroid(record["geometry"])[1] for record in records]
+    centroids = [geometry_centroid(record["geometry"]) for record in records]
+    geometry_kinds = [geometry_type(record["geometry"]) for record in records]
+    vertices_by_record = [geometry_vertices(record["geometry"]) for record in records]
+    xs = [centroid[0] for centroid in centroids]
+    ys = [centroid[1] for centroid in centroids]
     pressures = [float(record["neighborhood_pressure"]) for record in records]
     sizes = [200 + pressure * 220 for pressure in pressures]
 
-    for record in records:
+    for record, centroid, geometry_kind, vertices in zip(records, centroids, geometry_kinds, vertices_by_record, strict=True):
         geometry = record["geometry"]
-        vertices = geometry_vertices(geometry)
-        if geometry_type(geometry) == "LineString":
+        if geometry_kind == "LineString":
             axis.plot([coord[0] for coord in vertices], [coord[1] for coord in vertices], color="#557a95", linewidth=2.0, alpha=0.8)
-        elif geometry_type(geometry) == "Polygon":
+        elif geometry_kind == "Polygon":
             axis.fill([coord[0] for coord in vertices], [coord[1] for coord in vertices], color="#bdd7c6", alpha=0.45, edgecolor="#557a65", linewidth=1.5)
 
     scatter = axis.scatter(
@@ -44,8 +46,7 @@ def export_pressure_plot(records: list[dict[str, object]], output_path: Path) ->
         linewidths=0.8,
     )
 
-    for record in records:
-        centroid = geometry_centroid(record["geometry"])
+    for record, centroid in zip(records, centroids, strict=True):
         axis.annotate(
             record["name"],
             xy=centroid,
@@ -62,7 +63,7 @@ def export_pressure_plot(records: list[dict[str, object]], output_path: Path) ->
     colorbar = figure.colorbar(scatter, ax=axis)
     colorbar.set_label("Neighborhood pressure")
     figure.tight_layout()
-    figure.savefig(output_path, dpi=180, bbox_inches="tight")
+    figure.savefig(output_path, dpi=120, bbox_inches="tight")
     plt.close(figure)
     return output_path
 
@@ -92,6 +93,7 @@ def build_demo_report(input_path: Path = DEFAULT_INPUT_PATH, output_dir: Path = 
         geometry_length=frame.geometry_lengths(),
         geometry_area=frame.geometry_areas(),
     )
+    enriched_records = enriched.to_records()
     top_interactions = sorted(
         enriched.interaction_table(
             origin_weight="capacity_index",
@@ -110,9 +112,10 @@ def build_demo_report(input_path: Path = DEFAULT_INPUT_PATH, output_dir: Path = 
     )[:5]
     top_nearest_neighbors = enriched.nearest_neighbors(k=1)
     top_geographic_neighbors = enriched.nearest_neighbors(k=1, distance_method="haversine")
+    geometry_types = sorted({str(record["geometry_type"]) for record in enriched_records})
 
     chart_dir = output_dir / "charts"
-    chart_path = export_pressure_plot(enriched.to_records(), chart_dir / "neighborhood-pressure-review.png")
+    chart_path = export_pressure_plot(enriched_records, chart_dir / "neighborhood-pressure-review.png")
 
     return {
         "package": "geoprompt",
@@ -129,14 +132,14 @@ def build_demo_report(input_path: Path = DEFAULT_INPUT_PATH, output_dir: Path = 
             "centroid": enriched.centroid(),
             "bounds": enriched.bounds().__dict__,
             "projected_bounds_3857": projected_frame.bounds().__dict__,
-            "geometry_types": sorted(set(enriched.geometry_types())),
+            "geometry_types": geometry_types,
             "valley_window_feature_count": len(valley_window),
         },
         "top_interactions": top_interactions,
         "top_area_similarity": top_area_similarity,
         "top_nearest_neighbors": top_nearest_neighbors,
         "top_geographic_neighbors": top_geographic_neighbors,
-        "records": enriched.to_records(),
+        "records": enriched_records,
         "outputs": {
             "chart": str(chart_path),
         },

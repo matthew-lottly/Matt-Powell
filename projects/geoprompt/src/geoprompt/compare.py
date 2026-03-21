@@ -57,6 +57,9 @@ DEFAULT_CORPUS = [
 ]
 
 
+_DATASET_FIXTURE_CACHE: dict[tuple[Any, ...], dict[str, Any]] = {}
+
+
 def _stress_feature_records() -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     min_x = -112.0
@@ -219,6 +222,155 @@ def _frame_from_case(case: CorpusCase) -> GeoPromptFrame:
     return read_features(case.feature_path, crs=case.crs)
 
 
+def _path_cache_token(path: Path | None) -> tuple[str | None, int | None]:
+    if path is None:
+        return (None, None)
+    resolved = path.resolve()
+    try:
+        return (str(resolved), resolved.stat().st_mtime_ns)
+    except OSError:
+        return (str(resolved), None)
+
+
+def _dataset_fixture_key(case: CorpusCase) -> tuple[Any, ...]:
+    feature_path, feature_mtime = _path_cache_token(case.feature_path)
+    join_path, join_mtime = _path_cache_token(case.join_path)
+    return (
+        case.name,
+        feature_path,
+        feature_mtime,
+        join_path,
+        join_mtime,
+        case.crs,
+        case.query_bounds,
+        bool(case.feature_records is not None),
+        bool(case.join_records is not None),
+    )
+
+
+def _dataset_fixture(case: CorpusCase) -> dict[str, Any]:
+    materialized_case = _materialize_case(case)
+    cache_key = _dataset_fixture_key(materialized_case)
+    cached = _DATASET_FIXTURE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    geopandas, shape, box = _load_compare_dependencies()
+    frame = _frame_from_case(materialized_case)
+    records = frame.to_records()
+    feature_ids = [str(record.get("site_id", index)) for index, record in enumerate(records)]
+    shapely_geometries = [shape(_as_geojson_geometry(record["geometry"])) for record in records]
+    geopandas_frame = geopandas.GeoDataFrame(
+        [{key: value for key, value in record.items() if key != "geometry"} for record in records],
+        geometry=shapely_geometries,
+        crs=materialized_case.crs,
+    )
+    min_x, min_y, max_x, max_y = materialized_case.query_bounds
+    spatial_index = frame.spatial_index()
+    query_candidate_indexes = spatial_index.query((min_x, min_y, max_x, max_y))
+
+    changed_records = [dict(record) for record in records]
+    if changed_records:
+        changed_records[0] = {
+            **changed_records[0],
+            "geometry": transform_geometry(changed_records[0]["geometry"], lambda coordinate: (coordinate[0] + 0.005, coordinate[1] + 0.002)),
+        }
+        if "demand_index" in changed_records[0]:
+            changed_records[0]["demand_index"] = float(changed_records[0]["demand_index"]) + 0.1
+    if len(changed_records) >= 3:
+        changed_records.pop(1)
+    if changed_records:
+        added_record = dict(changed_records[-1])
+        added_record["site_id"] = f"{added_record.get('site_id', 'site')}-added"
+        added_record["geometry"] = transform_geometry(added_record["geometry"], lambda coordinate: (coordinate[0] + 0.02, coordinate[1] + 0.015))
+        changed_records.append(added_record)
+    changed_frame = GeoPromptFrame.from_records(changed_records, crs=materialized_case.crs)
+
+    changed_variant_records = [dict(record) for record in records]
+    if changed_variant_records:
+        changed_variant_records[0] = {
+            **changed_variant_records[0],
+            "geometry": transform_geometry(changed_variant_records[0]["geometry"], lambda coordinate: (coordinate[0] - 0.004, coordinate[1] + 0.003)),
+        }
+        if "demand_index" in changed_variant_records[0]:
+            changed_variant_records[0]["demand_index"] = float(changed_variant_records[0]["demand_index"]) + 0.2
+    if len(changed_variant_records) >= 2:
+        changed_variant_records.pop(-1)
+    if changed_variant_records:
+        variant_added_record = dict(changed_variant_records[0])
+        variant_added_record["site_id"] = f"{variant_added_record.get('site_id', 'site')}-variant"
+        variant_added_record["geometry"] = transform_geometry(variant_added_record["geometry"], lambda coordinate: (coordinate[0] + 0.03, coordinate[1] - 0.01))
+        changed_variant_records.append(variant_added_record)
+    changed_frame_variant = GeoPromptFrame.from_records(changed_variant_records, crs=materialized_case.crs)
+
+    analysis_points = _analysis_point_frame(frame)
+    analysis_point_records = analysis_points.to_records()
+    analysis_queries = GeoPromptFrame.from_records(analysis_point_records[: min(5, len(analysis_point_records))], crs=materialized_case.crs)
+    analysis_zones = _analysis_zone_frame(analysis_points)
+    analysis_polygons = _analysis_polygon_frame(analysis_points)
+    polygon_shift = max((analysis_points.bounds().max_x - analysis_points.bounds().min_x) / 80.0, 0.001)
+    shifted_polygons = _shift_polygons(analysis_polygons, polygon_shift, polygon_shift)
+    analysis_lines = _analysis_line_frame(analysis_points)
+    analysis_network = analysis_lines.network_build() if len(analysis_lines) else GeoPromptFrame.from_records([], crs=materialized_case.crs)
+    analysis_trajectory = _analysis_trajectory_frame(analysis_points)
+    analysis_slivers = _analysis_sliver_frame(analysis_points)
+    regions = _join_frame_from_case(materialized_case)
+    baseline_change_frame = frame.change_detection(changed_frame, max_distance=0.05) if len(records) else GeoPromptFrame.from_records([], crs=materialized_case.crs)
+    current_change_frame = frame.change_detection(changed_frame_variant, max_distance=0.05) if len(records) else GeoPromptFrame.from_records([], crs=materialized_case.crs)
+    baseline_change_events = baseline_change_frame.extract_change_events() if len(baseline_change_frame) else GeoPromptFrame.from_records([], crs=materialized_case.crs)
+    current_change_events = current_change_frame.extract_change_events() if len(current_change_frame) else GeoPromptFrame.from_records([], crs=materialized_case.crs)
+    autocorrelation_frame = frame.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05) if records and "demand_index" in frame.columns else None
+    clustered_frame = frame.centroid_cluster(k=min(3, len(frame))) if len(frame) else None
+
+    fixture = {
+        "case": materialized_case,
+        "geopandas": geopandas,
+        "shape": shape,
+        "box": box,
+        "frame": frame,
+        "records": records,
+        "feature_ids": feature_ids,
+        "shapely_geometries": shapely_geometries,
+        "geopandas_frame": geopandas_frame,
+        "spatial_index": spatial_index,
+        "query_candidate_indexes": query_candidate_indexes,
+        "changed_frame": changed_frame,
+        "changed_frame_variant": changed_frame_variant,
+        "baseline_change_frame": baseline_change_frame,
+        "current_change_frame": current_change_frame,
+        "baseline_change_events": baseline_change_events,
+        "current_change_events": current_change_events,
+        "autocorrelation_frame": autocorrelation_frame,
+        "clustered_frame": clustered_frame,
+        "analysis_points": analysis_points,
+        "analysis_point_records": analysis_point_records,
+        "analysis_queries": analysis_queries,
+        "analysis_zones": analysis_zones,
+        "analysis_polygons": analysis_polygons,
+        "shifted_polygons": shifted_polygons,
+        "analysis_lines": analysis_lines,
+        "analysis_network": analysis_network,
+        "analysis_trajectory": analysis_trajectory,
+        "analysis_slivers": analysis_slivers,
+        "regions": regions,
+    }
+    _DATASET_FIXTURE_CACHE[cache_key] = fixture
+    return fixture
+
+
+def _run_selected_benchmark(
+    benchmarks: list[dict[str, Any]],
+    operation: str,
+    func: Callable[[], Any],
+    repeats: int = 20,
+    benchmark_filter: Callable[[str], bool] | None = None,
+) -> None:
+    if benchmark_filter is not None and not benchmark_filter(operation):
+        return
+    benchmark, _ = _benchmark(operation, func, repeats=repeats)
+    benchmarks.append(benchmark)
+
+
 def _join_frame_from_case(case: CorpusCase) -> GeoPromptFrame | None:
     if case.join_records is not None:
         return GeoPromptFrame.from_records(case.join_records, crs=case.crs)
@@ -287,24 +439,158 @@ def _as_geojson_geometry(geometry: dict[str, Any]) -> dict[str, Any]:
     raise TypeError(f"unsupported geometry type for comparison: {geometry_type}")
 
 
-def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
-    case = _materialize_case(case)
-    geopandas, shape, box = _load_compare_dependencies()
+def _rectangular_polygon(min_x: float, min_y: float, max_x: float, max_y: float) -> dict[str, Any]:
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            (min_x, min_y),
+            (max_x, min_y),
+            (max_x, max_y),
+            (min_x, max_y),
+            (min_x, min_y),
+        ],
+    }
+
+
+def _analysis_point_frame(frame: GeoPromptFrame) -> GeoPromptFrame:
+    rows: list[dict[str, Any]] = []
+    for index, record in enumerate(sorted(frame.to_records(), key=lambda item: str(item.get("site_id", ""))), start=1):
+        centroid = geometry_centroid(record["geometry"])
+        demand_value = float(record.get("demand_index", index) or index)
+        capacity_value = float(record.get("capacity_index", demand_value + 1.0) or (demand_value + 1.0))
+        priority_value = float(record.get("priority_index", 1.0) or 1.0)
+        rows.append(
+            {
+                "site_id": str(record.get("site_id", f"feature-{index:03d}")),
+                "source_type": str(record["geometry"]["type"]),
+                "value": (demand_value * 100.0) + (capacity_value * 10.0),
+                "demand_index": demand_value,
+                "capacity_index": capacity_value,
+                "priority_index": priority_value,
+                "weight": max(priority_value, 0.1),
+                "time": float(index),
+                "geometry": {"type": "Point", "coordinates": [float(centroid[0]), float(centroid[1])]},
+            }
+        )
+    return GeoPromptFrame.from_records(rows, crs=frame.crs)
+
+
+def _analysis_zone_frame(point_frame: GeoPromptFrame) -> GeoPromptFrame:
+    bounds = point_frame.bounds()
+    extent = max(bounds.max_x - bounds.min_x, bounds.max_y - bounds.min_y, 1e-6)
+    padding = extent * 0.05
+    mid_x = (bounds.min_x + bounds.max_x) / 2.0
+    mid_y = (bounds.min_y + bounds.max_y) / 2.0
+    rows = [
+        {
+            "zone_id": "zone-sw",
+            "geometry": _rectangular_polygon(bounds.min_x - padding, bounds.min_y - padding, mid_x, mid_y),
+        },
+        {
+            "zone_id": "zone-ne",
+            "geometry": _rectangular_polygon(mid_x, mid_y, bounds.max_x + padding, bounds.max_y + padding),
+        },
+    ]
+    return GeoPromptFrame.from_records(rows, crs=point_frame.crs)
+
+
+def _analysis_polygon_frame(point_frame: GeoPromptFrame) -> GeoPromptFrame:
+    bounds = point_frame.bounds()
+    half_size = max((bounds.max_x - bounds.min_x) / 60.0, (bounds.max_y - bounds.min_y) / 60.0, 0.002)
+    rows: list[dict[str, Any]] = []
+    for index, record in enumerate(point_frame.to_records()[:8], start=1):
+        cx, cy = geometry_centroid(record["geometry"])
+        rows.append(
+            {
+                "site_id": f"poly-{index:03d}",
+                "group_id": "group-a" if index % 2 else "group-b",
+                "value": float(record.get("value", index) or index),
+                "geometry": _rectangular_polygon(cx - half_size, cy - half_size, cx + half_size, cy + half_size),
+            }
+        )
+    return GeoPromptFrame.from_records(rows, crs=point_frame.crs)
+
+
+def _shift_polygons(frame: GeoPromptFrame, dx: float, dy: float) -> GeoPromptFrame:
+    rows = []
+    for record in frame.to_records():
+        rows.append(
+            {
+                **record,
+                "site_id": f"{record.get('site_id', 'poly')}-shifted",
+                "geometry": transform_geometry(record["geometry"], lambda coordinate: (coordinate[0] + dx, coordinate[1] + dy)),
+            }
+        )
+    return GeoPromptFrame.from_records(rows, crs=frame.crs)
+
+
+def _analysis_line_frame(point_frame: GeoPromptFrame) -> GeoPromptFrame:
+    coords = [geometry_centroid(record["geometry"]) for record in point_frame.to_records()[:6]]
+    if len(coords) < 2:
+        coords = [(-111.95, 40.7), (-111.9, 40.7), (-111.85, 40.7), (-111.8, 40.7)]
+    rows: list[dict[str, Any]] = []
+    for index in range(len(coords) - 1):
+        rows.append(
+            {
+                "site_id": f"edge-{index + 1:03d}",
+                "geometry": {"type": "LineString", "coordinates": [coords[index], coords[index + 1]]},
+                "demand_index": float(index + 1),
+                "capacity_index": float(index + 2),
+                "priority_index": float(index + 1),
+            }
+        )
+    return GeoPromptFrame.from_records(rows, crs=point_frame.crs)
+
+
+def _analysis_trajectory_frame(point_frame: GeoPromptFrame) -> GeoPromptFrame:
+    bounds = point_frame.bounds()
+    step = max((bounds.max_x - bounds.min_x) / 100.0, (bounds.max_y - bounds.min_y) / 100.0, 0.001)
+    rows = [
+        {"site_id": "traj-001", "time": 0.0, "value": 1.0, "geometry": {"type": "Point", "coordinates": [bounds.min_x, bounds.min_y]}},
+        {"site_id": "traj-002", "time": 1.0, "value": 2.0, "geometry": {"type": "Point", "coordinates": [bounds.min_x + (step * 0.3), bounds.min_y + (step * 0.2)]}},
+        {"site_id": "traj-003", "time": 2.0, "value": 3.0, "geometry": {"type": "Point", "coordinates": [bounds.min_x + (step * 0.6), bounds.min_y + (step * 0.1)]}},
+        {"site_id": "traj-004", "time": 3.0, "value": 4.0, "geometry": {"type": "Point", "coordinates": [bounds.max_x - (step * 1.2), bounds.max_y - (step * 1.1)]}},
+        {"site_id": "traj-005", "time": 4.0, "value": 5.0, "geometry": {"type": "Point", "coordinates": [bounds.max_x - (step * 0.8), bounds.max_y - (step * 0.9)]}},
+        {"site_id": "traj-006", "time": 5.0, "value": 6.0, "geometry": {"type": "Point", "coordinates": [bounds.max_x, bounds.max_y]}},
+    ]
+    return GeoPromptFrame.from_records(rows, crs=point_frame.crs)
+
+
+def _analysis_sliver_frame(point_frame: GeoPromptFrame) -> GeoPromptFrame:
+    bounds = point_frame.bounds()
+    extent = max(bounds.max_x - bounds.min_x, bounds.max_y - bounds.min_y, 1e-6)
+    big_size = extent / 8.0
+    tiny_size = max(extent / 10000.0, 1e-6)
+    rows = [
+        {
+            "site_id": "big",
+            "geometry": _rectangular_polygon(bounds.min_x, bounds.min_y, bounds.min_x + big_size, bounds.min_y + big_size),
+        },
+        {
+            "site_id": "tiny",
+            "geometry": _rectangular_polygon(bounds.min_x, bounds.min_y, bounds.min_x + tiny_size, bounds.min_y + tiny_size),
+        },
+    ]
+    return GeoPromptFrame.from_records(rows, crs=point_frame.crs)
+
+
+def _dataset_report(case: CorpusCase, tolerance: float, benchmark_filter: Callable[[str], bool] | None = None) -> dict[str, Any]:
+    fixture = _dataset_fixture(case)
+    case = fixture["case"]
+    geopandas = fixture["geopandas"]
+    shape = fixture["shape"]
+    box = fixture["box"]
     projection_tolerance = max(tolerance, 1e-6)
 
-    frame = _frame_from_case(case)
-    records = frame.to_records()
-    feature_ids = [str(record.get("site_id", index)) for index, record in enumerate(records)]
+    frame = fixture["frame"]
+    records = fixture["records"]
+    feature_ids = fixture["feature_ids"]
     geoprompt_lengths = frame.geometry_lengths()
     geoprompt_areas = frame.geometry_areas()
     geoprompt_centroids = [geometry_centroid(record["geometry"]) for record in records]
 
-    shapely_geometries = [shape(_as_geojson_geometry(record["geometry"])) for record in records]
-    geopandas_frame = geopandas.GeoDataFrame(
-        [{key: value for key, value in record.items() if key != "geometry"} for record in records],
-        geometry=shapely_geometries,
-        crs=case.crs,
-    )
+    shapely_geometries = fixture["shapely_geometries"]
+    geopandas_frame = fixture["geopandas_frame"]
 
     geometry_comparison: list[dict[str, Any]] = []
     for record, geoprompt_length, geoprompt_area, geoprompt_centroid, shapely_geometry in zip(
@@ -334,8 +620,8 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
 
     min_x, min_y, max_x, max_y = case.query_bounds
     geoprompt_query = [str(record.get("site_id", "unknown")) for record in frame.query_bounds(min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y)]
-    spatial_index = frame.spatial_index()
-    query_candidate_indexes = spatial_index.query((min_x, min_y, max_x, max_y))
+    spatial_index = fixture["spatial_index"]
+    query_candidate_indexes = fixture["query_candidate_indexes"]
     reference_query = [
         str(value)
         for value in geopandas_frame.loc[
@@ -348,38 +634,8 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
     projected_reference = geopandas_frame.to_crs("EPSG:3857")
     projected_bounds = projected_frame.bounds().__dict__
     projected_reference_bounds = projected_reference.total_bounds.tolist()
-    changed_records = [dict(record) for record in records]
-    if changed_records:
-        changed_records[0] = {
-            **changed_records[0],
-            "geometry": transform_geometry(changed_records[0]["geometry"], lambda coordinate: (coordinate[0] + 0.005, coordinate[1] + 0.002)),
-        }
-        if "demand_index" in changed_records[0]:
-            changed_records[0]["demand_index"] = float(changed_records[0]["demand_index"]) + 0.1
-    if len(changed_records) >= 3:
-        changed_records.pop(1)
-    if changed_records:
-        added_record = dict(changed_records[-1])
-        added_record["site_id"] = f"{added_record.get('site_id', 'site')}-added"
-        added_record["geometry"] = transform_geometry(added_record["geometry"], lambda coordinate: (coordinate[0] + 0.02, coordinate[1] + 0.015))
-        changed_records.append(added_record)
-    changed_frame = GeoPromptFrame.from_records(changed_records, crs=case.crs)
-    changed_variant_records = [dict(record) for record in records]
-    if changed_variant_records:
-        changed_variant_records[0] = {
-            **changed_variant_records[0],
-            "geometry": transform_geometry(changed_variant_records[0]["geometry"], lambda coordinate: (coordinate[0] - 0.004, coordinate[1] + 0.003)),
-        }
-        if "demand_index" in changed_variant_records[0]:
-            changed_variant_records[0]["demand_index"] = float(changed_variant_records[0]["demand_index"]) + 0.2
-    if len(changed_variant_records) >= 2:
-        changed_variant_records.pop(-1)
-    if changed_variant_records:
-        variant_added_record = dict(changed_variant_records[0])
-        variant_added_record["site_id"] = f"{variant_added_record.get('site_id', 'site')}-variant"
-        variant_added_record["geometry"] = transform_geometry(variant_added_record["geometry"], lambda coordinate: (coordinate[0] + 0.03, coordinate[1] - 0.01))
-        changed_variant_records.append(variant_added_record)
-    changed_frame_variant = GeoPromptFrame.from_records(changed_variant_records, crs=case.crs)
+    changed_frame = fixture["changed_frame"]
+    changed_frame_variant = fixture["changed_frame_variant"]
 
     join_report: dict[str, Any] | None = None
     clip_report: dict[str, Any] | None = None
@@ -390,7 +646,23 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
         "query_bounds_total": len(records),
         "query_bounds_pruning_ratio": 1.0 - (len(query_candidate_indexes) / len(records) if records else 0.0),
     }
-    regions = _join_frame_from_case(case)
+    analysis_points = fixture["analysis_points"]
+    analysis_point_records = fixture["analysis_point_records"]
+    analysis_queries = fixture["analysis_queries"]
+    analysis_zones = fixture["analysis_zones"]
+    analysis_polygons = fixture["analysis_polygons"]
+    shifted_polygons = fixture["shifted_polygons"]
+    analysis_lines = fixture["analysis_lines"]
+    analysis_network = fixture["analysis_network"]
+    analysis_trajectory = fixture["analysis_trajectory"]
+    analysis_slivers = fixture["analysis_slivers"]
+    regions = fixture["regions"]
+    baseline_change_frame = fixture["baseline_change_frame"]
+    current_change_frame = fixture["current_change_frame"]
+    baseline_change_events = fixture["baseline_change_events"]
+    current_change_events = fixture["current_change_events"]
+    autocorrelation_frame = fixture["autocorrelation_frame"]
+    clustered_frame = fixture["clustered_frame"]
     if regions is not None:
         geoprompt_join = regions.spatial_join(frame, predicate="intersects")
         geoprompt_pairs = sorted(f"{row['region_id']}->{row['site_id']}" for row in geoprompt_join)
@@ -453,30 +725,94 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
         (f"{case.name}.reference.to_crs", lambda: geopandas_frame.to_crs("EPSG:3857")),
         (f"{case.name}.geoprompt.centroid_cluster", lambda: frame.centroid_cluster(k=min(3, len(frame)))),
         (f"{case.name}.geoprompt.cluster_diagnostics", lambda: frame.cluster_diagnostics(k_values=[1, min(2, len(frame)), min(3, len(frame))])),
-        (f"{case.name}.geoprompt.summarize_clusters", lambda: frame.centroid_cluster(k=min(3, len(frame))).summarize_clusters()),
+        (f"{case.name}.geoprompt.summarize_clusters", lambda: clustered_frame.summarize_clusters() if clustered_frame is not None else GeoPromptFrame.from_records([], crs=case.crs)),
         (f"{case.name}.geoprompt.spatial_lag", lambda: frame.spatial_lag("demand_index", mode="distance_band", max_distance=0.05)),
         (f"{case.name}.geoprompt.spatial_autocorrelation", lambda: frame.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05)),
-        (f"{case.name}.geoprompt.summarize_autocorrelation", lambda: frame.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05).summarize_autocorrelation("demand_index")),
-        (f"{case.name}.geoprompt.report_autocorrelation_patterns", lambda: frame.spatial_autocorrelation("demand_index", mode="distance_band", max_distance=0.05).report_autocorrelation_patterns("demand_index")),
+        (f"{case.name}.geoprompt.summarize_autocorrelation", lambda: autocorrelation_frame.summarize_autocorrelation("demand_index") if autocorrelation_frame is not None else GeoPromptFrame.from_records([], crs=case.crs)),
+        (f"{case.name}.geoprompt.report_autocorrelation_patterns", lambda: autocorrelation_frame.report_autocorrelation_patterns("demand_index") if autocorrelation_frame is not None else GeoPromptFrame.from_records([], crs=case.crs)),
         (f"{case.name}.geoprompt.change_detection", lambda: frame.change_detection(changed_frame, max_distance=0.05)),
-        (f"{case.name}.geoprompt.extract_change_events", lambda: frame.change_detection(changed_frame, max_distance=0.05).extract_change_events()),
-        (f"{case.name}.geoprompt.compare_change_events", lambda: frame.change_detection(changed_frame, max_distance=0.05).extract_change_events().compare_change_events(frame.change_detection(changed_frame_variant, max_distance=0.05).extract_change_events())),
-        (f"{case.name}.geoprompt.compare_change_events_equivalent", lambda: frame.change_detection(changed_frame, max_distance=0.05).extract_change_events().compare_change_events(frame.change_detection(changed_frame_variant, max_distance=0.05).extract_change_events(), match_mode="equivalent")),
+        (f"{case.name}.geoprompt.extract_change_events", lambda: baseline_change_frame.extract_change_events()),
+        (f"{case.name}.geoprompt.compare_change_events", lambda: baseline_change_events.compare_change_events(current_change_events)),
+        (f"{case.name}.geoprompt.compare_change_events_equivalent", lambda: baseline_change_events.compare_change_events(current_change_events, match_mode="equivalent")),
         (f"{case.name}.geoprompt.snap_geometries", lambda: frame.snap_geometries(tolerance=0.005)),
         (f"{case.name}.geoprompt.clean_topology", lambda: frame.clean_topology(tolerance=0.005, min_segment_length=0.001)),
     ]:
-        benchmark, _ = _benchmark(operation, func)
-        benchmarks.append(benchmark)
+        _run_selected_benchmark(benchmarks, operation, func, benchmark_filter=benchmark_filter)
+
+    compare_bounds = analysis_points.bounds()
+    benchmark_inputs: list[tuple[str, Callable[[], Any], int]] = [
+        (f"{case.name}.geoprompt.raster_sample", lambda: analysis_points.raster_sample(analysis_queries, value_column="value", k=1), 5),
+        (f"{case.name}.geoprompt.zonal_stats", lambda: analysis_points.zonal_stats(analysis_zones, value_column="value", zone_id_column="zone_id"), 5),
+        (f"{case.name}.geoprompt.reclassify", lambda: analysis_points.reclassify("value", breaks=[(0.0, 100.0, "low"), (100.0, 1000.0, "high")]), 5),
+        (f"{case.name}.geoprompt.resample", lambda: analysis_points.resample(method="spatial_thin", min_distance=max((compare_bounds.max_x - compare_bounds.min_x) / 40.0, 0.001)), 5),
+        (f"{case.name}.geoprompt.raster_clip", lambda: analysis_points.raster_clip(compare_bounds.min_x, compare_bounds.min_y, (compare_bounds.min_x + compare_bounds.max_x) / 2.0, (compare_bounds.min_y + compare_bounds.max_y) / 2.0), 5),
+        (f"{case.name}.geoprompt.mosaic", lambda: analysis_points.mosaic(analysis_queries, conflict_resolution="first"), 5),
+        (f"{case.name}.geoprompt.to_points", lambda: analysis_polygons.to_points(), 5),
+        (f"{case.name}.geoprompt.to_polygons", lambda: analysis_points.to_polygons(buffer_distance=max((compare_bounds.max_x - compare_bounds.min_x) / 200.0, 0.001)), 5),
+        (f"{case.name}.geoprompt.contours", lambda: analysis_points.contours(value_column="value", interval_count=3, grid_resolution=10), 3),
+        (f"{case.name}.geoprompt.hillshade", lambda: analysis_points.hillshade(elevation_column="value", grid_resolution=10), 3),
+        (f"{case.name}.geoprompt.slope_aspect", lambda: analysis_points.slope_aspect(elevation_column="value", grid_resolution=10), 3),
+        (f"{case.name}.geoprompt.idw_interpolation", lambda: analysis_points.idw_interpolation(value_column="value", grid_resolution=10), 3),
+        (f"{case.name}.geoprompt.kriging_surface", lambda: analysis_points.kriging_surface(value_column="value", grid_resolution=10), 3),
+        (f"{case.name}.geoprompt.thiessen_polygons", lambda: analysis_points.thiessen_polygons(), 5),
+        (f"{case.name}.geoprompt.spatial_weights_matrix", lambda: analysis_points.spatial_weights_matrix(k=4), 5),
+        (f"{case.name}.geoprompt.hotspot_getis_ord", lambda: analysis_points.hotspot_getis_ord(value_column="value", mode="k_nearest", k=4), 5),
+        (f"{case.name}.geoprompt.local_outlier_factor_spatial", lambda: analysis_points.local_outlier_factor_spatial(value_column="value", k=4), 5),
+        (f"{case.name}.geoprompt.kernel_density", lambda: analysis_points.kernel_density(grid_resolution=10), 3),
+        (f"{case.name}.geoprompt.standard_deviational_ellipse", lambda: analysis_points.standard_deviational_ellipse(weight_column="weight"), 5),
+        (f"{case.name}.geoprompt.center_of_minimum_distance", lambda: analysis_points.center_of_minimum_distance(weight_column="weight"), 5),
+        (f"{case.name}.geoprompt.spatial_regression", lambda: analysis_points.spatial_regression(dependent_column="value", independent_columns=["demand_index"], k_neighbors=4), 5),
+        (f"{case.name}.geoprompt.geographically_weighted_summary", lambda: analysis_points.geographically_weighted_summary(dependent_column="value", independent_columns=["demand_index"], bandwidth=max((compare_bounds.max_x - compare_bounds.min_x) / 10.0, 0.01)), 3),
+        (f"{case.name}.geoprompt.join_by_largest_overlap", lambda: analysis_polygons.join_by_largest_overlap(shifted_polygons), 5),
+        (f"{case.name}.geoprompt.erase", lambda: analysis_polygons.erase(shifted_polygons), 3),
+        (f"{case.name}.geoprompt.identity_overlay", lambda: analysis_polygons.identity_overlay(shifted_polygons), 3),
+        (f"{case.name}.geoprompt.multipart_to_singlepart", lambda: analysis_polygons.multipart_to_singlepart(), 5),
+        (f"{case.name}.geoprompt.singlepart_to_multipart", lambda: analysis_polygons.singlepart_to_multipart(group_column="group_id"), 5),
+        (f"{case.name}.geoprompt.eliminate_slivers", lambda: analysis_slivers.eliminate_slivers(min_area=max((compare_bounds.max_x - compare_bounds.min_x) / 1000.0, 1e-6)), 5),
+        (f"{case.name}.geoprompt.simplify", lambda: analysis_lines.simplify(tolerance=max((compare_bounds.max_x - compare_bounds.min_x) / 1000.0, 1e-6)), 5),
+        (f"{case.name}.geoprompt.densify", lambda: analysis_lines.densify(max_segment_length=max((compare_bounds.max_x - compare_bounds.min_x) / 40.0, 0.001)), 5),
+        (f"{case.name}.geoprompt.smooth_geometry", lambda: analysis_lines.smooth_geometry(iterations=2), 5),
+        (f"{case.name}.geoprompt.trajectory_staypoint_detection", lambda: analysis_trajectory.trajectory_staypoint_detection(time_column="time", max_radius=max((compare_bounds.max_x - compare_bounds.min_x) / 50.0, 0.005), min_duration=1.0), 5),
+        (f"{case.name}.geoprompt.trajectory_simplify", lambda: analysis_trajectory.trajectory_simplify(tolerance=max((compare_bounds.max_x - compare_bounds.min_x) / 1000.0, 1e-6)), 5),
+        (f"{case.name}.geoprompt.spatiotemporal_cube", lambda: analysis_points.spatiotemporal_cube(time_column="time", value_column="value", time_intervals=3, grid_resolution=4, aggregation="count"), 3),
+        (f"{case.name}.geoprompt.geohash_encode", lambda: analysis_points.geohash_encode(precision=6), 5),
+    ]
+    for operation, func, repeats in benchmark_inputs:
+        _run_selected_benchmark(benchmarks, operation, func, repeats=repeats, benchmark_filter=benchmark_filter)
+
+    if len(analysis_network) > 0:
+        node_lookup: dict[str, tuple[float, float]] = {}
+        for network_row in analysis_network.to_records():
+            node_lookup.setdefault(str(network_row["from_node_id"]), tuple(network_row["from_node"]))
+            node_lookup.setdefault(str(network_row["to_node_id"]), tuple(network_row["to_node"]))
+        node_items = list(node_lookup.items())
+        if len(node_items) >= 3:
+            origin_frame = GeoPromptFrame.from_records([
+                {"site_id": "origin-a", "geometry": {"type": "Point", "coordinates": list(node_items[0][1])}},
+            ], crs=case.crs)
+            destination_frame = GeoPromptFrame.from_records([
+                {"site_id": "destination-a", "geometry": {"type": "Point", "coordinates": list(node_items[-1][1])}},
+            ], crs=case.crs)
+            stop_frame = GeoPromptFrame.from_records([
+                {"site_id": f"stop-{index + 1}", "geometry": {"type": "Point", "coordinates": list(node_items[index][1])}}
+                for index in range(min(3, len(node_items)))
+            ], crs=case.crs)
+            network_benchmarks: list[tuple[str, Callable[[], Any], int]] = [
+                (f"{case.name}.geoprompt.snap_to_network_nodes", lambda: analysis_network.snap_to_network_nodes(analysis_queries), 5),
+                (f"{case.name}.geoprompt.origin_destination_matrix", lambda: analysis_network.origin_destination_matrix(origin_frame, destination_frame), 5),
+                (f"{case.name}.geoprompt.k_shortest_paths", lambda: analysis_network.k_shortest_paths(node_items[0][0], node_items[-1][0], k=2), 5),
+                (f"{case.name}.geoprompt.network_trace", lambda: analysis_network.network_trace(node_items[0][0], direction="downstream"), 5),
+                (f"{case.name}.geoprompt.route_sequence_optimize", lambda: analysis_network.route_sequence_optimize(stop_frame), 5),
+            ]
+            for operation, func, repeats in network_benchmarks:
+                _run_selected_benchmark(benchmarks, operation, func, repeats=repeats, benchmark_filter=benchmark_filter)
 
     if regions is not None:
         region_geometries = [shape(_as_geojson_geometry(record["geometry"])) for record in regions.to_records()]
         region_ids = [str(record["region_id"]) for record in regions.to_records()]
-        benchmark, _ = _benchmark(
-            f"{case.name}.geoprompt.spatial_join",
-            lambda: regions.spatial_join(frame, predicate="intersects"),
-        )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
+        _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.spatial_join", lambda: regions.spatial_join(frame, predicate="intersects"), benchmark_filter=benchmark_filter)
+        _run_selected_benchmark(
+            benchmarks,
             f"{case.name}.reference.spatial_join",
             lambda: [
                 f"{region_id}->{feature_id}"
@@ -484,129 +820,89 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
                 for feature_id, feature_geometry in zip(feature_ids, shapely_geometries, strict=True)
                 if region_geometry.intersects(feature_geometry)
             ],
+            benchmark_filter=benchmark_filter,
         )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
-            f"{case.name}.geoprompt.clip",
-            lambda: frame.clip(regions),
-        )
-        benchmarks.append(benchmark)
+        _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.clip", lambda: frame.clip(regions), benchmark_filter=benchmark_filter)
         shapely_ops = importlib.import_module("shapely.ops")
         mask_union = shapely_ops.unary_union([geometry_to_shapely(record["geometry"]) for record in regions.to_records()])
-        benchmark, _ = _benchmark(
+        _run_selected_benchmark(
+            benchmarks,
             f"{case.name}.reference.clip",
             lambda: [
                 geometry
                 for feature_geometry in shapely_geometries
                 for geometry in geometry_from_shapely(feature_geometry.intersection(mask_union))
             ],
+            benchmark_filter=benchmark_filter,
         )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
-            f"{case.name}.geoprompt.dissolve",
-            lambda: regions.dissolve(by="region_band", aggregations={"region_name": "count"}),
-        )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
+        _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.dissolve", lambda: regions.dissolve(by="region_band", aggregations={"region_name": "count"}), benchmark_filter=benchmark_filter)
+        _run_selected_benchmark(
+            benchmarks,
             f"{case.name}.reference.dissolve",
             lambda: geopandas.GeoDataFrame(
                 [{key: value for key, value in record.items() if key != "geometry"} for record in regions.to_records()],
                 geometry=region_geometries,
                 crs=case.crs,
             ).dissolve(by="region_band", aggfunc={"region_name": "count"}).reset_index(),
+            benchmark_filter=benchmark_filter,
         )
-        benchmarks.append(benchmark)
 
-        benchmark, _ = _benchmark(
-            f"{case.name}.geoprompt.zone_fit_score",
-            lambda: frame.zone_fit_score(regions, zone_id_column="region_id"),
-        )
-        benchmarks.append(benchmark)
-
-        benchmark, _ = _benchmark(
-            f"{case.name}.geoprompt.overlay_summary_grouped",
-            lambda: frame.overlay_summary(regions, right_id_column="region_id", group_by="region_band", normalize_by="both"),
-        )
-        benchmarks.append(benchmark)
-
-        benchmark, _ = _benchmark(
-            f"{case.name}.geoprompt.overlay_group_comparison",
-            lambda: frame.overlay_group_comparison(regions, group_by="region_band", right_id_column="region_id"),
-        )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
+        _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.zone_fit_score", lambda: frame.zone_fit_score(regions, zone_id_column="region_id"), benchmark_filter=benchmark_filter)
+        _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.overlay_summary_grouped", lambda: frame.overlay_summary(regions, right_id_column="region_id", group_by="region_band", normalize_by="both"), benchmark_filter=benchmark_filter)
+        _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.overlay_group_comparison", lambda: frame.overlay_group_comparison(regions, group_by="region_band", right_id_column="region_id"), benchmark_filter=benchmark_filter)
+        _run_selected_benchmark(
+            benchmarks,
             f"{case.name}.geoprompt.overlay_union",
             lambda: regions.overlay_union(
                 regions.query_bounds(min_x=case.query_bounds[0], min_y=case.query_bounds[1], max_x=case.query_bounds[2], max_y=case.query_bounds[3]),
                 left_id_column="region_id",
                 right_id_column="region_id",
             ),
+            benchmark_filter=benchmark_filter,
         )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
+        _run_selected_benchmark(
+            benchmarks,
             f"{case.name}.geoprompt.overlay_difference",
             lambda: regions.overlay_difference(
                 regions.query_bounds(min_x=case.query_bounds[0], min_y=case.query_bounds[1], max_x=case.query_bounds[2], max_y=case.query_bounds[3]),
                 left_id_column="region_id",
                 right_id_column="region_id",
             ),
+            benchmark_filter=benchmark_filter,
         )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
+        _run_selected_benchmark(
+            benchmarks,
             f"{case.name}.geoprompt.overlay_symmetric_difference",
             lambda: regions.overlay_symmetric_difference(
                 regions.query_bounds(min_x=case.query_bounds[0], min_y=case.query_bounds[1], max_x=case.query_bounds[2], max_y=case.query_bounds[3]),
                 left_id_column="region_id",
                 right_id_column="region_id",
             ),
+            benchmark_filter=benchmark_filter,
         )
-        benchmarks.append(benchmark)
-        benchmark, _ = _benchmark(
+        _run_selected_benchmark(
+            benchmarks,
             f"{case.name}.geoprompt.polygon_split",
             lambda: regions.polygon_split(
                 regions.query_bounds(min_x=case.query_bounds[0], min_y=case.query_bounds[1], max_x=case.query_bounds[2], max_y=case.query_bounds[3]),
                 id_column="region_id",
                 splitter_id_column="region_id",
             ),
+            benchmark_filter=benchmark_filter,
         )
-        benchmarks.append(benchmark)
 
         corridor_rows = [row for row in frame.to_records() if row["geometry"]["type"] == "LineString"]
         if corridor_rows:
             corridor_frame = GeoPromptFrame.from_records(corridor_rows, crs=case.crs)
             network_frame = corridor_frame.network_build()
-            benchmark, _ = _benchmark(
-                f"{case.name}.geoprompt.network_build",
-                lambda: corridor_frame.network_build(),
-            )
-            benchmarks.append(benchmark)
-            benchmark, _ = _benchmark(
-                f"{case.name}.geoprompt.corridor_reach",
-                lambda: frame.corridor_reach(corridor_frame, max_distance=0.05, corridor_id_column="site_id"),
-            )
-            benchmarks.append(benchmark)
-            benchmark, _ = _benchmark(
-                f"{case.name}.geoprompt.corridor_diagnostics",
-                lambda: frame.corridor_diagnostics(corridor_frame, max_distance=0.05, corridor_id_column="site_id"),
-            )
-            benchmarks.append(benchmark)
-            benchmark, _ = _benchmark(
-                f"{case.name}.geoprompt.line_split",
-                lambda: corridor_frame.line_split(split_at_intersections=True),
-            )
-            benchmarks.append(benchmark)
+            _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.network_build", lambda: corridor_frame.network_build(), benchmark_filter=benchmark_filter)
+            _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.corridor_reach", lambda: frame.corridor_reach(corridor_frame, max_distance=0.05, corridor_id_column="site_id"), benchmark_filter=benchmark_filter)
+            _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.corridor_diagnostics", lambda: frame.corridor_diagnostics(corridor_frame, max_distance=0.05, corridor_id_column="site_id"), benchmark_filter=benchmark_filter)
+            _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.line_split", lambda: corridor_frame.line_split(split_at_intersections=True), benchmark_filter=benchmark_filter)
             if len(network_frame) > 0:
                 first_row = network_frame.to_records()[0]
-                benchmark, _ = _benchmark(
-                    f"{case.name}.geoprompt.shortest_path",
-                    lambda: network_frame.shortest_path(first_row["from_node_id"], first_row["to_node_id"]),
-                )
-                benchmarks.append(benchmark)
-                benchmark, _ = _benchmark(
-                    f"{case.name}.geoprompt.service_area",
-                    lambda: network_frame.service_area(first_row["from_node_id"], max_cost=float(first_row["edge_length"]) * 2.0),
-                )
-                benchmarks.append(benchmark)
+                _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.shortest_path", lambda: network_frame.shortest_path(first_row["from_node_id"], first_row["to_node_id"]), benchmark_filter=benchmark_filter)
+                _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.service_area", lambda: network_frame.service_area(first_row["from_node_id"], max_cost=float(first_row["edge_length"]) * 2.0), benchmark_filter=benchmark_filter)
                 node_lookup: dict[str, tuple[float, float]] = {}
                 for network_row in network_frame.to_records():
                     node_lookup.setdefault(str(network_row["from_node_id"]), tuple(network_row["from_node"]))
@@ -630,7 +926,8 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
                     ]
                     facility_frame = GeoPromptFrame.from_records(facility_records, crs=case.crs)
                     demand_frame = GeoPromptFrame.from_records(demand_records, crs=case.crs)
-                    benchmark, _ = _benchmark(
+                    _run_selected_benchmark(
+                        benchmarks,
                         f"{case.name}.geoprompt.location_allocate",
                         lambda: network_frame.location_allocate(
                             facility_frame,
@@ -639,8 +936,8 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
                             demand_id_column="demand_id",
                             demand_weight_column="demand",
                         ),
+                        benchmark_filter=benchmark_filter,
                     )
-                    benchmarks.append(benchmark)
                 observation_records = []
                 for index, network_record in enumerate(network_frame.to_records()[: min(4, len(network_frame))], start=1):
                     from_node = tuple(network_record["from_node"])
@@ -661,21 +958,11 @@ def _dataset_report(case: CorpusCase, tolerance: float) -> dict[str, Any]:
                     )
                 if observation_records:
                     observation_frame = GeoPromptFrame.from_records(observation_records, crs=case.crs)
-                    benchmark, _ = _benchmark(
-                        f"{case.name}.geoprompt.trajectory_match",
-                        lambda: network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05),
-                    )
-                    benchmarks.append(benchmark)
-                    benchmark, _ = _benchmark(
-                        f"{case.name}.geoprompt.summarize_trajectory_segments",
-                        lambda: network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05).summarize_trajectory_segments(),
-                    )
-                    benchmarks.append(benchmark)
-                    benchmark, _ = _benchmark(
-                        f"{case.name}.geoprompt.score_trajectory_segments",
-                        lambda: network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05).summarize_trajectory_segments().score_trajectory_segments(),
-                    )
-                    benchmarks.append(benchmark)
+                    _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.trajectory_match", lambda: network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05), benchmark_filter=benchmark_filter)
+                    matched_trajectory = network_frame.trajectory_match(observation_frame, candidate_k=3, max_distance=0.05)
+                    _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.summarize_trajectory_segments", lambda: matched_trajectory.summarize_trajectory_segments(), benchmark_filter=benchmark_filter)
+                    summarized_trajectory = matched_trajectory.summarize_trajectory_segments()
+                    _run_selected_benchmark(benchmarks, f"{case.name}.geoprompt.score_trajectory_segments", lambda: summarized_trajectory.score_trajectory_segments(), benchmark_filter=benchmark_filter)
 
     return {
         "dataset": case.name,
@@ -726,6 +1013,7 @@ def build_comparison_report(
     tolerance: float = 1e-7,
     crs: str = "EPSG:4326",
     join_path: Path | None = None,
+    benchmark_filter: Callable[[str], bool] | None = None,
 ) -> dict[str, Any]:
     cases = DEFAULT_CORPUS if input_path is None else [
         CorpusCase(
@@ -736,7 +1024,7 @@ def build_comparison_report(
             join_path=join_path,
         )
     ]
-    datasets = [_dataset_report(case, tolerance=tolerance) for case in cases]
+    datasets = [_dataset_report(case, tolerance=tolerance, benchmark_filter=benchmark_filter) for case in cases]
 
     return {
         "package": "geoprompt",

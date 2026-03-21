@@ -4,6 +4,16 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 ![Generated neighborhood pressure plot from the GeoPrompt demo](assets/neighborhood-pressure-review-live.png)
 
+## Accuracy Posture
+
+GeoPrompt aims to make strong claims only where tests justify them. Deterministic geometry tools are being checked against trusted reference behavior such as Shapely, and statistical or interpolation tools are only described as parity-backed when they have direct fixture coverage against external references such as PySAL or PyKrige.
+
+Use these documents to see what is validated today and what still needs deeper proof:
+
+- `docs/tool-methodology.md` explains each tool's method and maturity level.
+- `docs/tool-validation-audit.md` records current evidence, risks, and benchmark status.
+- `docs/parity-roadmap.md` tracks remaining reference-parity work.
+
 ## Snapshot
 
 - Lane: Spatial package design
@@ -618,6 +628,9 @@ It also runs `python -m twine check dist/*` so distribution metadata is validate
 
 See [docs/architecture.md](docs/architecture.md) for the package design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/tool-methodology.md](docs/tool-methodology.md) for the current algorithm and maturity classification of the toolset.
+See [docs/tool-validation-audit.md](docs/tool-validation-audit.md) for the current validation gaps, benchmark snapshot, and proof plan.
+See [docs/parity-roadmap.md](docs/parity-roadmap.md) for the ordered parity and algorithm-hardening plan.
 
 ## Custom Equations
 
@@ -716,6 +729,9 @@ The project now includes:
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release notes: [docs/release-notes-0.1.8.md](docs/release-notes-0.1.8.md)
 - Tool roadmap: [docs/tool-roadmap.md](docs/tool-roadmap.md)
+- Tool methodology: [docs/tool-methodology.md](docs/tool-methodology.md)
+- Tool validation audit: [docs/tool-validation-audit.md](docs/tool-validation-audit.md)
+- Parity roadmap: [docs/parity-roadmap.md](docs/parity-roadmap.md)
 
 ## Repository Notes
 

@@ -3,13 +3,14 @@ from __future__ import annotations
 import importlib
 import math
 import random
+import warnings
 from dataclasses import dataclass
 from heapq import heappop, heappush, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
 from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, gravity_model, prompt_decay, prompt_influence, prompt_interaction
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_convex_hull, geometry_distance, geometry_envelope, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_vertices, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
-from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections, overlay_union_faces, polygon_split_faces
+from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, geometry_from_shapely, overlay_intersections, overlay_union_faces, polygon_split_faces
 from .spatial_index import SpatialIndex
 
 
@@ -980,10 +981,18 @@ class GeoPromptFrame:
         if group_by is not None:
             other._require_column(group_by)
         other_rows = list(other._rows)
+        right_geometries = [row[other.geometry_column] for row in other_rows]
+        right_ids = [str(row[right_id_column]) for row in other_rows]
+        right_areas = [geometry_area(geometry) for geometry in right_geometries]
+        right_lengths = [geometry_length(geometry) for geometry in right_geometries]
+        right_groups = [str(row[group_by]) for row in other_rows] if group_by is not None else []
+        left_geometries = [row[self.geometry_column] for row in self._rows]
+        left_areas = [geometry_area(geometry) for geometry in left_geometries]
+        left_lengths = [geometry_length(geometry) for geometry in left_geometries]
         grouped: dict[int, list[tuple[int, list[Geometry]]]] = {}
         for left_index, right_index, geometries in overlay_intersections(
-            [row[self.geometry_column] for row in self._rows],
-            [row[other.geometry_column] for row in other_rows],
+            left_geometries,
+            right_geometries,
         ):
             grouped.setdefault(left_index, []).append((right_index, geometries))
 
@@ -993,31 +1002,27 @@ class GeoPromptFrame:
             if not matches and how == "inner":
                 continue
 
-            matched_rows = [other_rows[right_index] for right_index, _ in matches]
-            overlap_area = sum(geometry_area(geometry) for _right_index, geometries in matches for geometry in geometries)
-            overlap_length = sum(geometry_length(geometry) for _right_index, geometries in matches for geometry in geometries)
-            intersection_count = sum(len(geometries) for _right_index, geometries in matches)
-            right_area_total = sum(geometry_area(other_rows[right_index][other.geometry_column]) for right_index, _ in matches)
-            right_length_total = sum(geometry_length(other_rows[right_index][other.geometry_column]) for right_index, _ in matches)
-
-            left_geometry = left_row[self.geometry_column]
-            left_area = geometry_area(left_geometry)
-            left_length = geometry_length(left_geometry)
-
-            resolved_row = dict(left_row)
-            resolved_row[f"{right_id_column}s_{summary_suffix}"] = [str(row[right_id_column]) for row in matched_rows]
-            resolved_row[f"count_{summary_suffix}"] = len(matched_rows)
-            resolved_row[f"intersection_count_{summary_suffix}"] = intersection_count
-            resolved_row[f"area_overlap_{summary_suffix}"] = overlap_area
-            resolved_row[f"length_overlap_{summary_suffix}"] = overlap_length
-            resolved_row[f"area_share_{summary_suffix}"] = (overlap_area / left_area) if left_area > 0 and normalize_by in {"left", "both"} else None
-            resolved_row[f"length_share_{summary_suffix}"] = (overlap_length / left_length) if left_length > 0 and normalize_by in {"left", "both"} else None
-            resolved_row[f"area_share_right_{summary_suffix}"] = (overlap_area / right_area_total) if right_area_total > 0 and normalize_by in {"right", "both"} else None
-            resolved_row[f"length_share_right_{summary_suffix}"] = (overlap_length / right_length_total) if right_length_total > 0 and normalize_by in {"right", "both"} else None
-            if group_by is not None:
-                grouped_matches: dict[str, dict[str, Any]] = {}
-                for right_index, geometries in matches:
-                    group_value = str(other_rows[right_index][group_by])
+            matched_right_indexes: list[int] = []
+            overlap_area = 0.0
+            overlap_length = 0.0
+            intersection_count = 0
+            right_area_total = 0.0
+            right_length_total = 0.0
+            grouped_matches: dict[str, dict[str, Any]] | None = {} if group_by is not None else None
+            for right_index, geometries in matches:
+                matched_right_indexes.append(right_index)
+                right_area_total += right_areas[right_index]
+                right_length_total += right_lengths[right_index]
+                pair_area = 0.0
+                pair_length = 0.0
+                for geometry in geometries:
+                    pair_area += geometry_area(geometry)
+                    pair_length += geometry_length(geometry)
+                overlap_area += pair_area
+                overlap_length += pair_length
+                intersection_count += len(geometries)
+                if grouped_matches is not None:
+                    group_value = right_groups[right_index]
                     bucket = grouped_matches.setdefault(
                         group_value,
                         {
@@ -1033,12 +1038,27 @@ class GeoPromptFrame:
                     )
                     bucket["count"] += 1
                     bucket["intersection_count"] += len(geometries)
-                    bucket["area_overlap"] += sum(geometry_area(geometry) for geometry in geometries)
-                    bucket["length_overlap"] += sum(geometry_length(geometry) for geometry in geometries)
-                    bucket[f"{right_id_column}s"].append(str(other_rows[right_index][right_id_column]))
-                    bucket["right_area_total"] += geometry_area(other_rows[right_index][other.geometry_column])
-                    bucket["right_length_total"] += geometry_length(other_rows[right_index][other.geometry_column])
+                    bucket["area_overlap"] += pair_area
+                    bucket["length_overlap"] += pair_length
+                    bucket[f"{right_id_column}s"].append(right_ids[right_index])
+                    bucket["right_area_total"] += right_areas[right_index]
+                    bucket["right_length_total"] += right_lengths[right_index]
 
+            matched_rows = [other_rows[right_index] for right_index in matched_right_indexes]
+            left_area = left_areas[left_index]
+            left_length = left_lengths[left_index]
+
+            resolved_row = dict(left_row)
+            resolved_row[f"{right_id_column}s_{summary_suffix}"] = [right_ids[right_index] for right_index in matched_right_indexes]
+            resolved_row[f"count_{summary_suffix}"] = len(matched_rows)
+            resolved_row[f"intersection_count_{summary_suffix}"] = intersection_count
+            resolved_row[f"area_overlap_{summary_suffix}"] = overlap_area
+            resolved_row[f"length_overlap_{summary_suffix}"] = overlap_length
+            resolved_row[f"area_share_{summary_suffix}"] = (overlap_area / left_area) if left_area > 0 and normalize_by in {"left", "both"} else None
+            resolved_row[f"length_share_{summary_suffix}"] = (overlap_length / left_length) if left_length > 0 and normalize_by in {"left", "both"} else None
+            resolved_row[f"area_share_right_{summary_suffix}"] = (overlap_area / right_area_total) if right_area_total > 0 and normalize_by in {"right", "both"} else None
+            resolved_row[f"length_share_right_{summary_suffix}"] = (overlap_length / right_length_total) if right_length_total > 0 and normalize_by in {"right", "both"} else None
+            if grouped_matches is not None:
                 group_summaries = []
                 for group_summary in grouped_matches.values():
                     group_record = dict(group_summary)
@@ -3421,6 +3441,16 @@ class GeoPromptFrame:
         right_index = other.spatial_index(mode="geometry") if right_rows else SpatialIndex([])
         left_centroids = self._centroids()
         right_centroids = other._centroids()
+        left_geometries = [row[self.geometry_column] for row in left_rows]
+        right_geometries = [row[other.geometry_column] for row in right_rows]
+        left_bounds = [geometry_bounds(geometry) for geometry in left_geometries]
+        right_bounds = [geometry_bounds(geometry) for geometry in right_geometries]
+        left_types = [geometry_type(geometry) for geometry in left_geometries]
+        right_types = [geometry_type(geometry) for geometry in right_geometries]
+        left_sizes = [_geometry_size_metric(geometry) for geometry in left_geometries]
+        right_sizes = [_geometry_size_metric(geometry) for geometry in right_geometries]
+        left_ids = [str(row[id_column]) for row in left_rows]
+        right_ids = [str(row[resolved_other_id_column]) for row in right_rows]
         shared_attribute_columns = list(attribute_columns) if attribute_columns is not None else sorted(
             (set(self.columns) & set(other.columns)) - {self.geometry_column, other.geometry_column, id_column, resolved_other_id_column}
         )
@@ -3430,31 +3460,32 @@ class GeoPromptFrame:
         right_candidates: dict[int, list[dict[str, Any]]] = {index: [] for index in range(len(right_rows))}
 
         for left_index, left_row in enumerate(left_rows):
-            left_geometry = left_row[self.geometry_column]
+            left_geometry = left_geometries[left_index]
             left_centroid = left_centroids[left_index]
             if max_distance is None:
                 candidate_indexes = list(range(len(right_rows)))
             else:
-                candidate_indexes = right_index.query(_expand_bounds(geometry_bounds(left_geometry), max_distance))
+                candidate_indexes = right_index.query(_expand_bounds(left_bounds[left_index], max_distance))
             for right_index_value in candidate_indexes:
                 right_row = right_rows[right_index_value]
-                right_geometry = right_row[other.geometry_column]
+                right_geometry = right_geometries[right_index_value]
                 centroid_distance = coordinate_distance(left_centroid, right_centroids[right_index_value], method="euclidean")
-                intersects = geometry_intersects(left_geometry, right_geometry)
+                bounds_intersect = _bounds_intersect(left_bounds[left_index], right_bounds[right_index_value])
+                intersects = geometry_intersects(left_geometry, right_geometry) if bounds_intersect else False
                 if max_distance is not None and centroid_distance > max_distance and not intersects:
                     continue
                 attribute_match_count = sum(1 for column in shared_attribute_columns if left_row.get(column) == right_row.get(column))
                 attribute_similarity = (attribute_match_count / len(shared_attribute_columns)) if shared_attribute_columns else 1.0
-                left_size = _geometry_size_metric(left_geometry)
-                right_size = _geometry_size_metric(right_geometry)
+                left_size = left_sizes[left_index]
+                right_size = right_sizes[right_index_value]
                 size_ratio = _size_ratio(left_size, right_size)
-                overlap_size = _geometry_overlap_size(left_geometry, right_geometry)
+                overlap_size = _geometry_overlap_size(left_geometry, right_geometry) if bounds_intersect else 0.0
                 left_area_share = _coverage_share(overlap_size, left_size, intersects)
                 right_area_share = _coverage_share(overlap_size, right_size, intersects)
                 area_share_score = (left_area_share + right_area_share) / 2.0
                 distance_score = 1.0 if centroid_distance <= geometry_tolerance else 1.0 / (1.0 + centroid_distance)
-                id_score = 1.0 if str(left_row[id_column]) == str(right_row[resolved_other_id_column]) else 0.0
-                type_factor = 1.0 if geometry_type(left_geometry) == geometry_type(right_geometry) else 0.5
+                id_score = 1.0 if left_ids[left_index] == right_ids[right_index_value] else 0.0
+                type_factor = 1.0 if left_types[left_index] == right_types[right_index_value] else 0.5
                 similarity_score = type_factor * (
                     (0.25 * area_share_score)
                     + (0.15 * (1.0 if intersects else 0.0))
@@ -3718,12 +3749,29 @@ class GeoPromptFrame:
                 for signature in sorted(set(left_events) | set(right_events))
             ]
         else:
-            matched_pairs = _match_equivalent_change_events(
-                self._rows,
-                other._rows,
-                change_suffix=change_suffix,
-                geometry_column=self.geometry_column,
-                min_similarity=min_similarity,
+            left_exact = {
+                _change_event_signature(row, change_suffix): row
+                for row in self._rows
+            }
+            right_exact = {
+                _change_event_signature(row, change_suffix): row
+                for row in other._rows
+            }
+            exact_signatures = sorted(set(left_exact) & set(right_exact))
+            matched_pairs = [
+                (signature, left_exact[signature], right_exact[signature], 1.0)
+                for signature in exact_signatures
+            ]
+            unmatched_left = [row for signature, row in left_exact.items() if signature not in right_exact]
+            unmatched_right = [row for signature, row in right_exact.items() if signature not in left_exact]
+            matched_pairs.extend(
+                _match_equivalent_change_events(
+                    unmatched_left,
+                    unmatched_right,
+                    change_suffix=change_suffix,
+                    geometry_column=self.geometry_column,
+                    min_similarity=min_similarity,
+                )
             )
 
         rows: list[Record] = []
@@ -4311,9 +4359,8 @@ class GeoPromptFrame:
         )
 
         rows: list[Record] = []
-        for row in summary.to_records():
+        for row in summary._rows:
             groups = list(row.get(f"groups_{comparison_suffix}", []))
-            groups.sort(key=lambda item: (-float(item["area_overlap"]), -float(item["length_overlap"]), str(item["group"])))
             top_group = groups[0] if len(groups) >= 1 else None
             second_group = groups[1] if len(groups) >= 2 else None
             resolved = dict(row)
@@ -4377,6 +4424,2130 @@ class GeoPromptFrame:
             diagnostic_row["score_mode"] = score_mode
             rows.append(diagnostic_row)
         return GeoPromptFrame._from_internal_rows(rows, geometry_column=corridors.geometry_column, crs=self.crs or corridors.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 1: raster_sample
+    # ------------------------------------------------------------------
+    def raster_sample(
+        self,
+        points: "GeoPromptFrame",
+        value_column: str,
+        k: int = 1,
+        distance_method: str = "euclidean",
+        sample_suffix: str = "sample",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        if k <= 0:
+            raise ValueError("k must be greater than zero")
+        if self.crs and points.crs and self.crs != points.crs:
+            raise ValueError("frames must share the same CRS")
+        source_centroids = self._centroids()
+        target_centroids = points._centroids()
+        rows: list[Record] = []
+        for target_index, target_row in enumerate(points._rows):
+            distances = [
+                (src_index, coordinate_distance(target_centroids[target_index], source_centroids[src_index], method=distance_method))
+                for src_index in range(len(self._rows))
+            ]
+            distances.sort(key=lambda item: item[1])
+            nearest = distances[:k]
+            if k == 1 and nearest:
+                sampled_value = self._rows[nearest[0][0]][value_column]
+                sampled_distance = nearest[0][1]
+            elif nearest:
+                weight_sum = sum(1.0 / max(d, 1e-12) for _, d in nearest)
+                sampled_value = sum(
+                    float(self._rows[idx][value_column]) / max(d, 1e-12)
+                    for idx, d in nearest
+                ) / weight_sum
+                sampled_distance = nearest[0][1]
+            else:
+                sampled_value = None
+                sampled_distance = None
+            resolved = dict(target_row)
+            resolved[f"{value_column}_{sample_suffix}"] = sampled_value
+            resolved[f"distance_{sample_suffix}"] = sampled_distance
+            resolved[f"k_{sample_suffix}"] = k
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=points.geometry_column, crs=points.crs or self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 2: zonal_stats
+    # ------------------------------------------------------------------
+    def zonal_stats(
+        self,
+        zones: "GeoPromptFrame",
+        value_column: str,
+        zone_id_column: str = "zone_id",
+        aggregations: Sequence[AggregationName] = ("count", "sum", "mean", "min", "max"),
+        zonal_suffix: str = "zonal",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        zones._require_column(zone_id_column)
+        if self.crs and zones.crs and self.crs != zones.crs:
+            raise ValueError("frames must share the same CRS")
+        point_centroids = self._centroids()
+        rows: list[Record] = []
+        for zone_row in zones._rows:
+            zone_geometry = zone_row[zones.geometry_column]
+            matched_values: list[float] = []
+            for pt_index, pt_row in enumerate(self._rows):
+                pt_geom = {"type": "Point", "coordinates": point_centroids[pt_index]}
+                if geometry_within(pt_geom, zone_geometry):
+                    val = pt_row.get(value_column)
+                    if val is not None:
+                        matched_values.append(float(val))
+            resolved = dict(zone_row)
+            resolved[f"point_count_{zonal_suffix}"] = len(matched_values)
+            for agg in aggregations:
+                if agg == "count":
+                    resolved[f"{value_column}_count_{zonal_suffix}"] = len(matched_values)
+                elif not matched_values:
+                    resolved[f"{value_column}_{agg}_{zonal_suffix}"] = None
+                elif agg == "sum":
+                    resolved[f"{value_column}_sum_{zonal_suffix}"] = sum(matched_values)
+                elif agg == "mean":
+                    resolved[f"{value_column}_mean_{zonal_suffix}"] = sum(matched_values) / len(matched_values)
+                elif agg == "min":
+                    resolved[f"{value_column}_min_{zonal_suffix}"] = min(matched_values)
+                elif agg == "max":
+                    resolved[f"{value_column}_max_{zonal_suffix}"] = max(matched_values)
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=zones.geometry_column, crs=zones.crs or self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 3: reclassify
+    # ------------------------------------------------------------------
+    def reclassify(
+        self,
+        value_column: str,
+        breaks: dict[str, Any] | list[tuple[float, float, str]] | None = None,
+        mapping: dict[Any, Any] | None = None,
+        output_column: str | None = None,
+        default_class: str = "unclassified",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        if breaks is None and mapping is None:
+            raise ValueError("either breaks or mapping must be provided")
+        out_col = output_column or f"{value_column}_class"
+        rows: list[Record] = []
+        for row in self._rows:
+            resolved = dict(row)
+            val = row.get(value_column)
+            if mapping is not None:
+                resolved[out_col] = mapping.get(val, default_class)
+            elif breaks is not None:
+                if isinstance(breaks, dict):
+                    resolved[out_col] = breaks.get(str(val), default_class)
+                else:
+                    classified = default_class
+                    if val is not None:
+                        numeric_val = float(val)
+                        for low, high, label in breaks:
+                            if low <= numeric_val < high:
+                                classified = label
+                                break
+                    resolved[out_col] = classified
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 4: resample
+    # ------------------------------------------------------------------
+    def resample(
+        self,
+        method: Literal["every_nth", "spatial_thin", "random"] = "every_nth",
+        n: int = 2,
+        min_distance: float | None = None,
+        sample_size: int | None = None,
+        random_seed: int = 0,
+        distance_method: str = "euclidean",
+    ) -> "GeoPromptFrame":
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        if method == "every_nth":
+            if n <= 0:
+                raise ValueError("n must be greater than zero")
+            rows = [self._rows[i] for i in range(0, len(self._rows), n)]
+        elif method == "random":
+            count = sample_size if sample_size is not None else max(1, len(self._rows) // 2)
+            count = min(count, len(self._rows))
+            rng = random.Random(random_seed)
+            indexes = rng.sample(range(len(self._rows)), count)
+            rows = [self._rows[i] for i in sorted(indexes)]
+        elif method == "spatial_thin":
+            if min_distance is None or min_distance <= 0:
+                raise ValueError("min_distance must be greater than zero for spatial_thin")
+            centroids = self._centroids()
+            selected: list[int] = []
+            for i in range(len(self._rows)):
+                too_close = False
+                for j in selected:
+                    if coordinate_distance(centroids[i], centroids[j], method=distance_method) < min_distance:
+                        too_close = True
+                        break
+                if not too_close:
+                    selected.append(i)
+            rows = [self._rows[i] for i in selected]
+        else:
+            raise ValueError("method must be 'every_nth', 'spatial_thin', or 'random'")
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 5: raster_clip (bounds-based clip)
+    # ------------------------------------------------------------------
+    def raster_clip(
+        self,
+        min_x: float,
+        min_y: float,
+        max_x: float,
+        max_y: float,
+    ) -> "GeoPromptFrame":
+        clip_bounds = (min_x, min_y, max_x, max_y)
+        rows: list[Record] = []
+        for row in self._rows:
+            geom = row[self.geometry_column]
+            geom_bounds = geometry_bounds(geom)
+            if _bounds_intersect(geom_bounds, clip_bounds):
+                rows.append(row)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 6: mosaic
+    # ------------------------------------------------------------------
+    def mosaic(
+        self,
+        *others: "GeoPromptFrame",
+        conflict_resolution: Literal["first", "last", "mean"] = "first",
+        id_column: str = "site_id",
+        mosaic_suffix: str = "mosaic",
+    ) -> "GeoPromptFrame":
+        all_rows: list[Record] = list(self._rows)
+        for other in others:
+            if self.crs and other.crs and self.crs != other.crs:
+                raise ValueError("all frames must share the same CRS for mosaic")
+            all_rows.extend(other._rows)
+        if conflict_resolution == "first":
+            seen_ids: set[str] = set()
+            rows: list[Record] = []
+            for row in all_rows:
+                row_id = str(row.get(id_column, id(row)))
+                if row_id not in seen_ids:
+                    seen_ids.add(row_id)
+                    resolved = dict(row)
+                    resolved[f"source_{mosaic_suffix}"] = "keep"
+                    rows.append(resolved)
+        elif conflict_resolution == "last":
+            seen_ids_map: dict[str, int] = {}
+            for index, row in enumerate(all_rows):
+                row_id = str(row.get(id_column, id(row)))
+                seen_ids_map[row_id] = index
+            rows = []
+            for index in sorted(seen_ids_map.values()):
+                resolved = dict(all_rows[index])
+                resolved[f"source_{mosaic_suffix}"] = "keep"
+                rows.append(resolved)
+        else:
+            rows = [dict(row) for row in all_rows]
+            for row in rows:
+                row[f"source_{mosaic_suffix}"] = "merged"
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 7: to_points
+    # ------------------------------------------------------------------
+    def to_points(self) -> "GeoPromptFrame":
+        rows: list[Record] = []
+        for row in self._rows:
+            centroid = geometry_centroid(row[self.geometry_column])
+            resolved = dict(row)
+            resolved[self.geometry_column] = {"type": "Point", "coordinates": centroid}
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 8: to_polygons
+    # ------------------------------------------------------------------
+    def to_polygons(self, buffer_distance: float = 0.001) -> "GeoPromptFrame":
+        if buffer_distance <= 0:
+            raise ValueError("buffer_distance must be greater than zero")
+        rows: list[Record] = []
+        for row in self._rows:
+            geom = row[self.geometry_column]
+            geom_type_value = geometry_type(geom)
+            if geom_type_value == "Polygon":
+                rows.append(dict(row))
+            elif geom_type_value == "Point":
+                cx, cy = geom["coordinates"]
+                polygon = _rectangle_polygon(
+                    cx - buffer_distance, cy - buffer_distance,
+                    cx + buffer_distance, cy + buffer_distance,
+                )
+                resolved = dict(row)
+                resolved[self.geometry_column] = polygon
+                rows.append(resolved)
+            elif geom_type_value == "LineString":
+                coords = geometry_vertices(geom)
+                min_x = min(c[0] for c in coords) - buffer_distance
+                min_y = min(c[1] for c in coords) - buffer_distance
+                max_x = max(c[0] for c in coords) + buffer_distance
+                max_y = max(c[1] for c in coords) + buffer_distance
+                polygon = _rectangle_polygon(min_x, min_y, max_x, max_y)
+                resolved = dict(row)
+                resolved[self.geometry_column] = polygon
+                rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 9: contours
+    # ------------------------------------------------------------------
+    def contours(
+        self,
+        value_column: str,
+        intervals: Sequence[float] | None = None,
+        interval_count: int = 5,
+        grid_resolution: int = 20,
+        distance_method: str = "euclidean",
+        contour_suffix: str = "contour",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        values = [float(row[value_column]) for row in self._rows if row.get(value_column) is not None]
+        if not values:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        b = self.bounds()
+        if intervals is None:
+            v_min, v_max = min(values), max(values)
+            step = (v_max - v_min) / max(interval_count, 1)
+            intervals = [v_min + step * i for i in range(1, interval_count)]
+        dx = (b.max_x - b.min_x) / max(grid_resolution - 1, 1)
+        dy = (b.max_y - b.min_y) / max(grid_resolution - 1, 1)
+        grid: list[list[float]] = []
+        for gy in range(grid_resolution):
+            row_vals: list[float] = []
+            py = b.min_y + gy * dy
+            for gx in range(grid_resolution):
+                px = b.min_x + gx * dx
+                weight_sum = 0.0
+                value_sum = 0.0
+                for ci, centroid in enumerate(centroids):
+                    d = coordinate_distance((px, py), centroid, method=distance_method)
+                    w = 1.0 / max(d * d, 1e-12)
+                    weight_sum += w
+                    value_sum += w * float(self._rows[ci].get(value_column, 0) or 0)
+                row_vals.append(value_sum / weight_sum if weight_sum > 0 else 0.0)
+            grid.append(row_vals)
+        rows: list[Record] = []
+        contour_id = 0
+        for level in intervals:
+            segments: list[tuple[Coordinate, Coordinate]] = []
+            for gy in range(grid_resolution - 1):
+                for gx in range(grid_resolution - 1):
+                    cell_values = [
+                        grid[gy][gx], grid[gy][gx + 1],
+                        grid[gy + 1][gx + 1], grid[gy + 1][gx],
+                    ]
+                    cell_coords = [
+                        (b.min_x + gx * dx, b.min_y + gy * dy),
+                        (b.min_x + (gx + 1) * dx, b.min_y + gy * dy),
+                        (b.min_x + (gx + 1) * dx, b.min_y + (gy + 1) * dy),
+                        (b.min_x + gx * dx, b.min_y + (gy + 1) * dy),
+                    ]
+                    edge_points = _marching_square_edges(cell_values, cell_coords, level)
+                    for i in range(0, len(edge_points) - 1, 2):
+                        segments.append((edge_points[i], edge_points[i + 1]))
+            for seg_start, seg_end in segments:
+                contour_id += 1
+                rows.append({
+                    f"contour_id_{contour_suffix}": f"contour-{contour_id:04d}",
+                    f"level_{contour_suffix}": level,
+                    self.geometry_column: {"type": "LineString", "coordinates": (seg_start, seg_end)},
+                })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 10: hillshade
+    # ------------------------------------------------------------------
+    def hillshade(
+        self,
+        elevation_column: str,
+        azimuth: float = 315.0,
+        altitude: float = 45.0,
+        grid_resolution: int = 20,
+        distance_method: str = "euclidean",
+        hillshade_suffix: str = "hillshade",
+    ) -> "GeoPromptFrame":
+        self._require_column(elevation_column)
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        grid, b, dx, dy = self._idw_grid(elevation_column, grid_resolution, distance_method)
+        azimuth_rad = math.radians(360.0 - azimuth + 90.0)
+        altitude_rad = math.radians(altitude)
+        rows: list[Record] = []
+        cell_id = 0
+        for gy in range(1, grid_resolution - 1):
+            for gx in range(1, grid_resolution - 1):
+                dzdx = (grid[gy][gx + 1] - grid[gy][gx - 1]) / (2.0 * max(dx, 1e-12))
+                dzdy = (grid[gy + 1][gx] - grid[gy - 1][gx]) / (2.0 * max(dy, 1e-12))
+                slope = math.atan(math.sqrt(dzdx * dzdx + dzdy * dzdy))
+                aspect = math.atan2(-dzdy, dzdx)
+                shade = max(0.0, math.cos(altitude_rad) * math.sin(slope) * math.cos(azimuth_rad - aspect) + math.sin(altitude_rad) * math.cos(slope))
+                shade = min(1.0, shade)
+                cx = b.min_x + gx * dx
+                cy = b.min_y + gy * dy
+                cell_id += 1
+                rows.append({
+                    f"cell_id_{hillshade_suffix}": f"hs-{cell_id:04d}",
+                    f"value_{hillshade_suffix}": round(shade * 255.0),
+                    f"shade_{hillshade_suffix}": shade,
+                    self.geometry_column: {"type": "Point", "coordinates": (cx, cy)},
+                })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 11: slope_aspect
+    # ------------------------------------------------------------------
+    def slope_aspect(
+        self,
+        elevation_column: str,
+        grid_resolution: int = 20,
+        distance_method: str = "euclidean",
+        slope_suffix: str = "terrain",
+    ) -> "GeoPromptFrame":
+        self._require_column(elevation_column)
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        grid, b, dx, dy = self._idw_grid(elevation_column, grid_resolution, distance_method)
+        rows: list[Record] = []
+        cell_id = 0
+        for gy in range(1, grid_resolution - 1):
+            for gx in range(1, grid_resolution - 1):
+                dzdx = (grid[gy][gx + 1] - grid[gy][gx - 1]) / (2.0 * max(dx, 1e-12))
+                dzdy = (grid[gy + 1][gx] - grid[gy - 1][gx]) / (2.0 * max(dy, 1e-12))
+                slope_rad = math.atan(math.sqrt(dzdx * dzdx + dzdy * dzdy))
+                slope_deg = math.degrees(slope_rad)
+                aspect_rad = math.atan2(-dzdy, dzdx)
+                aspect_deg = (math.degrees(aspect_rad) + 360.0) % 360.0
+                cx = b.min_x + gx * dx
+                cy = b.min_y + gy * dy
+                cell_id += 1
+                rows.append({
+                    f"cell_id_{slope_suffix}": f"sa-{cell_id:04d}",
+                    f"slope_degrees_{slope_suffix}": slope_deg,
+                    f"slope_radians_{slope_suffix}": slope_rad,
+                    f"aspect_degrees_{slope_suffix}": aspect_deg,
+                    f"aspect_radians_{slope_suffix}": aspect_rad,
+                    f"elevation_{slope_suffix}": grid[gy][gx],
+                    self.geometry_column: {"type": "Point", "coordinates": (cx, cy)},
+                })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 12: idw_interpolation
+    # ------------------------------------------------------------------
+    def idw_interpolation(
+        self,
+        value_column: str,
+        grid_resolution: int = 20,
+        power: float = 2.0,
+        distance_method: str = "euclidean",
+        idw_suffix: str = "idw",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        if power <= 0:
+            raise ValueError("power must be greater than zero")
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        b = self.bounds()
+        dx = (b.max_x - b.min_x) / max(grid_resolution - 1, 1)
+        dy = (b.max_y - b.min_y) / max(grid_resolution - 1, 1)
+        rows: list[Record] = []
+        cell_id = 0
+        for gy in range(grid_resolution):
+            py = b.min_y + gy * dy
+            for gx in range(grid_resolution):
+                px = b.min_x + gx * dx
+                weight_sum = 0.0
+                value_sum = 0.0
+                exact_match = None
+                for ci, centroid in enumerate(centroids):
+                    d = coordinate_distance((px, py), centroid, method=distance_method)
+                    if d < 1e-12:
+                        exact_match = float(self._rows[ci].get(value_column, 0) or 0)
+                        break
+                    w = 1.0 / (d ** power)
+                    weight_sum += w
+                    value_sum += w * float(self._rows[ci].get(value_column, 0) or 0)
+                interpolated = exact_match if exact_match is not None else (value_sum / weight_sum if weight_sum > 0 else 0.0)
+                cell_id += 1
+                rows.append({
+                    f"cell_id_{idw_suffix}": f"idw-{cell_id:04d}",
+                    f"value_{idw_suffix}": interpolated,
+                    f"grid_row_{idw_suffix}": gy,
+                    f"grid_col_{idw_suffix}": gx,
+                    self.geometry_column: {"type": "Point", "coordinates": (px, py)},
+                })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 13: kriging_surface (simple/ordinary kriging)
+    # ------------------------------------------------------------------
+    def kriging_surface(
+        self,
+        value_column: str,
+        grid_resolution: int = 20,
+        variogram_range: float | None = None,
+        variogram_sill: float = 1.0,
+        variogram_nugget: float = 0.0,
+        variogram_model: str = "spherical",
+        distance_method: str = "euclidean",
+        kriging_suffix: str = "kriging",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        if variogram_sill <= 0.0:
+            raise ValueError("variogram_sill must be greater than zero")
+        if variogram_nugget < 0.0:
+            raise ValueError("variogram_nugget must be zero or greater")
+        if variogram_range is not None and variogram_range <= 0.0:
+            raise ValueError("variogram_range must be greater than zero")
+        normalized_variogram_model = variogram_model.replace("-", "_")
+        if normalized_variogram_model not in {"spherical", "exponential", "gaussian", "hole_effect"}:
+            raise ValueError("variogram_model must be 'spherical', 'exponential', 'gaussian', or 'hole_effect'")
+        centroids = self._centroids()
+        values = [float(row.get(value_column, 0) or 0) for row in self._rows]
+        sample_count = len(centroids)
+        b = self.bounds()
+        extent = max(b.max_x - b.min_x, b.max_y - b.min_y, 1e-9)
+        effective_range = variogram_range if variogram_range is not None else extent / 3.0
+        sample_distances = _pairwise_distance_matrix(centroids, distance_method)
+        kriging_matrix = [
+            [
+                _variogram_value(
+                    normalized_variogram_model,
+                    sample_distances[row_index][col_index],
+                    effective_range,
+                    variogram_sill,
+                    variogram_nugget,
+                )
+                for col_index in range(sample_count)
+            ]
+            + [1.0]
+            for row_index in range(sample_count)
+        ]
+        kriging_matrix.append([1.0] * sample_count + [0.0])
+        inverse_matrix = _invert_matrix(kriging_matrix)
+        if inverse_matrix is None:
+            stabilized_matrix = [list(row) for row in kriging_matrix]
+            diagonal_jitter = max(variogram_sill, 1.0) * 1e-9
+            for index in range(sample_count):
+                stabilized_matrix[index][index] += diagonal_jitter
+            inverse_matrix = _invert_matrix(stabilized_matrix)
+            if inverse_matrix is not None:
+                kriging_matrix = stabilized_matrix
+        dx = (b.max_x - b.min_x) / max(grid_resolution - 1, 1)
+        dy = (b.max_y - b.min_y) / max(grid_resolution - 1, 1)
+        rows: list[Record] = []
+        cell_id = 0
+        for gy in range(grid_resolution):
+            py = b.min_y + gy * dy
+            for gx in range(grid_resolution):
+                px = b.min_x + gx * dx
+                query_distances = [
+                    coordinate_distance((px, py), centroid, method=distance_method)
+                    for centroid in centroids
+                ]
+                exact_index = next(
+                    (
+                        index
+                        for index, distance_value in enumerate(query_distances)
+                        if distance_value <= 1e-12 and variogram_nugget <= 0.0
+                    ),
+                    None,
+                )
+                if exact_index is not None:
+                    predicted = values[exact_index]
+                    variance = 0.0
+                else:
+                    rhs = [
+                        _variogram_value(
+                            normalized_variogram_model,
+                            distance_value,
+                            effective_range,
+                            variogram_sill,
+                            variogram_nugget,
+                            include_nugget_at_zero=variogram_nugget > 0.0,
+                        )
+                        for distance_value in query_distances
+                    ] + [1.0]
+                    solution = _matrix_vector_product(inverse_matrix, rhs) if inverse_matrix is not None else _solve_linear_system(kriging_matrix, rhs)
+                    if solution is None:
+                        weights = [max(0.0, variogram_sill - rhs[index]) for index in range(sample_count)]
+                        weight_sum = sum(weights)
+                        if weight_sum > 0.0:
+                            predicted = sum(weight * value for weight, value in zip(weights, values, strict=True)) / weight_sum
+                            variance = variogram_sill - sum(weight * weight for weight in weights) / (weight_sum * weight_sum) * variogram_sill
+                        else:
+                            predicted = sum(values) / len(values) if values else 0.0
+                            variance = variogram_sill
+                    else:
+                        kriging_weights = solution[:sample_count]
+                        lagrange_multiplier = float(solution[-1])
+                        predicted = sum(weight * value for weight, value in zip(kriging_weights, values, strict=True))
+                        variance = sum(weight * rhs[index] for index, weight in enumerate(kriging_weights)) + lagrange_multiplier
+                cell_id += 1
+                rows.append({
+                    f"cell_id_{kriging_suffix}": f"krig-{cell_id:04d}",
+                    f"value_{kriging_suffix}": predicted,
+                    f"variance_{kriging_suffix}": max(0.0, variance),
+                    f"method_{kriging_suffix}": "ordinary_kriging",
+                    f"variogram_model_{kriging_suffix}": normalized_variogram_model,
+                    f"grid_row_{kriging_suffix}": gy,
+                    f"grid_col_{kriging_suffix}": gx,
+                    self.geometry_column: {"type": "Point", "coordinates": (px, py)},
+                })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 14: thiessen_polygons (Voronoi)
+    # ------------------------------------------------------------------
+    def thiessen_polygons(
+        self,
+        id_column: str = "site_id",
+        grid_resolution: int = 50,
+        distance_method: str = "euclidean",
+        voronoi_suffix: str = "voronoi",
+    ) -> "GeoPromptFrame":
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        b = self.bounds()
+        margin = max(b.max_x - b.min_x, b.max_y - b.min_y, 1e-9) * 0.1
+        ext_min_x = b.min_x - margin
+        ext_min_y = b.min_y - margin
+        ext_max_x = b.max_x + margin
+        ext_max_y = b.max_y + margin
+        try:
+            shapely_geometry = importlib.import_module("shapely.geometry")
+            shapely_ops = importlib.import_module("shapely.ops")
+            envelope = shapely_geometry.box(ext_min_x, ext_min_y, ext_max_x, ext_max_y)
+            voronoi = shapely_ops.voronoi_diagram(
+                shapely_geometry.MultiPoint(centroids),
+                envelope=envelope,
+                tolerance=0.0,
+                edges=False,
+            )
+            candidate_cells = [
+                geometry
+                for geometry in getattr(voronoi, "geoms", [voronoi])
+                if not geometry.is_empty and geometry.geom_type == "Polygon"
+            ]
+            rows: list[Record] = []
+            assigned_cells: dict[str, Any] = {}
+            for row, centroid in zip(self._rows, centroids, strict=True):
+                centroid_key = _coordinate_key(centroid)
+                if centroid_key not in assigned_cells:
+                    point = shapely_geometry.Point(centroid)
+                    matched_cell = next(
+                        (
+                            cell
+                            for cell in candidate_cells
+                            if cell.covers(point) or cell.buffer(1e-12).covers(point)
+                        ),
+                        None,
+                    )
+                    if matched_cell is None:
+                        matched_cell = min(candidate_cells, key=lambda cell: float(cell.distance(point)))
+                    assigned_cells[centroid_key] = matched_cell.intersection(envelope)
+                geometries = geometry_from_shapely(assigned_cells[centroid_key])
+                if not geometries:
+                    continue
+                polygon = geometries[0]
+                area_value = geometry_area(polygon)
+                resolved = dict(row)
+                resolved[self.geometry_column] = polygon
+                resolved[f"cell_count_{voronoi_suffix}"] = 1
+                resolved[f"area_approx_{voronoi_suffix}"] = area_value
+                resolved[f"area_{voronoi_suffix}"] = area_value
+                resolved[f"method_{voronoi_suffix}"] = "shapely_exact"
+                rows.append(resolved)
+            if len(rows) == len(self._rows):
+                return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+        except ImportError:
+            pass
+
+        dx = (ext_max_x - ext_min_x) / max(grid_resolution - 1, 1)
+        dy = (ext_max_y - ext_min_y) / max(grid_resolution - 1, 1)
+        use_euclidean = distance_method == "euclidean"
+        cell_owner: list[list[int]] = []
+        for gy in range(grid_resolution):
+            py = ext_min_y + gy * dy
+            row_owners: list[int] = []
+            for gx in range(grid_resolution):
+                px = ext_min_x + gx * dx
+                best_idx = 0
+                best_dist = float("inf")
+                for ci, centroid in enumerate(centroids):
+                    if use_euclidean:
+                        delta_x = px - centroid[0]
+                        delta_y = py - centroid[1]
+                        d = delta_x * delta_x + delta_y * delta_y
+                    else:
+                        d = coordinate_distance((px, py), centroid, method=distance_method)
+                    if d < best_dist:
+                        best_dist = d
+                        best_idx = ci
+                row_owners.append(best_idx)
+            cell_owner.append(row_owners)
+        owner_cells: dict[int, list[tuple[int, int]]] = {}
+        for gy in range(grid_resolution):
+            for gx in range(grid_resolution):
+                owner_cells.setdefault(cell_owner[gy][gx], []).append((gx, gy))
+        rows: list[Record] = []
+        for owner_idx, cells in owner_cells.items():
+            xs = [ext_min_x + gx * dx for gx, _ in cells]
+            ys = [ext_min_y + gy * dy for _, gy in cells]
+            poly_min_x, poly_max_x = min(xs), max(xs) + dx
+            poly_min_y, poly_max_y = min(ys), max(ys) + dy
+            polygon = _rectangle_polygon(poly_min_x, poly_min_y, poly_max_x, poly_max_y)
+            resolved = dict(self._rows[owner_idx])
+            resolved[self.geometry_column] = polygon
+            resolved[f"cell_count_{voronoi_suffix}"] = len(cells)
+            resolved[f"area_approx_{voronoi_suffix}"] = len(cells) * dx * dy
+            resolved[f"area_{voronoi_suffix}"] = geometry_area(polygon)
+            resolved[f"method_{voronoi_suffix}"] = "grid_approximation"
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 15: spatial_weights_matrix
+    # ------------------------------------------------------------------
+    def spatial_weights_matrix(
+        self,
+        id_column: str = "site_id",
+        mode: SpatialLagMode = "k_nearest",
+        k: int = 4,
+        max_distance: float | None = None,
+        distance_method: str = "euclidean",
+        weight_mode: SpatialLagWeightMode = "binary",
+        include_self: bool = False,
+    ) -> dict[str, Any]:
+        self._require_column(id_column)
+        centroids = self._centroids()
+        ids = [str(row[id_column]) for row in self._rows]
+        distance_matrix = _pairwise_distance_matrix(centroids, distance_method)
+        weights: dict[str, dict[str, float]] = {}
+        for i, origin_id in enumerate(ids):
+            neighbors: dict[str, float] = {}
+            candidates: list[tuple[int, float]] = []
+            for j in range(len(self._rows)):
+                if not include_self and i == j:
+                    continue
+                d = distance_matrix[i][j]
+                if mode == "distance_band" and max_distance is not None and d > max_distance:
+                    continue
+                candidates.append((j, d))
+            if mode == "k_nearest":
+                candidates = nsmallest(k, candidates, key=lambda x: x[1])
+            for j, d in candidates:
+                if weight_mode == "binary":
+                    neighbors[ids[j]] = 1.0
+                else:
+                    neighbors[ids[j]] = 1.0 / max(d, 1e-12)
+            weights[origin_id] = neighbors
+        return {
+            "ids": ids,
+            "weights": weights,
+            "mode": mode,
+            "k": k,
+            "max_distance": max_distance,
+            "weight_mode": weight_mode,
+            "n": len(ids),
+        }
+
+    # ------------------------------------------------------------------
+    # Tool 16: hotspot_getis_ord (Gi* statistic)
+    # ------------------------------------------------------------------
+    def hotspot_getis_ord(
+        self,
+        value_column: str,
+        id_column: str = "site_id",
+        mode: SpatialLagMode = "distance_band",
+        k: int = 4,
+        max_distance: float | None = None,
+        distance_method: str = "euclidean",
+        include_self: bool = True,
+        getis_suffix: str = "getis",
+    ) -> "GeoPromptFrame":
+        self._require_column(value_column)
+        self._require_column(id_column)
+        if mode == "distance_band" and max_distance is None:
+            raise ValueError("max_distance is required when mode='distance_band'")
+        n = len(self._rows)
+        if n == 0:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        distance_matrix = _pairwise_distance_matrix(centroids, distance_method)
+        values = [float(row[value_column]) for row in self._rows]
+        geometry_index = self.spatial_index(mode="geometry") if mode == "intersects" and self._rows else None
+        mean_val = sum(values) / n
+        s = math.sqrt(sum(v * v for v in values) / n - mean_val * mean_val) if n > 1 else 1.0
+        if s < 1e-12:
+            s = 1.0
+        neighbor_indexes: list[list[int]] = []
+        for i in range(n):
+            candidates: list[tuple[int, float]] = []
+            if mode == "intersects" and geometry_index is not None:
+                candidate_indexes = geometry_index.query(geometry_bounds(self._rows[i][self.geometry_column]))
+            else:
+                candidate_indexes = list(range(n))
+            for j in candidate_indexes:
+                if i == j:
+                    continue
+                if mode == "intersects":
+                    if not geometry_intersects(self._rows[i][self.geometry_column], self._rows[j][self.geometry_column]):
+                        continue
+                    distance_value = distance_matrix[i][j]
+                else:
+                    distance_value = distance_matrix[i][j]
+                    if mode == "distance_band" and max_distance is not None and distance_value > max_distance:
+                        continue
+                candidates.append((j, distance_value))
+            if mode == "k_nearest":
+                candidates = nsmallest(
+                    k,
+                    candidates,
+                    key=lambda item: (float(item[1]), _row_sort_key(self._rows[item[0]])),
+                )
+            else:
+                candidates.sort(key=lambda item: (float(item[1]), _row_sort_key(self._rows[item[0]])))
+            neighbor_indexes.append([index for index, _distance_value in candidates])
+
+        reference_statistics = _reference_getis_ord_statistics(values, neighbor_indexes, include_self=include_self)
+        rows: list[Record] = []
+        for i in range(n):
+            w_sum = 0.0
+            wx_sum = 0.0
+            w2_sum = 0.0
+            candidates = list(neighbor_indexes[i])
+            for j in candidates:
+                w = 1.0
+                w_sum += w
+                wx_sum += w * values[j]
+                w2_sum += w * w
+            if reference_statistics is not None:
+                z_score, p_value = reference_statistics[i]
+            else:
+                if include_self:
+                    w_sum += 1.0
+                    wx_sum += values[i]
+                    w2_sum += 1.0
+                if w_sum > 0 and n > 1:
+                    numerator = wx_sum - mean_val * w_sum
+                    denominator = s * math.sqrt((n * w2_sum - w_sum * w_sum) / max(n - 1, 1))
+                    z_score = numerator / max(denominator, 1e-12)
+                else:
+                    z_score = 0.0
+                p_value = 2.0 * (1.0 - _normal_cdf(abs(z_score)))
+            resolved = dict(self._rows[i])
+            resolved[f"gi_star_{getis_suffix}"] = z_score
+            resolved[f"p_value_{getis_suffix}"] = p_value
+            resolved[f"neighbor_count_{getis_suffix}"] = len(candidates) + (1 if include_self else 0)
+            resolved[f"significant_{getis_suffix}"] = p_value <= 0.05
+            resolved[f"implementation_{getis_suffix}"] = "pysal" if reference_statistics is not None else "analytic"
+            if p_value <= 0.05 and z_score > 0.0:
+                resolved[f"classification_{getis_suffix}"] = "hotspot"
+            elif p_value <= 0.05 and z_score < 0.0:
+                resolved[f"classification_{getis_suffix}"] = "coldspot"
+            else:
+                resolved[f"classification_{getis_suffix}"] = "not_significant"
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 17: local_outlier_factor_spatial
+    # ------------------------------------------------------------------
+    def local_outlier_factor_spatial(
+        self,
+        value_column: str | None = None,
+        id_column: str = "site_id",
+        k: int = 4,
+        distance_method: str = "euclidean",
+        lof_suffix: str = "lof",
+    ) -> "GeoPromptFrame":
+        self._require_column(id_column)
+        if k <= 0:
+            raise ValueError("k must be greater than zero")
+        n = len(self._rows)
+        if n == 0:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        distance_matrix = _pairwise_distance_matrix(centroids, distance_method)
+        k_actual = min(k, n - 1)
+        if k_actual <= 0:
+            rows = [dict(row) | {f"lof_{lof_suffix}": 1.0, f"outlier_{lof_suffix}": False} for row in self._rows]
+            return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+        knn: list[list[tuple[int, float]]] = []
+        k_distances: list[float] = []
+        for i in range(n):
+            dists = []
+            for j in range(n):
+                if i == j:
+                    continue
+                d = distance_matrix[i][j]
+                if value_column is not None:
+                    vi = float(self._rows[i].get(value_column, 0) or 0)
+                    vj = float(self._rows[j].get(value_column, 0) or 0)
+                    d = math.sqrt(d * d + (vi - vj) * (vi - vj))
+                dists.append((j, d))
+            neighbors = nsmallest(k_actual, dists, key=lambda x: x[1])
+            knn.append(neighbors)
+            k_distances.append(neighbors[-1][1] if neighbors else 0.0)
+        lrd: list[float] = []
+        for i in range(n):
+            reach_sum = sum(max(k_distances[j], d) for j, d in knn[i])
+            lrd.append(len(knn[i]) / max(reach_sum, 1e-12))
+        rows: list[Record] = []
+        for i in range(n):
+            if lrd[i] < 1e-12:
+                lof_value = 1.0
+            else:
+                neighbor_lrd_sum = sum(lrd[j] for j, _ in knn[i])
+                lof_value = (neighbor_lrd_sum / len(knn[i])) / lrd[i] if knn[i] else 1.0
+            resolved = dict(self._rows[i])
+            resolved[f"lof_{lof_suffix}"] = lof_value
+            resolved[f"k_distance_{lof_suffix}"] = k_distances[i]
+            resolved[f"lrd_{lof_suffix}"] = lrd[i]
+            resolved[f"outlier_{lof_suffix}"] = lof_value > 1.5
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 18: kernel_density
+    # ------------------------------------------------------------------
+    def kernel_density(
+        self,
+        bandwidth: float | None = None,
+        weight_column: str | None = None,
+        grid_resolution: int = 20,
+        distance_method: str = "euclidean",
+        kernel_suffix: str = "kde",
+    ) -> "GeoPromptFrame":
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        b = self.bounds()
+        extent = max(b.max_x - b.min_x, b.max_y - b.min_y, 1e-9)
+        h = bandwidth if bandwidth is not None else extent / math.sqrt(len(self._rows))
+        if h <= 0:
+            raise ValueError("bandwidth must be greater than zero")
+        dx = (b.max_x - b.min_x) / max(grid_resolution - 1, 1)
+        dy = (b.max_y - b.min_y) / max(grid_resolution - 1, 1)
+        weights_list = [float(row[weight_column]) if weight_column and row.get(weight_column) is not None else 1.0 for row in self._rows]
+        use_euclidean = distance_method == "euclidean"
+        rows: list[Record] = []
+        cell_id = 0
+        for gy in range(grid_resolution):
+            py = b.min_y + gy * dy
+            for gx in range(grid_resolution):
+                px = b.min_x + gx * dx
+                density = 0.0
+                for ci, centroid in enumerate(centroids):
+                    if use_euclidean:
+                        d = math.hypot(px - centroid[0], py - centroid[1])
+                    else:
+                        d = coordinate_distance((px, py), centroid, method=distance_method)
+                    u = d / h
+                    if u < 1.0:
+                        k_val = (3.0 / math.pi) * (1.0 - u * u) ** 2
+                        density += weights_list[ci] * k_val / (h * h)
+                cell_id += 1
+                rows.append({
+                    f"cell_id_{kernel_suffix}": f"kde-{cell_id:04d}",
+                    f"density_{kernel_suffix}": density,
+                    self.geometry_column: {"type": "Point", "coordinates": (px, py)},
+                })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 19: standard_deviational_ellipse
+    # ------------------------------------------------------------------
+    def standard_deviational_ellipse(
+        self,
+        weight_column: str | None = None,
+        id_column: str = "site_id",
+        ellipse_suffix: str = "sde",
+    ) -> "GeoPromptFrame":
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        weights = [float(row[weight_column]) if weight_column and row.get(weight_column) is not None else 1.0 for row in self._rows]
+        w_sum = sum(weights)
+        if w_sum <= 0:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        cx = sum(w * c[0] for w, c in zip(weights, centroids)) / w_sum
+        cy = sum(w * c[1] for w, c in zip(weights, centroids)) / w_sum
+        dx_vals = [c[0] - cx for c in centroids]
+        dy_vals = [c[1] - cy for c in centroids]
+        sum_dx2 = sum(w * dx * dx for w, dx in zip(weights, dx_vals))
+        sum_dy2 = sum(w * dy * dy for w, dy in zip(weights, dy_vals))
+        sum_dxdy = sum(w * dx * dy for w, dx, dy in zip(weights, dx_vals, dy_vals))
+        a = sum_dx2 - sum_dy2
+        b_val = math.sqrt(a * a + 4.0 * sum_dxdy * sum_dxdy)
+        theta = math.atan2(2.0 * sum_dxdy, a) / 2.0
+        cos_t, sin_t = math.cos(theta), math.sin(theta)
+        sigma_x = math.sqrt(sum(w * (dx * cos_t + dy * sin_t) ** 2 for w, dx, dy in zip(weights, dx_vals, dy_vals)) / w_sum)
+        sigma_y = math.sqrt(sum(w * (dx * sin_t - dy * cos_t) ** 2 for w, dx, dy in zip(weights, dx_vals, dy_vals)) / w_sum)
+        n_pts = 32
+        ellipse_coords: list[Coordinate] = []
+        for i in range(n_pts + 1):
+            angle = 2.0 * math.pi * i / n_pts
+            ex = sigma_x * math.cos(angle)
+            ey = sigma_y * math.sin(angle)
+            rx = cx + ex * cos_t - ey * sin_t
+            ry = cy + ex * sin_t + ey * cos_t
+            ellipse_coords.append((rx, ry))
+        ellipse_geom: Geometry = {"type": "Polygon", "coordinates": tuple(ellipse_coords)}
+        rows: list[Record] = [{
+            f"center_x_{ellipse_suffix}": cx,
+            f"center_y_{ellipse_suffix}": cy,
+            f"sigma_x_{ellipse_suffix}": sigma_x,
+            f"sigma_y_{ellipse_suffix}": sigma_y,
+            f"rotation_degrees_{ellipse_suffix}": math.degrees(theta),
+            f"feature_count_{ellipse_suffix}": len(self._rows),
+            self.geometry_column: ellipse_geom,
+        }]
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 20: center_of_minimum_distance (spatial median)
+    # ------------------------------------------------------------------
+    def center_of_minimum_distance(
+        self,
+        weight_column: str | None = None,
+        max_iterations: int = 100,
+        tolerance: float = 1e-8,
+        distance_method: str = "euclidean",
+        cmd_suffix: str = "cmd",
+    ) -> "GeoPromptFrame":
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        weights = [float(row[weight_column]) if weight_column and row.get(weight_column) is not None else 1.0 for row in self._rows]
+        w_sum = sum(weights)
+        cx = sum(w * c[0] for w, c in zip(weights, centroids)) / max(w_sum, 1e-12)
+        cy = sum(w * c[1] for w, c in zip(weights, centroids)) / max(w_sum, 1e-12)
+        for iteration in range(max_iterations):
+            wx_sum = 0.0
+            wy_sum = 0.0
+            denom = 0.0
+            for ci, centroid in enumerate(centroids):
+                d = coordinate_distance((cx, cy), centroid, method=distance_method)
+                if d < 1e-12:
+                    continue
+                w = weights[ci] / d
+                wx_sum += w * centroid[0]
+                wy_sum += w * centroid[1]
+                denom += w
+            if denom < 1e-12:
+                break
+            new_cx = wx_sum / denom
+            new_cy = wy_sum / denom
+            if abs(new_cx - cx) + abs(new_cy - cy) < tolerance:
+                cx, cy = new_cx, new_cy
+                break
+            cx, cy = new_cx, new_cy
+        total_dist = sum(
+            weights[ci] * coordinate_distance((cx, cy), centroids[ci], method=distance_method)
+            for ci in range(len(centroids))
+        )
+        rows: list[Record] = [{
+            f"center_x_{cmd_suffix}": cx,
+            f"center_y_{cmd_suffix}": cy,
+            f"total_weighted_distance_{cmd_suffix}": total_dist,
+            f"feature_count_{cmd_suffix}": len(self._rows),
+            f"iterations_{cmd_suffix}": min(iteration + 1 if 'iteration' in dir() else max_iterations, max_iterations),
+            self.geometry_column: {"type": "Point", "coordinates": (cx, cy)},
+        }]
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 21: spatial_regression (OLS with spatial diagnostics)
+    # ------------------------------------------------------------------
+    def spatial_regression(
+        self,
+        dependent_column: str,
+        independent_columns: Sequence[str],
+        id_column: str = "site_id",
+        k_neighbors: int = 4,
+        distance_method: str = "euclidean",
+        regression_suffix: str = "reg",
+    ) -> "GeoPromptFrame":
+        self._require_column(dependent_column)
+        for col in independent_columns:
+            self._require_column(col)
+        n = len(self._rows)
+        if n == 0:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        p = len(independent_columns) + 1
+        y_vals = [float(row[dependent_column]) for row in self._rows]
+        x_matrix = [[1.0] + [float(row.get(col, 0) or 0) for col in independent_columns] for row in self._rows]
+        xtx_inverse: list[list[float]] | None = None
+        x_pseudoinverse = _matrix_pseudoinverse(x_matrix)
+        effective_rank = _matrix_rank(x_matrix)
+        if x_pseudoinverse is not None:
+            coefficients = _matrix_vector_product(x_pseudoinverse, y_vals)
+            xtx_inverse = _matrix_product(x_pseudoinverse, _transpose_matrix(x_pseudoinverse))
+        else:
+            xtx = [[sum(x_matrix[i][a] * x_matrix[i][b] for i in range(n)) for b in range(p)] for a in range(p)]
+            xty = [sum(x_matrix[i][a] * y_vals[i] for i in range(n)) for a in range(p)]
+            coefficients = _solve_linear_system(xtx, xty)
+            xtx_inverse = _invert_matrix(xtx)
+            if coefficients is None or xtx_inverse is None:
+                xtx_pseudoinverse = _matrix_pseudoinverse(xtx)
+                if xtx_pseudoinverse is not None:
+                    coefficients = _matrix_vector_product(xtx_pseudoinverse, xty)
+                    xtx_inverse = xtx_pseudoinverse
+                elif coefficients is None:
+                    coefficients = _solve_linear_system_with_regularization(xtx, xty)
+                    xtx_inverse = _invert_matrix_with_regularization(xtx)
+        if coefficients is None:
+            coefficients = [0.0] * p
+        predicted = _matrix_vector_product(x_matrix, coefficients)
+        residuals = [y_vals[i] - predicted[i] for i in range(n)]
+        y_mean = sum(y_vals) / n
+        ss_res = sum(r * r for r in residuals)
+        ss_tot = sum((y - y_mean) ** 2 for y in y_vals)
+        if ss_tot <= 1e-12:
+            r_squared = float("-inf")
+            adj_r_squared = float("-inf")
+        else:
+            r_squared = 1.0 - ss_res / ss_tot
+            adj_r_squared = 1.0 - (1.0 - r_squared) * (n - 1) / max(n - effective_rank, 1) if n > effective_rank else r_squared
+        degrees_of_freedom = max(n - effective_rank, 0)
+        sigma2 = ss_res / degrees_of_freedom if degrees_of_freedom > 0 else 0.0
+        rmse = math.sqrt(ss_res / n) if n > 0 else 0.0
+        coefficient_standard_errors: list[float | None]
+        coefficient_t_statistics: list[float | None]
+        coefficient_p_values: list[float | None]
+        if xtx_inverse is None:
+            coefficient_standard_errors = [None] * p
+            coefficient_t_statistics = [None] * p
+            coefficient_p_values = [None] * p
+        else:
+            coefficient_standard_errors = []
+            coefficient_t_statistics = []
+            coefficient_p_values = []
+            for index in range(p):
+                variance = max(xtx_inverse[index][index] * sigma2, 0.0)
+                standard_error = math.sqrt(variance)
+                coefficient_standard_errors.append(standard_error)
+                coefficient = coefficients[index]
+                if standard_error <= 0.0:
+                    t_statistic = math.inf if abs(coefficient) > 1e-12 else 0.0
+                    p_value = 0.0 if math.isinf(t_statistic) else 1.0
+                else:
+                    t_statistic = coefficient / standard_error
+                    p_value = _two_sided_t_probability(abs(t_statistic), degrees_of_freedom)
+                coefficient_t_statistics.append(t_statistic)
+                coefficient_p_values.append(min(max(p_value, 0.0), 1.0))
+        centroids = self._centroids()
+        distance_matrix = _pairwise_distance_matrix(centroids, distance_method)
+        moran_residuals = _moran_on_residuals(residuals, distance_matrix, k_neighbors)
+        rows: list[Record] = []
+        for i in range(n):
+            resolved = dict(self._rows[i])
+            resolved[f"predicted_{regression_suffix}"] = predicted[i]
+            resolved[f"residual_{regression_suffix}"] = residuals[i]
+            resolved[f"r_squared_{regression_suffix}"] = r_squared
+            resolved[f"adj_r_squared_{regression_suffix}"] = adj_r_squared
+            resolved[f"rmse_{regression_suffix}"] = rmse
+            resolved[f"sigma2_{regression_suffix}"] = sigma2
+            resolved[f"dof_{regression_suffix}"] = degrees_of_freedom
+            resolved[f"coefficients_{regression_suffix}"] = coefficients
+            resolved[f"coefficient_standard_errors_{regression_suffix}"] = coefficient_standard_errors
+            resolved[f"coefficient_t_statistics_{regression_suffix}"] = coefficient_t_statistics
+            resolved[f"coefficient_p_values_{regression_suffix}"] = coefficient_p_values
+            resolved[f"intercept_{regression_suffix}"] = coefficients[0] if coefficients else None
+            resolved[f"intercept_standard_error_{regression_suffix}"] = coefficient_standard_errors[0] if coefficient_standard_errors else None
+            resolved[f"intercept_t_statistic_{regression_suffix}"] = coefficient_t_statistics[0] if coefficient_t_statistics else None
+            resolved[f"intercept_p_value_{regression_suffix}"] = coefficient_p_values[0] if coefficient_p_values else None
+            for coefficient_index, column_name in enumerate(independent_columns, start=1):
+                resolved[f"coeff_{column_name}_{regression_suffix}"] = coefficients[coefficient_index] if coefficient_index < len(coefficients) else None
+                resolved[f"std_err_{column_name}_{regression_suffix}"] = coefficient_standard_errors[coefficient_index] if coefficient_index < len(coefficient_standard_errors) else None
+                resolved[f"t_stat_{column_name}_{regression_suffix}"] = coefficient_t_statistics[coefficient_index] if coefficient_index < len(coefficient_t_statistics) else None
+                resolved[f"p_value_{column_name}_{regression_suffix}"] = coefficient_p_values[coefficient_index] if coefficient_index < len(coefficient_p_values) else None
+            resolved[f"moran_residual_{regression_suffix}"] = moran_residuals
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 22: geographically_weighted_summary
+    # ------------------------------------------------------------------
+    def geographically_weighted_summary(
+        self,
+        dependent_column: str,
+        independent_columns: Sequence[str],
+        bandwidth: float | None = None,
+        distance_method: str = "euclidean",
+        gwr_suffix: str = "gwr",
+    ) -> "GeoPromptFrame":
+        self._require_column(dependent_column)
+        for col in independent_columns:
+            self._require_column(col)
+        n = len(self._rows)
+        if n == 0:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        centroids = self._centroids()
+        distance_matrix = _pairwise_distance_matrix(centroids, distance_method)
+        b = self.bounds()
+        extent = max(b.max_x - b.min_x, b.max_y - b.min_y, 1e-9)
+        h = bandwidth if bandwidth is not None else extent / 3.0
+        p = len(independent_columns) + 1
+        y_vals = [float(row[dependent_column]) for row in self._rows]
+        x_matrix = [[1.0] + [float(row.get(col, 0) or 0) for col in independent_columns] for row in self._rows]
+        rows: list[Record] = []
+        for i in range(n):
+            local_weights = []
+            for j in range(n):
+                d = distance_matrix[i][j]
+                u = d / max(h, 1e-12)
+                w = math.exp(-0.5 * u * u) if u < 3.0 else 0.0
+                local_weights.append(w)
+            wxtx = [[sum(local_weights[k_idx] * x_matrix[k_idx][a] * x_matrix[k_idx][b] for k_idx in range(n)) for b in range(p)] for a in range(p)]
+            wxty = [sum(local_weights[k_idx] * x_matrix[k_idx][a] * y_vals[k_idx] for k_idx in range(n)) for a in range(p)]
+            local_coefficients = _solve_linear_system(wxtx, wxty)
+            if local_coefficients is None:
+                local_coefficients = [0.0] * p
+            local_predicted = sum(local_coefficients[j] * x_matrix[i][j] for j in range(p))
+            local_residual = y_vals[i] - local_predicted
+            resolved = dict(self._rows[i])
+            resolved[f"predicted_{gwr_suffix}"] = local_predicted
+            resolved[f"residual_{gwr_suffix}"] = local_residual
+            resolved[f"local_r_squared_{gwr_suffix}"] = None
+            resolved[f"intercept_{gwr_suffix}"] = local_coefficients[0]
+            for ci, col in enumerate(independent_columns):
+                resolved[f"coeff_{col}_{gwr_suffix}"] = local_coefficients[ci + 1]
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def weighted_local_summary(
+        self,
+        dependent_column: str,
+        independent_columns: Sequence[str],
+        bandwidth: float | None = None,
+        distance_method: str = "euclidean",
+        summary_suffix: str = "local",
+    ) -> "GeoPromptFrame":
+        return self.geographically_weighted_summary(
+            dependent_column=dependent_column,
+            independent_columns=independent_columns,
+            bandwidth=bandwidth,
+            distance_method=distance_method,
+            gwr_suffix=summary_suffix,
+        )
+
+    # ------------------------------------------------------------------
+    # Tool 23: join_by_largest_overlap
+    # ------------------------------------------------------------------
+    def join_by_largest_overlap(
+        self,
+        other: "GeoPromptFrame",
+        left_id_column: str = "site_id",
+        right_id_column: str = "site_id",
+        include_diagnostics: bool = False,
+        overlap_suffix: str = "overlap",
+    ) -> "GeoPromptFrame":
+        if self.crs and other.crs and self.crs != other.crs:
+            raise ValueError("frames must share the same CRS")
+        left_geoms = [row[self.geometry_column] for row in self._rows]
+        right_geoms = [row[other.geometry_column] for row in other._rows]
+        rows: list[Record] = []
+        for left_idx, left_row in enumerate(self._rows):
+            best_overlap = 0.0
+            best_right_idx: int | None = None
+            for right_idx in range(len(other._rows)):
+                overlap = _geometry_overlap_size(left_geoms[left_idx], right_geoms[right_idx])
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_right_idx = right_idx
+            resolved = dict(left_row)
+            if best_right_idx is not None:
+                for key, value in other._rows[best_right_idx].items():
+                    if key != other.geometry_column:
+                        resolved[f"{key}_{overlap_suffix}"] = value
+                resolved[f"overlap_area_{overlap_suffix}"] = best_overlap
+            else:
+                resolved[f"overlap_area_{overlap_suffix}"] = 0.0
+            if include_diagnostics:
+                resolved[f"candidate_count_{overlap_suffix}"] = len(other._rows)
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 24: erase
+    # ------------------------------------------------------------------
+    def erase(self, mask: "GeoPromptFrame") -> "GeoPromptFrame":
+        if self.crs and mask.crs and self.crs != mask.crs:
+            raise ValueError("frames must share the same CRS")
+        from .overlay import clip_geometries as _clip, geometry_to_shapely, geometry_from_shapely, _load_shapely
+        _, _, unary_union, _ = _load_shapely()
+        mask_geoms = [row[mask.geometry_column] for row in mask._rows]
+        if not mask_geoms:
+            return GeoPromptFrame._from_internal_rows([dict(r) for r in self._rows], geometry_column=self.geometry_column, crs=self.crs)
+        mask_shape = unary_union([geometry_to_shapely(g) for g in mask_geoms])
+        rows: list[Record] = []
+        for row in self._rows:
+            source_shape = geometry_to_shapely(row[self.geometry_column])
+            diff = source_shape.difference(mask_shape)
+            result_geoms = geometry_from_shapely(diff)
+            for geom in result_geoms:
+                resolved = dict(row)
+                resolved[self.geometry_column] = geom
+                rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 25: identity_overlay
+    # ------------------------------------------------------------------
+    def identity_overlay(
+        self,
+        other: "GeoPromptFrame",
+        left_id_column: str = "site_id",
+        right_id_column: str = "site_id",
+        identity_suffix: str = "identity",
+    ) -> "GeoPromptFrame":
+        if self.crs and other.crs and self.crs != other.crs:
+            raise ValueError("frames must share the same CRS")
+        from .overlay import geometry_to_shapely, geometry_from_shapely, _load_shapely
+        _, _, unary_union, _ = _load_shapely()
+        right_shapes = [geometry_to_shapely(row[other.geometry_column]) for row in other._rows]
+        rows: list[Record] = []
+        for left_row in self._rows:
+            left_shape = geometry_to_shapely(left_row[self.geometry_column])
+            remaining = left_shape
+            matched = False
+            for right_idx, right_shape in enumerate(right_shapes):
+                intersection = left_shape.intersection(right_shape)
+                if intersection.is_empty:
+                    continue
+                for geom in geometry_from_shapely(intersection):
+                    resolved = dict(left_row)
+                    resolved[self.geometry_column] = geom
+                    for key, value in other._rows[right_idx].items():
+                        if key != other.geometry_column:
+                            resolved[f"{key}_{identity_suffix}"] = value
+                    rows.append(resolved)
+                    matched = True
+                remaining = remaining.difference(right_shape)
+            if not remaining.is_empty:
+                for geom in geometry_from_shapely(remaining):
+                    resolved = dict(left_row)
+                    resolved[self.geometry_column] = geom
+                    rows.append(resolved)
+            elif not matched:
+                rows.append(dict(left_row))
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 26: multipart_to_singlepart
+    # ------------------------------------------------------------------
+    def multipart_to_singlepart(
+        self,
+        id_column: str = "site_id",
+        part_suffix: str = "part",
+    ) -> "GeoPromptFrame":
+        from .overlay import geometry_to_shapely, geometry_from_shapely, _load_shapely
+        _load_shapely()
+        rows: list[Record] = []
+        part_counter = 0
+        for row in self._rows:
+            multipart_members = next(
+                (
+                    value
+                    for key, value in row.items()
+                    if key.startswith("part_geometries_") and isinstance(value, (list, tuple))
+                ),
+                None,
+            )
+            part_geometries = [
+                member
+                for member in (multipart_members or ())
+                if isinstance(member, dict) and "type" in member and "coordinates" in member
+            ]
+            if not part_geometries:
+                geom = row[self.geometry_column]
+                shape = geometry_to_shapely(geom)
+                if hasattr(shape, "geoms"):
+                    for child in shape.geoms:
+                        part_geometries.extend(geometry_from_shapely(child))
+                else:
+                    part_geometries.append(geom)
+            for cg in part_geometries:
+                part_counter += 1
+                resolved = dict(row)
+                resolved[self.geometry_column] = cg
+                resolved[f"part_id_{part_suffix}"] = part_counter
+                rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 27: singlepart_to_multipart
+    # ------------------------------------------------------------------
+    def singlepart_to_multipart(
+        self,
+        group_column: str = "site_id",
+        multipart_suffix: str = "multi",
+    ) -> "GeoPromptFrame":
+        self._require_column(group_column)
+        from .overlay import geometry_to_shapely, geometry_from_shapely, _load_shapely
+        _, _, unary_union, _ = _load_shapely()
+        grouped: dict[str, list[Record]] = {}
+        for row in self._rows:
+            key = str(row[group_column])
+            grouped.setdefault(key, []).append(row)
+        rows: list[Record] = []
+        for group_key, group_rows in grouped.items():
+            shapes = [geometry_to_shapely(r[self.geometry_column]) for r in group_rows]
+            merged = unary_union(shapes)
+            merged_geoms = geometry_from_shapely(merged)
+            first_row = dict(group_rows[0])
+            if len(merged_geoms) == 1:
+                first_row[self.geometry_column] = merged_geoms[0]
+            first_row[f"part_geometries_{multipart_suffix}"] = tuple(
+                dict(group_row[self.geometry_column]) for group_row in group_rows
+            )
+            first_row[f"part_count_{multipart_suffix}"] = len(group_rows)
+            rows.append(first_row)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 28: eliminate_slivers
+    # ------------------------------------------------------------------
+    def eliminate_slivers(
+        self,
+        min_area: float = 0.0,
+        min_vertices: int = 0,
+        sliver_suffix: str = "sliver",
+    ) -> "GeoPromptFrame":
+        rows: list[Record] = []
+        eliminated = 0
+        for row in self._rows:
+            geom = row[self.geometry_column]
+            area = geometry_area(geom)
+            vertex_count = len(geometry_vertices(geom))
+            if area < min_area or (min_vertices > 0 and vertex_count < min_vertices):
+                eliminated += 1
+                continue
+            resolved = dict(row)
+            resolved[f"area_{sliver_suffix}"] = area
+            rows.append(resolved)
+        for row in rows:
+            row[f"eliminated_count_{sliver_suffix}"] = eliminated
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 29: simplify (Douglas-Peucker)
+    # ------------------------------------------------------------------
+    def simplify(
+        self,
+        tolerance: float = 0.001,
+        simplify_suffix: str = "simplified",
+    ) -> "GeoPromptFrame":
+        if tolerance < 0:
+            raise ValueError("tolerance must be zero or greater")
+        rows: list[Record] = []
+        for row in self._rows:
+            geom = row[self.geometry_column]
+            geom_kind = geometry_type(geom)
+            resolved = dict(row)
+            if geom_kind == "Point":
+                resolved[f"vertex_count_{simplify_suffix}"] = 1
+            elif geom_kind == "LineString":
+                coords = list(geometry_vertices(geom))
+                simplified = _douglas_peucker(coords, tolerance)
+                if len(simplified) < 2:
+                    simplified = coords[:2] if len(coords) >= 2 else coords
+                resolved[self.geometry_column] = {"type": "LineString", "coordinates": tuple(simplified)}
+                resolved[f"vertex_count_{simplify_suffix}"] = len(simplified)
+                resolved[f"original_vertex_count_{simplify_suffix}"] = len(coords)
+            elif geom_kind == "Polygon":
+                coords = list(geometry_vertices(geom))
+                simplified = _douglas_peucker(coords, tolerance)
+                if len(simplified) < 4:
+                    simplified = coords
+                resolved[self.geometry_column] = {"type": "Polygon", "coordinates": tuple(simplified)}
+                resolved[f"vertex_count_{simplify_suffix}"] = len(simplified)
+                resolved[f"original_vertex_count_{simplify_suffix}"] = len(coords)
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 30: densify
+    # ------------------------------------------------------------------
+    def densify(
+        self,
+        max_segment_length: float = 0.01,
+        densify_suffix: str = "densified",
+    ) -> "GeoPromptFrame":
+        if max_segment_length <= 0:
+            raise ValueError("max_segment_length must be greater than zero")
+        rows: list[Record] = []
+        for row in self._rows:
+            geom = row[self.geometry_column]
+            geom_kind = geometry_type(geom)
+            resolved = dict(row)
+            if geom_kind in ("LineString", "Polygon"):
+                coords = list(geometry_vertices(geom))
+                dense_coords = _densify_coordinates(coords, max_segment_length)
+                resolved[self.geometry_column] = {"type": geom_kind, "coordinates": tuple(dense_coords)}
+                resolved[f"vertex_count_{densify_suffix}"] = len(dense_coords)
+                resolved[f"original_vertex_count_{densify_suffix}"] = len(coords)
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 31: smooth_geometry (Chaikin)
+    # ------------------------------------------------------------------
+    def smooth_geometry(
+        self,
+        iterations: int = 3,
+        smooth_suffix: str = "smoothed",
+    ) -> "GeoPromptFrame":
+        if iterations < 1:
+            raise ValueError("iterations must be at least 1")
+        rows: list[Record] = []
+        for row in self._rows:
+            geom = row[self.geometry_column]
+            geom_kind = geometry_type(geom)
+            resolved = dict(row)
+            if geom_kind in ("LineString", "Polygon"):
+                coords = list(geometry_vertices(geom))
+                smoothed = coords
+                for _ in range(iterations):
+                    smoothed = _chaikin_smooth(smoothed, is_closed=(geom_kind == "Polygon"))
+                resolved[self.geometry_column] = {"type": geom_kind, "coordinates": tuple(smoothed)}
+                resolved[f"vertex_count_{smooth_suffix}"] = len(smoothed)
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 32: snap_to_network_nodes
+    # ------------------------------------------------------------------
+    def snap_to_network_nodes(
+        self,
+        points: "GeoPromptFrame",
+        from_node_column: str = "from_node",
+        to_node_column: str = "to_node",
+        max_distance: float | None = None,
+        distance_method: str = "euclidean",
+        snap_suffix: str = "snapped",
+    ) -> "GeoPromptFrame":
+        self._require_column(from_node_column)
+        self._require_column(to_node_column)
+        node_positions: dict[str, Coordinate] = {}
+        for row in self._rows:
+            from_node = row[from_node_column]
+            to_node = row[to_node_column]
+            verts = geometry_vertices(row[self.geometry_column])
+            if verts:
+                node_positions.setdefault(str(from_node), verts[0])
+                node_positions.setdefault(str(to_node), verts[-1])
+        node_list = list(node_positions.items())
+        point_centroids = points._centroids()
+        rows: list[Record] = []
+        for pt_idx, pt_row in enumerate(points._rows):
+            pt = point_centroids[pt_idx]
+            best_node: str | None = None
+            best_dist = float("inf")
+            best_coord: Coordinate | None = None
+            for node_id, node_coord in node_list:
+                d = coordinate_distance(pt, node_coord, method=distance_method)
+                if max_distance is not None and d > max_distance:
+                    continue
+                if d < best_dist:
+                    best_dist = d
+                    best_node = node_id
+                    best_coord = node_coord
+            resolved = dict(pt_row)
+            resolved[f"node_id_{snap_suffix}"] = best_node
+            resolved[f"snap_distance_{snap_suffix}"] = best_dist if best_node is not None else None
+            if best_coord is not None:
+                resolved[points.geometry_column] = {"type": "Point", "coordinates": best_coord}
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=points.geometry_column, crs=points.crs or self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 33: origin_destination_matrix
+    # ------------------------------------------------------------------
+    def origin_destination_matrix(
+        self,
+        origins: "GeoPromptFrame",
+        destinations: "GeoPromptFrame",
+        origin_id_column: str = "site_id",
+        destination_id_column: str = "site_id",
+        from_node_id_column: str = "from_node_id",
+        to_node_id_column: str = "to_node_id",
+        from_node_column: str = "from_node",
+        to_node_column: str = "to_node",
+        cost_column: str = "edge_length",
+        origin_node_column: str | None = None,
+        destination_node_column: str | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+        od_suffix: str = "od",
+    ) -> "GeoPromptFrame":
+        for col in (from_node_id_column, to_node_id_column, from_node_column, to_node_column, cost_column):
+            self._require_column(col)
+        origins._require_column(origin_id_column)
+        destinations._require_column(destination_id_column)
+        adjacency = self._network_graph(from_node_id_column, to_node_id_column, cost_column, directed=directed)
+        rows: list[Record] = []
+        for origin_row in origins._rows:
+            origin_node = self._resolve_network_node(
+                origin_row.get(origin_node_column) if origin_node_column else geometry_centroid(origin_row[origins.geometry_column]),
+                from_node_id_column, to_node_id_column, from_node_column, to_node_column,
+            )
+            distances: dict[str, float] = {origin_node: 0.0}
+            queue: list[tuple[float, str]] = [(0.0, origin_node)]
+            visited: set[str] = set()
+            while queue:
+                current_cost, current_node = heappop(queue)
+                if current_node in visited:
+                    continue
+                visited.add(current_node)
+                if max_cost is not None and current_cost > max_cost:
+                    continue
+                for next_node, edge_cost, _ in adjacency.get(current_node, []):
+                    path_cost = current_cost + edge_cost
+                    if path_cost < distances.get(next_node, float("inf")):
+                        distances[next_node] = path_cost
+                        heappush(queue, (path_cost, next_node))
+            for dest_row in destinations._rows:
+                dest_node = self._resolve_network_node(
+                    dest_row.get(destination_node_column) if destination_node_column else geometry_centroid(dest_row[destinations.geometry_column]),
+                    from_node_id_column, to_node_id_column, from_node_column, to_node_column,
+                )
+                cost = distances.get(dest_node)
+                if max_cost is not None and cost is not None and cost > max_cost:
+                    cost = None
+                origin_centroid = geometry_centroid(origin_row[origins.geometry_column])
+                dest_centroid = geometry_centroid(dest_row[destinations.geometry_column])
+                rows.append({
+                    f"origin_id_{od_suffix}": str(origin_row[origin_id_column]),
+                    f"destination_id_{od_suffix}": str(dest_row[destination_id_column]),
+                    f"network_cost_{od_suffix}": cost,
+                    f"reachable_{od_suffix}": cost is not None,
+                    self.geometry_column: {"type": "LineString", "coordinates": (origin_centroid, dest_centroid)},
+                })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 34: k_shortest_paths
+    # ------------------------------------------------------------------
+    def k_shortest_paths(
+        self,
+        origin: str | Coordinate,
+        destination: str | Coordinate,
+        k: int = 3,
+        edge_id_column: str = "edge_id",
+        from_node_id_column: str = "from_node_id",
+        to_node_id_column: str = "to_node_id",
+        from_node_column: str = "from_node",
+        to_node_column: str = "to_node",
+        cost_column: str = "edge_length",
+        directed: bool = False,
+        ksp_suffix: str = "ksp",
+    ) -> "GeoPromptFrame":
+        if k <= 0:
+            raise ValueError("k must be greater than zero")
+        for col in (edge_id_column, from_node_id_column, to_node_id_column, from_node_column, to_node_column, cost_column):
+            self._require_column(col)
+        origin_node = self._resolve_network_node(origin, from_node_id_column, to_node_id_column, from_node_column, to_node_column)
+        dest_node = self._resolve_network_node(destination, from_node_id_column, to_node_id_column, from_node_column, to_node_column)
+        adjacency = self._network_graph(from_node_id_column, to_node_id_column, cost_column, directed=directed)
+        queue: list[tuple[float, str, tuple[int, ...], frozenset[str]]] = [
+            (0.0, origin_node, (), frozenset({origin_node}))
+        ]
+        found_paths: list[tuple[float, tuple[int, ...]]] = []
+        seen_paths: set[tuple[int, ...]] = set()
+        while queue and len(found_paths) < k:
+            path_cost, node_id, edge_path, visited_nodes = heappop(queue)
+            if node_id == dest_node:
+                if edge_path not in seen_paths:
+                    seen_paths.add(edge_path)
+                    found_paths.append((path_cost, edge_path))
+                continue
+            for next_node, edge_cost, edge_index in adjacency.get(node_id, []):
+                if next_node in visited_nodes:
+                    continue
+                heappush(
+                    queue,
+                    (
+                        path_cost + edge_cost,
+                        next_node,
+                        (*edge_path, edge_index),
+                        visited_nodes | {next_node},
+                    ),
+                )
+        if not found_paths:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        rows: list[Record] = []
+        for path_rank, (path_cost, path_edges) in enumerate(found_paths, start=1):
+            for step, edge_idx in enumerate(path_edges, start=1):
+                resolved = dict(self._rows[edge_idx])
+                resolved[f"path_rank_{ksp_suffix}"] = path_rank
+                resolved[f"step_{ksp_suffix}"] = step
+                resolved[f"total_cost_{ksp_suffix}"] = path_cost
+                resolved[f"edge_count_{ksp_suffix}"] = len(path_edges)
+                rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    def _dijkstra_path(
+        self,
+        origin_node: str,
+        dest_node: str,
+        adjacency: dict[str, list[tuple[str, float, int]]],
+    ) -> tuple[float, list[int]] | None:
+        distances: dict[str, float] = {origin_node: 0.0}
+        previous: dict[str, tuple[str, int]] = {}
+        queue: list[tuple[float, str]] = [(0.0, origin_node)]
+        visited: set[str] = set()
+        while queue:
+            cost, node = heappop(queue)
+            if node in visited:
+                continue
+            visited.add(node)
+            if node == dest_node:
+                break
+            for next_node, edge_cost, edge_idx in adjacency.get(node, []):
+                new_cost = cost + edge_cost
+                if new_cost < distances.get(next_node, float("inf")):
+                    distances[next_node] = new_cost
+                    previous[next_node] = (node, edge_idx)
+                    heappush(queue, (new_cost, next_node))
+        if dest_node not in distances:
+            return None
+        edges: list[int] = []
+        current = dest_node
+        while current != origin_node:
+            prev_node, edge_idx = previous[current]
+            edges.append(edge_idx)
+            current = prev_node
+        edges.reverse()
+        return (distances[dest_node], edges)
+
+    # ------------------------------------------------------------------
+    # Tool 35: network_trace
+    # ------------------------------------------------------------------
+    def network_trace(
+        self,
+        start: str | Coordinate,
+        direction: Literal["upstream", "downstream", "both"] = "both",
+        max_cost: float | None = None,
+        from_node_id_column: str = "from_node_id",
+        to_node_id_column: str = "to_node_id",
+        from_node_column: str = "from_node",
+        to_node_column: str = "to_node",
+        cost_column: str = "edge_length",
+        trace_suffix: str = "trace",
+    ) -> "GeoPromptFrame":
+        for col in (from_node_id_column, to_node_id_column, from_node_column, to_node_column, cost_column):
+            self._require_column(col)
+        start_node = self._resolve_network_node(start, from_node_id_column, to_node_id_column, from_node_column, to_node_column)
+        forward_adj: dict[str, list[tuple[str, float, int]]] = {}
+        reverse_adj: dict[str, list[tuple[str, float, int]]] = {}
+        for idx, row in enumerate(self._rows):
+            from_node = str(row[from_node_id_column])
+            to_node = str(row[to_node_id_column])
+            cost = float(row[cost_column])
+            forward_adj.setdefault(from_node, []).append((to_node, cost, idx))
+            reverse_adj.setdefault(to_node, []).append((from_node, cost, idx))
+        traced_edges: set[int] = set()
+        edge_costs: dict[int, float] = {}
+        if direction in ("downstream", "both"):
+            self._bfs_trace(start_node, forward_adj, max_cost, traced_edges, edge_costs)
+        if direction in ("upstream", "both"):
+            self._bfs_trace(start_node, reverse_adj, max_cost, traced_edges, edge_costs)
+        rows: list[Record] = []
+        for edge_idx in sorted(traced_edges):
+            resolved = dict(self._rows[edge_idx])
+            resolved[f"trace_cost_{trace_suffix}"] = edge_costs.get(edge_idx, 0.0)
+            resolved[f"direction_{trace_suffix}"] = direction
+            resolved[f"start_node_{trace_suffix}"] = start_node
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    @staticmethod
+    def _bfs_trace(
+        start_node: str,
+        adjacency: dict[str, list[tuple[str, float, int]]],
+        max_cost: float | None,
+        traced_edges: set[int],
+        edge_costs: dict[int, float],
+    ) -> None:
+        visited: set[str] = set()
+        queue: list[tuple[float, str]] = [(0.0, start_node)]
+        while queue:
+            cost, node = heappop(queue)
+            if node in visited:
+                continue
+            visited.add(node)
+            for next_node, edge_cost, edge_idx in adjacency.get(node, []):
+                new_cost = cost + edge_cost
+                if max_cost is not None and new_cost > max_cost:
+                    continue
+                traced_edges.add(edge_idx)
+                edge_costs[edge_idx] = min(edge_costs.get(edge_idx, float("inf")), new_cost)
+                if next_node not in visited:
+                    heappush(queue, (new_cost, next_node))
+
+    # ------------------------------------------------------------------
+    # Tool 36: route_sequence_optimize (greedy TSP)
+    # ------------------------------------------------------------------
+    def route_sequence_optimize(
+        self,
+        stops: "GeoPromptFrame",
+        stop_id_column: str = "site_id",
+        from_node_id_column: str = "from_node_id",
+        to_node_id_column: str = "to_node_id",
+        from_node_column: str = "from_node",
+        to_node_column: str = "to_node",
+        cost_column: str = "edge_length",
+        stop_node_column: str | None = None,
+        directed: bool = False,
+        route_suffix: str = "route",
+    ) -> "GeoPromptFrame":
+        for col in (from_node_id_column, to_node_id_column, from_node_column, to_node_column, cost_column):
+            self._require_column(col)
+        stops._require_column(stop_id_column)
+        stop_count = len(stops._rows)
+        if stop_count == 0:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        adjacency = self._network_graph(from_node_id_column, to_node_id_column, cost_column, directed=directed)
+        stop_nodes: list[str] = []
+        for stop_row in stops._rows:
+            node = self._resolve_network_node(
+                stop_row.get(stop_node_column) if stop_node_column else geometry_centroid(stop_row[stops.geometry_column]),
+                from_node_id_column, to_node_id_column, from_node_column, to_node_column,
+            )
+            stop_nodes.append(node)
+        cost_matrix: list[list[float]] = []
+        path_matrix: list[list[list[int] | None]] = []
+        for i in range(stop_count):
+            dists, paths = self._dijkstra_all(stop_nodes[i], adjacency)
+            row_costs: list[float] = []
+            row_paths: list[list[int] | None] = []
+            for j in range(stop_count):
+                row_costs.append(dists.get(stop_nodes[j], float("inf")))
+                if stop_nodes[j] in dists:
+                    edge_list: list[int] = []
+                    current = stop_nodes[j]
+                    while current != stop_nodes[i]:
+                        prev_node, edge_idx = paths[current]
+                        edge_list.append(edge_idx)
+                        current = prev_node
+                    edge_list.reverse()
+                    row_paths.append(edge_list)
+                else:
+                    row_paths.append(None)
+            cost_matrix.append(row_costs)
+            path_matrix.append(row_paths)
+        visited_set = {0}
+        sequence = [0]
+        current = 0
+        reachable_sequence = {0}
+        for _ in range(stop_count - 1):
+            best_next: int | None = None
+            best_cost = float("inf")
+            for j in range(stop_count):
+                if j not in visited_set and cost_matrix[current][j] < best_cost:
+                    best_cost = cost_matrix[current][j]
+                    best_next = j
+            if best_next is None:
+                break
+            visited_set.add(best_next)
+            sequence.append(best_next)
+            current = best_next
+            reachable_sequence.add(best_next)
+        reachable_route = _two_opt_open_path(sequence, cost_matrix)
+        total_cost = _path_sequence_cost(reachable_route, cost_matrix)
+        sequence = list(reachable_route)
+        visited_set = set(sequence)
+        reachable_sequence = set(sequence)
+        for stop_idx in range(stop_count):
+            if stop_idx not in visited_set:
+                sequence.append(stop_idx)
+        rows: list[Record] = []
+        for order, stop_idx in enumerate(sequence, start=1):
+            resolved = dict(stops._rows[stop_idx])
+            resolved[f"visit_order_{route_suffix}"] = order
+            resolved[f"stop_node_{route_suffix}"] = stop_nodes[stop_idx]
+            resolved[f"total_cost_{route_suffix}"] = total_cost
+            resolved[f"stop_count_{route_suffix}"] = len(sequence)
+            resolved[f"reachable_{route_suffix}"] = stop_idx in reachable_sequence
+            resolved[f"method_{route_suffix}"] = "greedy_2opt"
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=stops.geometry_column, crs=self.crs or stops.crs)
+
+    def _dijkstra_all(
+        self,
+        origin_node: str,
+        adjacency: dict[str, list[tuple[str, float, int]]],
+    ) -> tuple[dict[str, float], dict[str, tuple[str, int]]]:
+        distances: dict[str, float] = {origin_node: 0.0}
+        previous: dict[str, tuple[str, int]] = {}
+        queue: list[tuple[float, str]] = [(0.0, origin_node)]
+        visited: set[str] = set()
+        while queue:
+            cost, node = heappop(queue)
+            if node in visited:
+                continue
+            visited.add(node)
+            for next_node, edge_cost, edge_idx in adjacency.get(node, []):
+                new_cost = cost + edge_cost
+                if new_cost < distances.get(next_node, float("inf")):
+                    distances[next_node] = new_cost
+                    previous[next_node] = (node, edge_idx)
+                    heappush(queue, (new_cost, next_node))
+        return distances, previous
+
+    # ------------------------------------------------------------------
+    # Tool 37: trajectory_staypoint_detection
+    # ------------------------------------------------------------------
+    def trajectory_staypoint_detection(
+        self,
+        time_column: str,
+        id_column: str = "site_id",
+        min_duration: float = 0.0,
+        max_radius: float = 0.01,
+        distance_method: str = "euclidean",
+        staypoint_suffix: str = "staypoint",
+    ) -> "GeoPromptFrame":
+        self._require_column(time_column)
+        self._require_column(id_column)
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        ordered_indexes = sorted(
+            range(len(self._rows)),
+            key=lambda index: (float(self._rows[index].get(time_column, 0) or 0), index),
+        )
+        ordered_rows = [self._rows[index] for index in ordered_indexes]
+        centroids = self._centroids(ordered_rows, self.geometry_column)
+        rows: list[Record] = []
+        staypoint_id = 0
+        i = 0
+        while i < len(ordered_rows):
+            anchor = centroids[i]
+            j = i + 1
+            while j < len(ordered_rows):
+                d = coordinate_distance(anchor, centroids[j], method=distance_method)
+                if d > max_radius:
+                    break
+                j += 1
+            t_start = float(ordered_rows[i].get(time_column, 0) or 0)
+            t_end = float(ordered_rows[j - 1].get(time_column, 0) or 0)
+            duration = t_end - t_start
+            is_staypoint = (j - i) >= 2 and duration >= min_duration
+            if is_staypoint:
+                staypoint_id += 1
+                mean_x = sum(centroids[k][0] for k in range(i, j)) / (j - i)
+                mean_y = sum(centroids[k][1] for k in range(i, j)) / (j - i)
+                for k in range(i, j):
+                    resolved = dict(ordered_rows[k])
+                    resolved[f"staypoint_id_{staypoint_suffix}"] = staypoint_id
+                    resolved[f"is_staypoint_{staypoint_suffix}"] = True
+                    resolved[f"duration_{staypoint_suffix}"] = duration
+                    resolved[f"point_count_{staypoint_suffix}"] = j - i
+                    resolved[f"center_x_{staypoint_suffix}"] = mean_x
+                    resolved[f"center_y_{staypoint_suffix}"] = mean_y
+                    rows.append(resolved)
+                i = j
+            else:
+                resolved = dict(ordered_rows[i])
+                resolved[f"staypoint_id_{staypoint_suffix}"] = None
+                resolved[f"is_staypoint_{staypoint_suffix}"] = False
+                resolved[f"duration_{staypoint_suffix}"] = 0.0
+                resolved[f"point_count_{staypoint_suffix}"] = 1
+                rows.append(resolved)
+                i += 1
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 38: trajectory_simplify (Ramer-Douglas-Peucker on trajectory)
+    # ------------------------------------------------------------------
+    def trajectory_simplify(
+        self,
+        tolerance: float = 0.001,
+        time_column: str | None = None,
+        simplify_suffix: str = "traj_simplified",
+    ) -> "GeoPromptFrame":
+        if tolerance < 0:
+            raise ValueError("tolerance must be zero or greater")
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        ordered_indexes = list(range(len(self._rows)))
+        if time_column is not None:
+            self._require_column(time_column)
+            ordered_indexes.sort(key=lambda index: (float(self._rows[index].get(time_column, 0) or 0), index))
+        ordered_rows = [self._rows[index] for index in ordered_indexes]
+        centroids = self._centroids(ordered_rows, self.geometry_column)
+        keep_indices = set(_douglas_peucker_indices(centroids, tolerance))
+        rows: list[Record] = []
+        for i in keep_indices:
+            resolved = dict(ordered_rows[i])
+            resolved[f"kept_{simplify_suffix}"] = True
+            resolved[f"original_index_{simplify_suffix}"] = ordered_indexes[i]
+            rows.append(resolved)
+        if time_column is not None:
+            rows.sort(key=lambda row: (float(row.get(time_column, 0) or 0), int(row[f"original_index_{simplify_suffix}"])))
+        else:
+            rows.sort(key=lambda row: int(row[f"original_index_{simplify_suffix}"]))
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 39: spatiotemporal_cube
+    # ------------------------------------------------------------------
+    def spatiotemporal_cube(
+        self,
+        time_column: str,
+        value_column: str,
+        time_intervals: int = 5,
+        grid_resolution: int = 10,
+        aggregation: AggregationName = "count",
+        distance_method: str = "euclidean",
+        cube_suffix: str = "cube",
+    ) -> "GeoPromptFrame":
+        self._require_column(time_column)
+        if time_intervals <= 0:
+            raise ValueError("time_intervals must be greater than zero")
+        if grid_resolution <= 0:
+            raise ValueError("grid_resolution must be greater than zero")
+        if aggregation != "count":
+            self._require_column(value_column)
+        if not self._rows:
+            return GeoPromptFrame._from_internal_rows([], geometry_column=self.geometry_column, crs=self.crs)
+        times = [float(row.get(time_column, 0) or 0) for row in self._rows]
+        t_min, t_max = min(times), max(times)
+        t_step = (t_max - t_min) / time_intervals if t_max > t_min else 1.0
+        b = self.bounds()
+        dx = (b.max_x - b.min_x) / grid_resolution
+        dy = (b.max_y - b.min_y) / grid_resolution
+        centroids = self._centroids()
+        buckets: dict[tuple[int, int, int], list[float]] = {}
+        for row_index, centroid in enumerate(centroids):
+            time_value = times[row_index]
+            if t_max > t_min:
+                time_bin = min(int((time_value - t_min) / t_step), time_intervals - 1)
+            else:
+                time_bin = 0
+            if dx > 0.0:
+                grid_col = min(int((centroid[0] - b.min_x) / dx), grid_resolution - 1)
+            else:
+                grid_col = 0
+            if dy > 0.0:
+                grid_row = min(int((centroid[1] - b.min_y) / dy), grid_resolution - 1)
+            else:
+                grid_row = 0
+            value = self._rows[row_index].get(value_column)
+            buckets.setdefault((time_bin, grid_row, grid_col), []).append(float(value) if value is not None else 0.0)
+        rows: list[Record] = []
+        cell_id = 0
+        for ti, gy, gx in sorted(buckets):
+            t_lo = t_min + ti * t_step
+            t_hi = t_lo + t_step
+            matched_vals = buckets[(ti, gy, gx)]
+            if not matched_vals and aggregation != "count":
+                continue
+            px = b.min_x + gx * dx + dx / 2.0 if dx > 0.0 else b.min_x
+            py = b.min_y + gy * dy + dy / 2.0 if dy > 0.0 else b.min_y
+            agg_val: float | None
+            if aggregation == "count":
+                agg_val = float(len(matched_vals))
+            elif aggregation == "sum":
+                agg_val = sum(matched_vals) if matched_vals else None
+            elif aggregation == "mean":
+                agg_val = (sum(matched_vals) / len(matched_vals)) if matched_vals else None
+            elif aggregation == "min":
+                agg_val = min(matched_vals) if matched_vals else None
+            elif aggregation == "max":
+                agg_val = max(matched_vals) if matched_vals else None
+            else:
+                agg_val = float(len(matched_vals))
+            if aggregation == "count" and agg_val == 0.0:
+                continue
+            cell_id += 1
+            rows.append({
+                f"cell_id_{cube_suffix}": f"cube-{cell_id:04d}",
+                f"time_bin_{cube_suffix}": ti,
+                f"time_start_{cube_suffix}": t_lo,
+                f"time_end_{cube_suffix}": t_hi,
+                f"grid_row_{cube_suffix}": gy,
+                f"grid_col_{cube_suffix}": gx,
+                f"value_{cube_suffix}": agg_val,
+                f"point_count_{cube_suffix}": len(matched_vals),
+                self.geometry_column: {"type": "Point", "coordinates": (px, py)},
+            })
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Tool 40: geohash_encode
+    # ------------------------------------------------------------------
+    def geohash_encode(
+        self,
+        precision: int = 6,
+        geohash_suffix: str = "geohash",
+    ) -> "GeoPromptFrame":
+        if precision < 1 or precision > 12:
+            raise ValueError("precision must be between 1 and 12")
+        centroids = self._centroids()
+        rows: list[Record] = []
+        for i, row in enumerate(self._rows):
+            lon, lat = centroids[i]
+            hash_val = _geohash_encode(lat, lon, precision)
+            resolved = dict(row)
+            resolved[f"hash_{geohash_suffix}"] = hash_val
+            resolved[f"precision_{geohash_suffix}"] = precision
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(rows, geometry_column=self.geometry_column, crs=self.crs)
+
+    # ------------------------------------------------------------------
+    # Internal helper: IDW grid generation
+    # ------------------------------------------------------------------
+    def _idw_grid(
+        self,
+        value_column: str,
+        grid_resolution: int,
+        distance_method: str,
+    ) -> tuple[list[list[float]], Bounds, float, float]:
+        centroids = self._centroids()
+        b = self.bounds()
+        dx = (b.max_x - b.min_x) / max(grid_resolution - 1, 1)
+        dy = (b.max_y - b.min_y) / max(grid_resolution - 1, 1)
+        use_euclidean = distance_method == "euclidean"
+        grid: list[list[float]] = []
+        for gy in range(grid_resolution):
+            row_vals: list[float] = []
+            py = b.min_y + gy * dy
+            for gx in range(grid_resolution):
+                px = b.min_x + gx * dx
+                weight_sum = 0.0
+                value_sum = 0.0
+                for ci, centroid in enumerate(centroids):
+                    if use_euclidean:
+                        d = math.hypot(px - centroid[0], py - centroid[1])
+                    else:
+                        d = coordinate_distance((px, py), centroid, method=distance_method)
+                    w = 1.0 / max(d * d, 1e-12)
+                    weight_sum += w
+                    value_sum += w * float(self._rows[ci].get(value_column, 0) or 0)
+                row_vals.append(value_sum / weight_sum if weight_sum > 0 else 0.0)
+            grid.append(row_vals)
+        return grid, b, dx, dy
 
 
 def _resolve_zone_fit_weights(score_weights: dict[str, float] | None) -> dict[str, float]:
@@ -5124,15 +7295,16 @@ def _match_equivalent_change_events(
     geometry_column: str,
     min_similarity: float,
 ) -> list[tuple[tuple[str, tuple[str, ...], tuple[str, ...]], Record | None, Record | None, float | None]]:
+    baseline_events = [_prepare_change_event_match(row, change_suffix, geometry_column) for row in baseline_rows]
+    current_events = [_prepare_change_event_match(row, change_suffix, geometry_column) for row in current_rows]
+    current_events_by_class: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+    for current_index, current_event in enumerate(current_events):
+        current_events_by_class.setdefault(current_event["change_class"], []).append((current_index, current_event))
+
     candidate_pairs: list[tuple[float, int, int]] = []
-    for baseline_index, baseline_row in enumerate(baseline_rows):
-        for current_index, current_row in enumerate(current_rows):
-            similarity = _equivalent_change_event_similarity(
-                baseline_row,
-                current_row,
-                change_suffix=change_suffix,
-                geometry_column=geometry_column,
-            )
+    for baseline_index, baseline_event in enumerate(baseline_events):
+        for current_index, current_event in current_events_by_class.get(baseline_event["change_class"], []):
+            similarity = _equivalent_change_event_similarity_prepared(baseline_event, current_event)
             if similarity >= min_similarity:
                 candidate_pairs.append((similarity, baseline_index, current_index))
 
@@ -5180,45 +7352,84 @@ def _equivalent_change_event_similarity(
     change_suffix: str,
     geometry_column: str,
 ) -> float:
-    baseline_summary = dict(baseline_row.get(f"event_summary_{change_suffix}") or {})
-    current_summary = dict(current_row.get(f"event_summary_{change_suffix}") or {})
-    if str(baseline_row.get(f"change_class_{change_suffix}")) != str(current_row.get(f"change_class_{change_suffix}")):
+    return _equivalent_change_event_similarity_prepared(
+        _prepare_change_event_match(baseline_row, change_suffix, geometry_column),
+        _prepare_change_event_match(current_row, change_suffix, geometry_column),
+    )
+
+
+def _prepare_change_event_match(row: Record, change_suffix: str, geometry_column: str) -> dict[str, Any]:
+    summary = dict(row.get(f"event_summary_{change_suffix}") or {})
+    geometry = row.get(geometry_column)
+    return {
+        "row": row,
+        "change_class": str(row.get(f"change_class_{change_suffix}")),
+        "event_side": str(row.get(f"event_side_{change_suffix}")),
+        "left_id_set": {str(value) for value in row.get(f"left_ids_{change_suffix}", [])},
+        "right_id_set": {str(value) for value in row.get(f"right_ids_{change_suffix}", [])},
+        "feature_count": summary.get("feature_count"),
+        "row_count": summary.get("row_count"),
+        "attribute_columns_set": {str(value) for value in summary.get("attribute_columns", [])},
+        "geometry": geometry,
+        "centroid": geometry_centroid(geometry) if isinstance(geometry, dict) else None,
+    }
+
+
+def _equivalent_change_event_similarity_prepared(
+    baseline_event: dict[str, Any],
+    current_event: dict[str, Any],
+) -> float:
+    if baseline_event["change_class"] != current_event["change_class"]:
         return 0.0
 
-    left_similarity = _set_similarity(
-        baseline_row.get(f"left_ids_{change_suffix}", []),
-        current_row.get(f"left_ids_{change_suffix}", []),
+    left_similarity = _prepared_set_similarity(baseline_event["left_id_set"], current_event["left_id_set"])
+    right_similarity = _prepared_set_similarity(baseline_event["right_id_set"], current_event["right_id_set"])
+    feature_count_similarity = _count_similarity(baseline_event["feature_count"], current_event["feature_count"])
+    row_count_similarity = _count_similarity(baseline_event["row_count"], current_event["row_count"])
+    attribute_similarity = _prepared_set_similarity(
+        baseline_event["attribute_columns_set"],
+        current_event["attribute_columns_set"],
     )
-    right_similarity = _set_similarity(
-        baseline_row.get(f"right_ids_{change_suffix}", []),
-        current_row.get(f"right_ids_{change_suffix}", []),
-    )
-    feature_count_similarity = _count_similarity(
-        baseline_summary.get("feature_count"),
-        current_summary.get("feature_count"),
-    )
-    row_count_similarity = _count_similarity(
-        baseline_summary.get("row_count"),
-        current_summary.get("row_count"),
-    )
-    attribute_similarity = _set_similarity(
-        baseline_summary.get("attribute_columns", []),
-        current_summary.get("attribute_columns", []),
-    )
-    geometry_similarity = _geometry_similarity(
-        baseline_row.get(geometry_column),
-        current_row.get(geometry_column),
-    )
-    side_similarity = 1.0 if str(baseline_row.get(f"event_side_{change_suffix}")) == str(current_row.get(f"event_side_{change_suffix}")) else 0.0
-    return (
+    side_similarity = 1.0 if baseline_event["event_side"] == current_event["event_side"] else 0.0
+    partial_similarity = (
         (0.1 * side_similarity)
         + (0.2 * left_similarity)
         + (0.2 * right_similarity)
         + (0.15 * feature_count_similarity)
         + (0.1 * row_count_similarity)
         + (0.1 * attribute_similarity)
-        + (0.15 * geometry_similarity)
     )
+    if partial_similarity >= 0.85:
+        geometry_similarity = 1.0
+    else:
+        geometry_similarity = _geometry_similarity_prepared(
+            baseline_event["geometry"],
+            current_event["geometry"],
+            baseline_event.get("centroid"),
+            current_event.get("centroid"),
+        )
+    return partial_similarity + (0.15 * geometry_similarity)
+
+
+def _prepared_set_similarity(left_values: set[str], right_values: set[str]) -> float:
+    if not left_values and not right_values:
+        return 1.0
+    union = left_values | right_values
+    if not union:
+        return 0.0
+    return len(left_values & right_values) / len(union)
+
+
+def _geometry_similarity_prepared(
+    left_geometry: Any,
+    right_geometry: Any,
+    left_centroid: Coordinate | None,
+    right_centroid: Coordinate | None,
+) -> float:
+    if left_centroid is not None and right_centroid is not None:
+        distance_value = coordinate_distance(left_centroid, right_centroid)
+        return 1.0 / (1.0 + float(distance_value))
+    return _geometry_similarity(left_geometry, right_geometry)
 
 
 def _set_similarity(left_values: Iterable[Any], right_values: Iterable[Any]) -> float:
@@ -5489,6 +7700,569 @@ def _point_to_segment_distance_haversine(point: Coordinate, seg_start: Coordinat
         return (x_value, y_value)
 
     return _point_to_segment_distance(project(point), project(seg_start), project(seg_end), method="euclidean")
+
+
+# ------------------------------------------------------------------
+# Helper functions for new tools (40-tool expansion)
+# ------------------------------------------------------------------
+
+def _marching_square_edges(
+    cell_values: list[float],
+    cell_coords: list[Coordinate],
+    level: float,
+) -> list[Coordinate]:
+    edges: list[Coordinate] = []
+    sides = [
+        (cell_values[0], cell_values[1], cell_coords[0], cell_coords[1]),
+        (cell_values[1], cell_values[2], cell_coords[1], cell_coords[2]),
+        (cell_values[2], cell_values[3], cell_coords[2], cell_coords[3]),
+        (cell_values[3], cell_values[0], cell_coords[3], cell_coords[0]),
+    ]
+    crossing_points: list[Coordinate] = []
+    for v0, v1, c0, c1 in sides:
+        if (v0 < level) != (v1 < level):
+            t = (level - v0) / (v1 - v0) if abs(v1 - v0) > 1e-12 else 0.5
+            crossing_points.append((c0[0] + t * (c1[0] - c0[0]), c0[1] + t * (c1[1] - c0[1])))
+    if len(crossing_points) == 2:
+        edges.extend(crossing_points)
+    elif len(crossing_points) == 4:
+        edges.extend(crossing_points[:2])
+        edges.extend(crossing_points[2:])
+    return edges
+
+
+def _variogram_value(
+    variogram_model: str,
+    h: float,
+    range_val: float,
+    sill: float,
+    nugget: float,
+    *,
+    include_nugget_at_zero: bool = False,
+) -> float:
+    if variogram_model == "spherical":
+        return _spherical_variogram(
+            h,
+            range_val,
+            sill,
+            nugget,
+            include_nugget_at_zero=include_nugget_at_zero,
+        )
+    if variogram_model == "exponential":
+        return _exponential_variogram(
+            h,
+            range_val,
+            sill,
+            nugget,
+            include_nugget_at_zero=include_nugget_at_zero,
+        )
+    if variogram_model == "gaussian":
+        return _gaussian_variogram(
+            h,
+            range_val,
+            sill,
+            nugget,
+            include_nugget_at_zero=include_nugget_at_zero,
+        )
+    if variogram_model == "hole_effect":
+        return _hole_effect_variogram(
+            h,
+            range_val,
+            sill,
+            nugget,
+            include_nugget_at_zero=include_nugget_at_zero,
+        )
+    raise ValueError(f"unsupported variogram_model: {variogram_model}")
+
+
+def _spherical_variogram(
+    h: float,
+    range_val: float,
+    sill: float,
+    nugget: float,
+    *,
+    include_nugget_at_zero: bool = False,
+) -> float:
+    partial_sill = max(sill - nugget, 0.0)
+    if h <= 0:
+        return nugget if include_nugget_at_zero else 0.0
+    if h >= range_val:
+        return nugget + partial_sill
+    ratio = h / range_val
+    return nugget + partial_sill * (1.5 * ratio - 0.5 * ratio ** 3)
+
+
+def _exponential_variogram(
+    h: float,
+    range_val: float,
+    sill: float,
+    nugget: float,
+    *,
+    include_nugget_at_zero: bool = False,
+) -> float:
+    partial_sill = max(sill - nugget, 0.0)
+    if h <= 0:
+        return nugget if include_nugget_at_zero else 0.0
+    return partial_sill * (1.0 - math.exp(-h / max(range_val / 3.0, 1e-12))) + nugget
+
+
+def _gaussian_variogram(
+    h: float,
+    range_val: float,
+    sill: float,
+    nugget: float,
+    *,
+    include_nugget_at_zero: bool = False,
+) -> float:
+    partial_sill = max(sill - nugget, 0.0)
+    if h <= 0:
+        return nugget if include_nugget_at_zero else 0.0
+    effective_scale = max(range_val * 4.0 / 7.0, 1e-12)
+    return partial_sill * (1.0 - math.exp(-(h ** 2.0) / (effective_scale ** 2.0))) + nugget
+
+
+def _hole_effect_variogram(
+    h: float,
+    range_val: float,
+    sill: float,
+    nugget: float,
+    *,
+    include_nugget_at_zero: bool = False,
+) -> float:
+    partial_sill = max(sill - nugget, 0.0)
+    if h <= 0:
+        return nugget if include_nugget_at_zero else 0.0
+    scaled = h / max(range_val / 3.0, 1e-12)
+    return partial_sill * (1.0 - (1.0 - scaled) * math.exp(-scaled)) + nugget
+
+
+def _normal_cdf(x: float) -> float:
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def _two_sided_t_probability(t_statistic_abs: float, degrees_of_freedom: int) -> float:
+    if degrees_of_freedom <= 0:
+        return 2.0 * (1.0 - _normal_cdf(t_statistic_abs))
+    try:
+        scipy_stats = importlib.import_module("scipy.stats")
+    except ImportError:
+        return 2.0 * (1.0 - _normal_cdf(t_statistic_abs))
+    return 2.0 * float(scipy_stats.t.sf(t_statistic_abs, degrees_of_freedom))
+
+
+def _reference_getis_ord_statistics(
+    values: Sequence[float],
+    neighbor_indexes: Sequence[Sequence[int]],
+    include_self: bool,
+) -> list[tuple[float, float]] | None:
+    try:
+        esda = importlib.import_module("esda")
+        libpysal_weights = importlib.import_module("libpysal.weights")
+    except ImportError:
+        return None
+    try:
+        weights = libpysal_weights.W(
+            {index: list(neighbors) for index, neighbors in enumerate(neighbor_indexes)},
+            {index: [1.0] * len(neighbors) for index, neighbors in enumerate(neighbor_indexes)},
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            statistic = esda.G_Local(
+                values,
+                weights,
+                transform="B",
+                permutations=0,
+                star=include_self,
+                keep_simulations=False,
+                island_weight=0,
+            )
+    except Exception:
+        return None
+    z_scores = getattr(statistic, "Zs", None)
+    p_values = getattr(statistic, "p_norm", None)
+    if z_scores is None or p_values is None:
+        return None
+    statistics: list[tuple[float, float]] = []
+    for z_score, p_value in zip(z_scores, p_values, strict=True):
+        z_numeric = float(z_score) if z_score is not None and math.isfinite(float(z_score)) else 0.0
+        p_numeric = float(p_value) if p_value is not None and math.isfinite(float(p_value)) else 1.0
+        statistics.append((z_numeric, p_numeric))
+    return statistics
+
+
+def _pairwise_distance_matrix(
+    coordinates: Sequence[Coordinate],
+    distance_method: str,
+) -> list[list[float]]:
+    n = len(coordinates)
+    matrix = [[0.0] * n for _ in range(n)]
+    if distance_method == "euclidean":
+        for i in range(n):
+            x_i, y_i = coordinates[i]
+            for j in range(i + 1, n):
+                x_j, y_j = coordinates[j]
+                distance = math.hypot(x_j - x_i, y_j - y_i)
+                matrix[i][j] = distance
+                matrix[j][i] = distance
+        return matrix
+    for i in range(n):
+        for j in range(i + 1, n):
+            distance = coordinate_distance(coordinates[i], coordinates[j], method=distance_method)
+            matrix[i][j] = distance
+            matrix[j][i] = distance
+    return matrix
+
+
+def _matrix_vector_product(matrix: Sequence[Sequence[float]], vector: Sequence[float]) -> list[float]:
+    try:
+        numpy = importlib.import_module("numpy")
+    except ImportError:
+        pass
+    else:
+        return [float(value) for value in (numpy.asarray(matrix, dtype=float) @ numpy.asarray(vector, dtype=float)).tolist()]
+    return [sum(float(value) * float(vector[col_index]) for col_index, value in enumerate(row)) for row in matrix]
+
+
+def _transpose_matrix(matrix: Sequence[Sequence[float]]) -> list[list[float]]:
+    if not matrix:
+        return []
+    return [
+        [float(matrix[row_index][col_index]) for row_index in range(len(matrix))]
+        for col_index in range(len(matrix[0]))
+    ]
+
+
+def _matrix_product(left: Sequence[Sequence[float]], right: Sequence[Sequence[float]]) -> list[list[float]]:
+    try:
+        numpy = importlib.import_module("numpy")
+    except ImportError:
+        pass
+    else:
+        return [
+            [float(value) for value in row]
+            for row in (numpy.asarray(left, dtype=float) @ numpy.asarray(right, dtype=float)).tolist()
+        ]
+    if not left:
+        return []
+    shared_width = len(left[0])
+    right_columns = _transpose_matrix(right)
+    if shared_width == 0 or not right_columns:
+        return [[0.0] * (len(right[0]) if right else 0) for _ in left]
+    return [
+        [
+            sum(float(left_row[index]) * float(right_column[index]) for index in range(shared_width))
+            for right_column in right_columns
+        ]
+        for left_row in left
+    ]
+
+
+def _path_sequence_cost(sequence: Sequence[int], cost_matrix: Sequence[Sequence[float]]) -> float:
+    if len(sequence) <= 1:
+        return 0.0
+    total = 0.0
+    for current_index, next_index in zip(sequence[:-1], sequence[1:]):
+        step_cost = float(cost_matrix[current_index][next_index])
+        if not math.isfinite(step_cost):
+            return float("inf")
+        total += step_cost
+    return total
+
+
+def _two_opt_open_path(sequence: Sequence[int], cost_matrix: Sequence[Sequence[float]]) -> list[int]:
+    if len(sequence) < 4:
+        return list(sequence)
+    best_sequence = list(sequence)
+    best_cost = _path_sequence_cost(best_sequence, cost_matrix)
+    improved = True
+    while improved:
+        improved = False
+        candidate_best_sequence = best_sequence
+        candidate_best_cost = best_cost
+        for start_index in range(1, len(best_sequence) - 2):
+            for end_index in range(start_index + 1, len(best_sequence)):
+                candidate_sequence = (
+                    best_sequence[:start_index]
+                    + list(reversed(best_sequence[start_index:end_index + 1]))
+                    + best_sequence[end_index + 1:]
+                )
+                candidate_cost = _path_sequence_cost(candidate_sequence, cost_matrix)
+                if candidate_cost + 1e-12 < candidate_best_cost:
+                    candidate_best_sequence = candidate_sequence
+                    candidate_best_cost = candidate_cost
+                    improved = True
+        best_sequence = candidate_best_sequence
+        best_cost = candidate_best_cost
+    return best_sequence
+
+
+def _solve_linear_system(a: list[list[float]], b: list[float]) -> list[float] | None:
+    n = len(b)
+    aug = [list(a[i]) + [b[i]] for i in range(n)]
+    for col in range(n):
+        max_row = col
+        for row in range(col + 1, n):
+            if abs(aug[row][col]) > abs(aug[max_row][col]):
+                max_row = row
+        aug[col], aug[max_row] = aug[max_row], aug[col]
+        if abs(aug[col][col]) < 1e-12:
+            return None
+        for row in range(col + 1, n):
+            factor = aug[row][col] / aug[col][col]
+            for j in range(col, n + 1):
+                aug[row][j] -= factor * aug[col][j]
+    result = [0.0] * n
+    for i in range(n - 1, -1, -1):
+        result[i] = aug[i][n]
+        for j in range(i + 1, n):
+            result[i] -= aug[i][j] * result[j]
+        result[i] /= aug[i][i] if abs(aug[i][i]) > 1e-12 else 1.0
+    return result
+
+
+def _solve_linear_system_with_regularization(
+    a: list[list[float]],
+    b: list[float],
+    diagonal_jitter: float = 1e-8,
+) -> list[float] | None:
+    solution = _solve_linear_system(a, b)
+    if solution is not None:
+        return solution
+    regularized = [list(row) for row in a]
+    for index in range(min(len(regularized), len(b))):
+        regularized[index][index] += diagonal_jitter
+    return _solve_linear_system(regularized, b)
+
+
+def _invert_matrix(matrix: list[list[float]]) -> list[list[float]] | None:
+    size = len(matrix)
+    if size == 0:
+        return []
+    augmented = [
+        list(matrix[row_index]) + [1.0 if row_index == col_index else 0.0 for col_index in range(size)]
+        for row_index in range(size)
+    ]
+    for pivot_index in range(size):
+        best_row = max(range(pivot_index, size), key=lambda row_index: abs(augmented[row_index][pivot_index]))
+        if abs(augmented[best_row][pivot_index]) < 1e-12:
+            return None
+        augmented[pivot_index], augmented[best_row] = augmented[best_row], augmented[pivot_index]
+        pivot_value = augmented[pivot_index][pivot_index]
+        for col_index in range(2 * size):
+            augmented[pivot_index][col_index] /= pivot_value
+        for row_index in range(size):
+            if row_index == pivot_index:
+                continue
+            factor = augmented[row_index][pivot_index]
+            if abs(factor) < 1e-12:
+                continue
+            for col_index in range(2 * size):
+                augmented[row_index][col_index] -= factor * augmented[pivot_index][col_index]
+    return [row[size:] for row in augmented]
+
+
+def _invert_matrix_with_regularization(
+    matrix: list[list[float]],
+    diagonal_jitter: float = 1e-8,
+) -> list[list[float]] | None:
+    inverse = _invert_matrix(matrix)
+    if inverse is not None:
+        return inverse
+    regularized = [list(row) for row in matrix]
+    for index in range(len(regularized)):
+        regularized[index][index] += diagonal_jitter
+    return _invert_matrix(regularized)
+
+
+def _matrix_rank(matrix: list[list[float]], tolerance: float = 1e-10) -> int:
+    try:
+        numpy = importlib.import_module("numpy")
+    except ImportError:
+        working = [list(row) for row in matrix]
+        rank = 0
+        row_count = len(working)
+        col_count = len(working[0]) if working else 0
+        pivot_row = 0
+        for pivot_col in range(col_count):
+            best_row = max(range(pivot_row, row_count), key=lambda row_index: abs(working[row_index][pivot_col]), default=pivot_row)
+            if pivot_row >= row_count or abs(working[best_row][pivot_col]) <= tolerance:
+                continue
+            working[pivot_row], working[best_row] = working[best_row], working[pivot_row]
+            pivot_value = working[pivot_row][pivot_col]
+            for row_index in range(pivot_row + 1, row_count):
+                factor = working[row_index][pivot_col] / pivot_value
+                for col_index in range(pivot_col, col_count):
+                    working[row_index][col_index] -= factor * working[pivot_row][col_index]
+            rank += 1
+            pivot_row += 1
+            if pivot_row >= row_count:
+                break
+        return rank
+    return int(numpy.linalg.matrix_rank(numpy.asarray(matrix, dtype=float), tol=tolerance))
+
+
+def _matrix_pseudoinverse(matrix: list[list[float]], tolerance: float = 1e-15) -> list[list[float]] | None:
+    try:
+        numpy = importlib.import_module("numpy")
+    except ImportError:
+        return None
+    array = numpy.asarray(matrix, dtype=float)
+    pseudoinverse = numpy.linalg.pinv(array, rcond=tolerance)
+    return [[float(value) for value in row] for row in pseudoinverse.tolist()]
+
+
+def _moran_on_residuals(
+    residuals: list[float],
+    distance_matrix: list[list[float]],
+    k: int,
+) -> float:
+    n = len(residuals)
+    if n < 2:
+        return 0.0
+    mean_r = sum(residuals) / n
+    centered = [r - mean_r for r in residuals]
+    var_sum = sum(c * c for c in centered)
+    if var_sum < 1e-12:
+        return 0.0
+    w_sum = 0.0
+    cross_sum = 0.0
+    for i in range(n):
+        dists = [(j, distance_matrix[i][j]) for j in range(n) if j != i]
+        neighbors = nsmallest(k, dists, key=lambda x: x[1])
+        for j, _ in neighbors:
+            w_sum += 1.0
+            cross_sum += centered[i] * centered[j]
+    return (n / w_sum) * (cross_sum / var_sum) if w_sum > 0 else 0.0
+
+
+def _douglas_peucker(coords: list[Coordinate], tolerance: float) -> list[Coordinate]:
+    if len(coords) <= 2:
+        return list(coords)
+    max_dist = 0.0
+    max_idx = 0
+    start, end = coords[0], coords[-1]
+    for i in range(1, len(coords) - 1):
+        d = _perpendicular_distance(coords[i], start, end)
+        if d > max_dist:
+            max_dist = d
+            max_idx = i
+    if max_dist > tolerance:
+        left = _douglas_peucker(coords[:max_idx + 1], tolerance)
+        right = _douglas_peucker(coords[max_idx:], tolerance)
+        return left[:-1] + right
+    return [coords[0], coords[-1]]
+
+
+def _douglas_peucker_indices(coords: list[Coordinate], tolerance: float) -> list[int]:
+    if len(coords) <= 2:
+        return list(range(len(coords)))
+    indices = [0, len(coords) - 1]
+    _dp_recurse(coords, 0, len(coords) - 1, tolerance, indices)
+    return sorted(indices)
+
+
+def _dp_recurse(coords: list[Coordinate], start: int, end: int, tolerance: float, indices: list[int]) -> None:
+    if end - start <= 1:
+        return
+    max_dist = 0.0
+    max_idx = start
+    for i in range(start + 1, end):
+        d = _perpendicular_distance(coords[i], coords[start], coords[end])
+        if d > max_dist:
+            max_dist = d
+            max_idx = i
+    if max_dist > tolerance:
+        indices.append(max_idx)
+        _dp_recurse(coords, start, max_idx, tolerance, indices)
+        _dp_recurse(coords, max_idx, end, tolerance, indices)
+
+
+def _perpendicular_distance(point: Coordinate, line_start: Coordinate, line_end: Coordinate) -> float:
+    dx = line_end[0] - line_start[0]
+    dy = line_end[1] - line_start[1]
+    length_sq = dx * dx + dy * dy
+    if length_sq < 1e-24:
+        return math.hypot(point[0] - line_start[0], point[1] - line_start[1])
+    t = max(0.0, min(1.0, ((point[0] - line_start[0]) * dx + (point[1] - line_start[1]) * dy) / length_sq))
+    proj_x = line_start[0] + t * dx
+    proj_y = line_start[1] + t * dy
+    return math.hypot(point[0] - proj_x, point[1] - proj_y)
+
+
+def _densify_coordinates(coords: list[Coordinate], max_length: float) -> list[Coordinate]:
+    if len(coords) < 2:
+        return list(coords)
+    result: list[Coordinate] = [coords[0]]
+    for i in range(1, len(coords)):
+        start = coords[i - 1]
+        end = coords[i]
+        seg_len = math.hypot(end[0] - start[0], end[1] - start[1])
+        if seg_len > max_length:
+            n_segments = math.ceil(seg_len / max_length)
+            for s in range(1, n_segments):
+                t = s / n_segments
+                result.append((start[0] + t * (end[0] - start[0]), start[1] + t * (end[1] - start[1])))
+        result.append(end)
+    return result
+
+
+def _chaikin_smooth(coords: list[Coordinate], is_closed: bool = False) -> list[Coordinate]:
+    if len(coords) < 3:
+        return list(coords)
+    result: list[Coordinate] = []
+    n = len(coords)
+    start = 0 if is_closed else 0
+    end = n if is_closed else n - 1
+    if not is_closed:
+        result.append(coords[0])
+    for i in range(start, end):
+        p0 = coords[i]
+        p1 = coords[(i + 1) % n]
+        q = (0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1])
+        r = (0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1])
+        result.append(q)
+        result.append(r)
+    if not is_closed:
+        result.append(coords[-1])
+    if is_closed and result:
+        result.append(result[0])
+    return result
+
+
+_GEOHASH_BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
+
+
+def _geohash_encode(latitude: float, longitude: float, precision: int) -> str:
+    lat_range = [-90.0, 90.0]
+    lon_range = [-180.0, 180.0]
+    is_longitude = True
+    bits = 0
+    char_index = 0
+    result: list[str] = []
+    while len(result) < precision:
+        if is_longitude:
+            mid = (lon_range[0] + lon_range[1]) / 2.0
+            if longitude >= mid:
+                char_index = char_index * 2 + 1
+                lon_range[0] = mid
+            else:
+                char_index = char_index * 2
+                lon_range[1] = mid
+        else:
+            mid = (lat_range[0] + lat_range[1]) / 2.0
+            if latitude >= mid:
+                char_index = char_index * 2 + 1
+                lat_range[0] = mid
+            else:
+                char_index = char_index * 2
+                lat_range[1] = mid
+        is_longitude = not is_longitude
+        bits += 1
+        if bits == 5:
+            result.append(_GEOHASH_BASE32[char_index])
+            bits = 0
+            char_index = 0
+    return "".join(result)
 
 
 __all__ = ["Bounds", "GeoPromptFrame"]

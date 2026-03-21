@@ -28,9 +28,13 @@ dev = [
     "pytest>=8.2,<9.0",
 ]
 compare = [
+    "esda>=2.9,<3.0",
     "geopandas>=1.0,<2.0",
+    "libpysal>=4.14,<5.0",
+    "pykrige>=1.7,<2.0",
     "pyproj>=3.6,<4.0",
     "shapely>=2.0,<3.0",
+    "statsmodels>=0.14,<1.0",
 ]
 overlay = [
     "shapely>=2.0,<3.0",

@@ -116,14 +116,22 @@ def buffer_geometries(geometries: list[Geometry], distance: float, resolution: i
 
 
 def overlay_intersections(left_geometries: list[Geometry], right_geometries: list[Geometry]) -> list[tuple[int, int, list[Geometry]]]:
+    if not left_geometries or not right_geometries:
+        return []
+
     intersections: list[tuple[int, int, list[Geometry]]] = []
+    right_bounds = [geometry_bounds(geometry) for geometry in right_geometries]
+    right_shapes = [geometry_to_shapely(geometry) for geometry in right_geometries]
     for left_index, left_geometry in enumerate(left_geometries):
+        left_bounds = geometry_bounds(left_geometry)
         left_shape = geometry_to_shapely(left_geometry)
-        for right_index, right_geometry in enumerate(right_geometries):
-            intersection = left_shape.intersection(geometry_to_shapely(right_geometry))
+        for right_index_value, right_bound in enumerate(right_bounds):
+            if not _bounds_intersect(left_bounds, right_bound):
+                continue
+            intersection = left_shape.intersection(right_shapes[right_index_value])
             exploded = geometry_from_shapely(intersection)
             if exploded:
-                intersections.append((left_index, right_index, exploded))
+                intersections.append((left_index, right_index_value, exploded))
     return intersections
 
 
