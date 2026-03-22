@@ -1,5 +1,7 @@
 # GeoPrompt Package TODO & Roadmap
 
+See also: [docs/big-backlog.md](big-backlog.md) for a larger next-phase backlog covering tool additions, reviews, validation, CI, packaging, and release work.
+
 ## Current Status
 - **148 spatial analysis tools** on GeoPromptFrame
 - **498 tests** (338 core + 35 new-tool + 44 reference-parity + 38 P3-tool-batch-1 + 32 P3-tool-batch-2 + 11 SpatialWeights), all passing
