@@ -1,12 +1,12 @@
 # GeoPrompt
 
-A pure-Python spatial analysis toolkit providing **400+ geospatial tools** for point, line, and polygon workflows. GeoPrompt delivers GeoPandas-style frame access, GeoJSON-compatible I/O, CRS-aware reprojection, spatial joins, geographic distance methods, and a comprehensive suite of spatial statistics, interpolation, clustering, terrain analysis, network routing, and interchange formats — all without requiring compiled C extensions.
+A pure-Python spatial analysis toolkit providing **440+ geospatial tools** for point, line, and polygon workflows. GeoPrompt delivers GeoPandas-style frame access, GeoJSON-compatible I/O, CRS-aware reprojection, spatial joins, geographic distance methods, and a comprehensive suite of spatial statistics, interpolation, clustering, terrain analysis, network routing, AI-powered analysis, pseudo-quantum computing, and interchange formats — all without requiring compiled C extensions.
 
 ![Generated neighborhood pressure plot from the GeoPrompt demo](assets/neighborhood-pressure-review-live.png)
 
 ## Key Features
 
-- **400 spatial analysis tools** covering interpolation, classification, clustering, regression, terrain analysis, network analysis, point patterns, geometry utilities, I/O formats, raster operations, and more
+- **440 spatial analysis tools** covering interpolation, classification, clustering, regression, terrain analysis, network analysis, point patterns, geometry utilities, I/O formats, raster operations, AI/ML methods, pseudo-quantum algorithms, and more
 - **Zero compiled dependencies** — runs on any Python 3.11+ environment; optionally accelerates with Shapely, SciPy, and PySAL when available
 - **GeoJSON-native** — all geometries use standard GeoJSON format internally
 - **CRS-aware** — coordinate reference system assignment and reprojection via `to_crs()`
@@ -367,7 +367,7 @@ intersections = regions.overlay_intersections(assets)
 geoprompt/
 ├── src/geoprompt/
 │   ├── __init__.py          # Public API exports
-│   ├── frame.py             # GeoPromptFrame class — all 400+ spatial tools
+│   ├── frame.py             # GeoPromptFrame class — all 440+ spatial tools
 │   ├── geometry.py          # Geometry primitives and helpers
 │   ├── equations.py         # Shared mathematical functions
 │   ├── overlay.py           # Polygon overlay operations

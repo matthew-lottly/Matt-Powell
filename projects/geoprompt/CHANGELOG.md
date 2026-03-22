@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+### New Tools (401–440): AI-Powered & Pseudo-Quantum
+- **401 `neural_spatial_interpolation`** — MLP-based surface interpolation via backpropagation
+- **402 `spatial_autoencoder`** — autoencoder dimensionality reduction for spatial attributes
+- **403 `ai_spatial_classifier`** — MLP classifier with softmax output
+- **404 `gradient_boosted_spatial_regression`** — gradient-boosted decision stumps
+- **405 `random_forest_spatial_classifier`** — bootstrap ensemble of decision stumps
+- **406 `spatial_anomaly_detector`** — isolation-forest-style anomaly detection
+- **407 `self_organizing_map_spatial`** — Kohonen SOM clustering
+- **408 `spatial_reinforcement_learner`** — Q-learning agent on spatial graph
+- **409 `evolutionary_feature_selection`** — genetic algorithm feature selection
+- **410 `spatial_attention_mechanism`** — multi-head distance-based attention
+- **411 `spatial_bayesian_optimizer`** — Bayesian optimization with UCB acquisition
+- **412 `spatial_gan_augmentor`** — GAN-inspired synthetic point generation
+- **413 `spatial_embedding`** — t-SNE-style dimensionality reduction
+- **414 `fuzzy_spatial_classifier`** — Fuzzy C-Means clustering
+- **415 `spatial_decision_tree`** — CART-style decision tree regressor
+- **416 `spatial_knn_imputer`** — k-NN imputation for missing values
+- **417 `spatial_naive_bayes`** — Gaussian Naive Bayes classifier
+- **418 `spatial_svm_classifier`** — linear SVM with one-vs-rest
+- **419 `spatial_lstm_sequence`** — LSTM recurrent predictor for spatiotemporal data
+- **420 `ai_land_use_classifier`** — unsupervised autoencoder + k-means
+- **421 `quantum_spatial_annealer`** — quantum-inspired simulated annealing
+- **422 `quantum_walk_clustering`** — discrete quantum walk clustering
+- **423 `quantum_feature_map`** — parameterised rotation-gate Hilbert space encoding
+- **424 `quantum_approximate_counting`** — Grover amplitude amplification counting
+- **425 `quantum_phase_clustering`** — phase estimation-inspired clustering
+- **426 `quantum_entanglement_graph`** — Bell-inequality spatial dependency graph
+- **427 `quantum_teleportation_interpolation`** — entanglement-weighted interpolation
+- **428 `quantum_superposition_query`** — parallel condition evaluation with amplitudes
+- **429 `quantum_grover_search`** — Grover's search for spatial features
+- **430 `quantum_variational_optimizer`** — VQE-inspired optimization
+- **431 `quantum_error_corrected_interpolation`** — repetition-code robust interpolation
+- **432 `quantum_tunneling_optimizer`** — tunnelling-augmented particle swarm
+- **433 `quantum_born_rule_density`** — wavefunction density estimation |ψ(x)|²
+- **434 `quantum_decoherence_smoothing`** — decoherence-based spatial smoothing
+- **435 `quantum_interference_pattern`** — circular wave interference
+- **436 `quantum_boltzmann_sampler`** — Boltzmann distribution spatial sampling
+- **437 `qubit_spatial_encoder`** — Bloch sphere encoding of features
+- **438 `quantum_fourier_spatial_analysis`** — QFT-inspired spectral decomposition
+- **439 `quantum_measurement_classifier`** — measurement-based shot classification
+- **440 `quantum_adiabatic_solver`** — adiabatic quantum optimization for partitioning
+
 ### New Tools (379–400)
 - **379 `empty_frame_guard`** — audit empty-frame behavior
 - **380 `one_row_guard`** — audit one-row frame behavior and minimum row requirements
