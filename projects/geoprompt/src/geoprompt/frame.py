@@ -69,6 +69,15 @@ def _bounds_within(candidate: tuple[float, float, float, float], container: tupl
     )
 
 
+def _pivot_row_index(matrix: Sequence[Sequence[float]], start_row: int, column: int, stop_row: int | None = None) -> int:
+    pivot_row = start_row
+    row_limit = len(matrix) if stop_row is None else stop_row
+    for row_index in range(start_row + 1, row_limit):
+        if abs(matrix[row_index][column]) > abs(matrix[pivot_row][column]):
+            pivot_row = row_index
+    return pivot_row
+
+
 @dataclass(frozen=True)
 class Bounds:
     min_x: float
@@ -11379,7 +11388,7 @@ class GeoPromptFrame:
         self._require_column(time_column)
         if not self._rows:
             return {"global_morans_i": None, "time_slices": []}
-        times = sorted(set(row.get(time_column) for row in self._rows))
+        times = sorted({time_value for row in self._rows if (time_value := row.get(time_column)) is not None}, key=str)
         slices: list[dict[str, Any]] = []
         for t in times:
             sub_rows = [r for r in self._rows if r.get(time_column) == t]
@@ -11433,7 +11442,10 @@ class GeoPromptFrame:
             visited: set[int] = set()
             while flow_to[current] is not None and current not in visited:
                 visited.add(current)
-                current = flow_to[current]  # type: ignore[assignment]
+                next_node = flow_to[current]
+                if next_node is None:
+                    break
+                current = next_node
             pour_ids[i] = current
         if pour_points is not None and len(pour_points) > 0:
             pp_centroids = pour_points._centroids()
@@ -11757,10 +11769,10 @@ class GeoPromptFrame:
     def read_shapefile(cls, path: str, geometry: str = "geometry", crs: str | None = None) -> "GeoPromptFrame":
         """Read an ESRI Shapefile. Requires ``pyshp`` or ``fiona``."""
         try:
-            import shapefile as shp
+            shp = importlib.import_module("shapefile")
         except ImportError:
             try:
-                import fiona
+                fiona = importlib.import_module("fiona")
                 with fiona.open(path) as src:
                     crs = crs or str(src.crs)
                     records = [{"geometry": dict(feat["geometry"]), **dict(feat["properties"])} for feat in src]
@@ -11779,7 +11791,7 @@ class GeoPromptFrame:
     def to_shapefile(self, path: str, id_column: str = "site_id") -> None:
         """Write to ESRI Shapefile. Requires ``pyshp``."""
         try:
-            import shapefile as shp
+            shp = importlib.import_module("shapefile")
         except ImportError:
             raise ImportError("Install pyshp to write shapefiles")
         w = shp.Writer(path)
@@ -11802,7 +11814,7 @@ class GeoPromptFrame:
     def read_geopackage(cls, path: str, layer: str | None = None, geometry: str = "geometry", crs: str | None = None) -> "GeoPromptFrame":
         """Read an OGC GeoPackage. Requires ``fiona`` or falls back to ``sqlite3``."""
         try:
-            import fiona
+            fiona = importlib.import_module("fiona")
             with fiona.open(path, layer=layer) as src:
                 crs = crs or str(src.crs)
                 records = [{"geometry": dict(feat["geometry"]), **dict(feat["properties"])} for feat in src]
@@ -14628,7 +14640,7 @@ class GeoPromptFrame:
                 dists = sorted(range(n), key=lambda j: dm[i][j])
                 bw_local = dm[i][dists[min(k_neighbors, n - 1)]] * 1.01
             else:
-                bw_local = bandwidth
+                bw_local = bandwidth if bandwidth is not None else 1.0
             w = [0.0] * n
             for j in range(n):
                 d = dm[i][j]
@@ -14722,7 +14734,7 @@ class GeoPromptFrame:
                 dists = sorted(range(n), key=lambda j: dm[i][j])
                 bw_local = dm[i][dists[min(k_neighbors, n - 1)]] * 1.01
             else:
-                bw_local = bandwidth
+                bw_local = bandwidth if bandwidth is not None else 1.0
             w = [0.0] * n
             for j in range(n):
                 d = dm[i][j]
@@ -16504,7 +16516,7 @@ class GeoPromptFrame:
                 # Solve B*u = w via Gauss elimination
                 aug = [B[r][:] + [w[r]] for r in range(p)]
                 for col in range(p):
-                    pivot = max(range(col, p), key=lambda r: abs(aug[r][col]))
+                    pivot = _pivot_row_index(aug, col, col, p)
                     aug[col], aug[pivot] = aug[pivot], aug[col]
                     if abs(aug[col][col]) < 1e-15:
                         continue
@@ -16634,7 +16646,7 @@ class GeoPromptFrame:
                 # Solve via Gauss elimination
                 aug = [XtWX[r][:] + [XtWY[r]] for r in range(p)]
                 for col in range(p):
-                    pivot = max(range(col, p), key=lambda r: abs(aug[r][col]))
+                    pivot = _pivot_row_index(aug, col, col, p)
                     aug[col], aug[pivot] = aug[pivot], aug[col]
                     if abs(aug[col][col]) < 1e-15:
                         continue
@@ -17338,19 +17350,24 @@ class GeoPromptFrame:
             for j in range(i + 1, n):
                 if snapped_polys[j] is None:
                     continue
-                for vi in range(len(snapped_polys[i])):
-                    for vj in range(len(snapped_polys[j])):
-                        px, py = snapped_polys[i][vi]
-                        qx, qy = snapped_polys[j][vj]
+                left_poly = snapped_polys[i]
+                right_poly = snapped_polys[j]
+                if left_poly is None or right_poly is None:
+                    continue
+                for vi in range(len(left_poly)):
+                    for vj in range(len(right_poly)):
+                        px, py = left_poly[vi]
+                        qx, qy = right_poly[vj]
                         if math.hypot(px - qx, py - qy) < tolerance:
                             mid = ((px + qx) / 2, (py + qy) / 2)
-                            snapped_polys[i][vi] = mid
-                            snapped_polys[j][vj] = mid
+                            left_poly[vi] = mid
+                            right_poly[vj] = mid
 
         rows = self.to_records()
         for i, row in enumerate(rows):
-            if snapped_polys[i] is not None:
-                closed = [list(p) for p in snapped_polys[i]]
+            polygon = snapped_polys[i]
+            if polygon is not None:
+                closed = [list(p) for p in polygon]
                 if closed and closed[0] != closed[-1]:
                     closed.append(closed[0])
                 row[self.geometry_column] = {"type": "Polygon", "coordinates": [closed]}
@@ -18366,7 +18383,7 @@ class GeoPromptFrame:
         # Gauss elimination
         aug = [ZtZ[r][:] + [ZtWY[r]] for r in range(q)]
         for col in range(q):
-            pivot = max(range(col, q), key=lambda r: abs(aug[r][col]))
+            pivot = _pivot_row_index(aug, col, col, q)
             aug[col], aug[pivot] = aug[pivot], aug[col]
             if abs(aug[col][col]) < 1e-15:
                 continue
@@ -18387,7 +18404,7 @@ class GeoPromptFrame:
         HtY = [sum(H[r][c] * Y[r] for r in range(n)) for c in range(p2)]
         aug2 = [HtH[r][:] + [HtY[r]] for r in range(p2)]
         for col in range(p2):
-            pivot = max(range(col, p2), key=lambda r: abs(aug2[r][col]))
+            pivot = _pivot_row_index(aug2, col, col, p2)
             aug2[col], aug2[pivot] = aug2[pivot], aug2[col]
             if abs(aug2[col][col]) < 1e-15:
                 continue
@@ -18828,11 +18845,18 @@ class GeoPromptFrame:
                 continue
             gaps = 0
             overlaps = 0
-            bx0, by0, bx1, by1 = bboxes[i]
+            bbox = bboxes[i]
+            if bbox is None:
+                row[f"gaps_{cv_suffix}"] = 0
+                row[f"overlaps_{cv_suffix}"] = 0
+                row[f"valid_{cv_suffix}"] = True
+                continue
+            bx0, by0, bx1, by1 = bbox
             for j in range(n):
-                if i == j or bboxes[j] is None:
+                other_bbox = bboxes[j]
+                if i == j or other_bbox is None:
                     continue
-                ox0, oy0, ox1, oy1 = bboxes[j]
+                ox0, oy0, ox1, oy1 = other_bbox
                 # Check bbox overlap
                 if bx0 < ox1 and bx1 > ox0 and by0 < oy1 and by1 > oy0:
                     overlaps += 1
@@ -18937,7 +18961,7 @@ class GeoPromptFrame:
         ZtY = [sum(Z[r][c] * Y[r] for r in range(n)) for c in range(q)]
         aug = [ZtZ[r][:] + [ZtY[r]] for r in range(q)]
         for col in range(q):
-            pivot = max(range(col, q), key=lambda r: abs(aug[r][col]))
+            pivot = _pivot_row_index(aug, col, col, q)
             aug[col], aug[pivot] = aug[pivot], aug[col]
             if abs(aug[col][col]) < 1e-15:
                 continue
@@ -19003,7 +19027,7 @@ class GeoPromptFrame:
             ZtY = [sum(Z_[r][c] * Y_[r] for r in range(n)) for c in range(q_)]
             a = [ZtZ[r][:] + [ZtY[r]] for r in range(q_)]
             for col in range(q_):
-                piv = max(range(col, q_), key=lambda r: abs(a[r][col]))
+                piv = _pivot_row_index(a, col, col, q_)
                 a[col], a[piv] = a[piv], a[col]
                 if abs(a[col][col]) < 1e-15:
                     continue
@@ -19019,6 +19043,7 @@ class GeoPromptFrame:
 
         rho = 0.0
         lam = 0.0
+        beta2: list[float] = [0.0] * (q + 1)
         for _it in range(max_iterations):
             # Cochrane-Orcutt-like: filter Y and X for error
             Y_star = [Y[i] - lam * (_lag(Y)[i] if True else 0) for i in range(n)]  # noqa: SIM211
@@ -19610,8 +19635,11 @@ class GeoPromptFrame:
             if target:
                 cur_: str | None = target
                 while cur_ is not None and prev_.get(cur_) is not None:
-                    p = prev_[cur_]
-                    key = (p, cur_) if (p, cur_) in edge_flow else (cur_, p)
+                    current_node = cur_
+                    p = prev_[current_node]
+                    if p is None:
+                        break
+                    key = (p, current_node) if (p, current_node) in edge_flow else (current_node, p)
                     if key in edge_flow:
                         edge_flow[key] += demand
                     cur_ = p
@@ -20050,7 +20078,7 @@ class GeoPromptFrame:
         XtY = [sum(X[r][c] * Y[r] for r in range(n)) for c in range(p)]
         aug = [XtX[r][:] + [XtY[r]] for r in range(p)]
         for col in range(p):
-            piv = max(range(col, p), key=lambda r: abs(aug[r][col]))
+            piv = _pivot_row_index(aug, col, col, p)
             aug[col], aug[piv] = aug[piv], aug[col]
             if abs(aug[col][col]) < 1e-15:
                 continue
@@ -26395,7 +26423,7 @@ class GeoPromptFrame:
             return self.copy()
 
         labels_raw = [r.get(label_column) for r in recs]
-        unique_labels = sorted(set(labels_raw))
+        unique_labels = sorted(set(labels_raw), key=str)
         n_cls = len(unique_labels)
         label_map = {lbl: i for i, lbl in enumerate(unique_labels)}
         n_in = len(feature_columns)
@@ -26586,7 +26614,7 @@ class GeoPromptFrame:
         n_feat = len(feature_columns)
         raw = [[float(r.get(c, 0) or 0) for c in feature_columns] for r in recs]
         labels = [r.get(label_column) for r in recs]
-        unique_labels = sorted(set(labels))
+        unique_labels = sorted(set(labels), key=str)
 
         def _gini(group: list) -> float:
             size = len(group)
@@ -27460,16 +27488,29 @@ class GeoPromptFrame:
                         for d, j in neighbours:
                             w = 1.0 / max(d, 1e-12)
                             w_sum += w
-                            v_sum += w * float(vals[j])
+                            value = vals[j]
+                            if value is None:
+                                continue
+                            v_sum += w * float(value)
                         rec[f"{value_column}_{suffix}"] = round(v_sum / w_sum, 6)
                     else:
+                        neighbor_values: list[float] = []
+                        for _, j in neighbours:
+                            neighbor_value = vals[j]
+                            if neighbor_value is None:
+                                continue
+                            neighbor_values.append(float(neighbor_value))
                         rec[f"{value_column}_{suffix}"] = round(
-                            sum(float(vals[j]) for _, j in neighbours) / len(neighbours), 6)
+                            sum(neighbor_values) / len(neighbor_values), 6) if neighbor_values else None
                 else:
                     rec[f"{value_column}_{suffix}"] = None
                 rec[f"imputed_{suffix}"] = 1
             else:
-                rec[f"{value_column}_{suffix}"] = float(vals[i])
+                current_value = vals[i]
+                if current_value is None:
+                    rec[f"{value_column}_{suffix}"] = None
+                else:
+                    rec[f"{value_column}_{suffix}"] = float(current_value)
                 rec[f"imputed_{suffix}"] = 0
             out_rows.append(rec)
         return GeoPromptFrame._from_internal_rows(out_rows, geometry_column=self.geometry_column, crs=self.crs)
@@ -27500,7 +27541,7 @@ class GeoPromptFrame:
         n_feat = len(feature_columns)
         raw = [[float(r.get(c, 0) or 0) for c in feature_columns] for r in recs]
         labels = [r.get(label_column) for r in recs]
-        unique_labels = sorted(set(labels))
+        unique_labels = sorted(set(labels), key=str)
 
         # Compute per-class mean & variance
         stats: dict[Any, dict] = {}
@@ -27565,7 +27606,7 @@ class GeoPromptFrame:
         n_feat = len(feature_columns)
         raw = [[float(r.get(c, 0) or 0) for c in feature_columns] for r in recs]
         labels = [r.get(label_column) for r in recs]
-        unique_labels = sorted(set(labels))
+        unique_labels = sorted(set(labels), key=str)
 
         # Normalise
         col_min = [min(raw[i][f] for i in range(n)) for f in range(n_feat)]
@@ -29993,7 +30034,7 @@ class GeoPromptFrame:
         rng = random.Random(seed)
         raw_labels = [r.get(label_column) for r in recs]
         labelled = [i for i in range(n) if raw_labels[i] is not None and str(raw_labels[i]).strip() != ""]
-        unique_labels = sorted(set(raw_labels[i] for i in labelled))
+        unique_labels = sorted(set(raw_labels[i] for i in labelled), key=str)
         if not unique_labels:
             unique_labels = ["unknown"]
         label_map = {lbl: idx for idx, lbl in enumerate(unique_labels)}
@@ -30001,7 +30042,10 @@ class GeoPromptFrame:
         # Init distribution
         dist_matrix = [[0.0] * n_labels for _ in range(n)]
         for i in labelled:
-            dist_matrix[i][label_map[raw_labels[i]]] = 1.0
+            label_value = raw_labels[i]
+            if label_value is None:
+                continue
+            dist_matrix[i][label_map[label_value]] = 1.0
         for i in range(n):
             if i not in labelled:
                 for k in range(n_labels):
@@ -30984,7 +31028,7 @@ class GeoPromptFrame:
                     labels[i] = labels[j]
                     break
         # Renumber clusters
-        unique = sorted(set(labels))
+        unique = sorted(set(labels), key=str)
         remap = {v: i for i, v in enumerate(unique)}
         out_rows: list[Record] = []
         for i in range(n):
@@ -31824,7 +31868,7 @@ class GeoPromptFrame:
             return self.copy()
         n = len(recs)
         labels = [r.get(cluster_column) for r in recs]
-        unique = sorted(set(labels))
+        unique = _distinct_values(labels)
         clusters: dict = {c: [i for i in range(n) if labels[i] == c] for c in unique}
         out_rows: list[Record] = []
         for i in range(n):
@@ -33079,7 +33123,7 @@ class GeoPromptFrame:
             return self.copy()
         n = len(recs)
         labels = [r.get(ordinal_column) for r in recs]
-        ordered = sorted(set(labels))
+        ordered = sorted(set(labels), key=str)
         label_to_score = {lbl: idx for idx, lbl in enumerate(ordered)}
         target = [float(label_to_score[lbl]) for lbl in labels]
         n_feat = len(feature_columns)
@@ -33321,7 +33365,7 @@ class GeoPromptFrame:
         if not recs:
             return self.copy()
         groups = [r.get(group_column) for r in recs]
-        unique = sorted(set(groups))
+        unique = sorted(set(groups), key=str)
         if len(unique) < 2:
             return self.copy()
         first = [i for i in range(len(recs)) if groups[i] == unique[0]]
@@ -34097,7 +34141,7 @@ class GeoPromptFrame:
         """
         # Try fiona first
         try:
-            import fiona
+            fiona = importlib.import_module("fiona")
             layers = fiona.listlayers(path)
             target = layer or (layers[0] if layers else None)
             if target is None:
@@ -34171,8 +34215,8 @@ class GeoPromptFrame:
 
         # Fallback: fiona
         try:
-            import fiona
-            from fiona.crs import from_epsg
+            fiona = importlib.import_module("fiona")
+            from_epsg = importlib.import_module("fiona.crs").from_epsg
             schema_props: dict[str, str] = {}
             geom_type = "Point"
             for row in self._rows:
@@ -34252,7 +34296,7 @@ class GeoPromptFrame:
 
         # rasterio path
         try:
-            import rasterio
+            rasterio = importlib.import_module("rasterio")
         except ImportError as exc:
             raise ImportError("Install rasterio to read raster files (pip install rasterio)") from exc
 
@@ -34419,8 +34463,8 @@ class GeoPromptFrame:
 
         # rasterio for GeoTIFF and other formats
         try:
-            import rasterio
-            from rasterio.transform import from_bounds
+            rasterio = importlib.import_module("rasterio")
+            from_bounds = importlib.import_module("rasterio.transform").from_bounds
             import numpy as np
         except ImportError as exc:
             raise ImportError("Install rasterio to write raster files (pip install rasterio)") from exc
@@ -34481,7 +34525,7 @@ class GeoPromptFrame:
 
         if ext == ".xlsx":
             try:
-                import openpyxl
+                openpyxl = importlib.import_module("openpyxl")
             except ImportError as exc:
                 raise ImportError("Install openpyxl to read .xlsx files") from exc
             wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
@@ -34663,7 +34707,7 @@ class GeoPromptFrame:
             Path to the spatial file.
         """
         try:
-            import fiona
+            fiona = importlib.import_module("fiona")
             return list(fiona.listlayers(path))
         except ImportError:
             pass
@@ -34719,7 +34763,7 @@ class GeoPromptFrame:
             Column name prefix for results.
         """
         try:
-            import rasterio
+            rasterio = importlib.import_module("rasterio")
         except ImportError as exc:
             raise ImportError("Install rasterio for raster_stats") from exc
 
@@ -35235,7 +35279,8 @@ def _to_geojson(geom: Geometry) -> dict:
     """Convert normalized geometry to standard GeoJSON dict for Shapely interop."""
     gt = geom["type"]
     if gt == "Polygon":
-        return {"type": "Polygon", "coordinates": [list(list(c) for c in geom["coordinates"])]}
+        coordinates = cast(Sequence[Coordinate], geom["coordinates"])
+        return {"type": "Polygon", "coordinates": [list(list(c) for c in coordinates)]}
     return dict(geom)
 
 
@@ -35314,7 +35359,8 @@ def _snap_geometry(
         changed = 0 if _same_coordinate(snapped, coordinate) else 1
         return {"type": "Point", "coordinates": snapped}, changed, False
 
-    coordinates = [_as_coordinate(value) for value in geometry["coordinates"]]
+    raw_coordinates = cast(Sequence[Any], geometry["coordinates"])
+    coordinates = [_as_coordinate(value) for value in raw_coordinates]
     if geometry_kind == "Polygon":
         coordinates = coordinates[:-1]
     snapped_coordinates = [snap_lookup.get(_coordinate_key(coordinate), coordinate) for coordinate in coordinates]
@@ -35342,7 +35388,8 @@ def _snap_geometry(
 
 
 def _build_linestring_info(geometry: Geometry) -> dict[str, Any]:
-    coordinates = tuple(_as_coordinate(value) for value in geometry["coordinates"])
+    raw_coordinates = cast(Sequence[Any], geometry["coordinates"])
+    coordinates = tuple(_as_coordinate(value) for value in raw_coordinates)
     cumulative_lengths = [0.0]
     for start, end in zip(coordinates, coordinates[1:]):
         cumulative_lengths.append(cumulative_lengths[-1] + coordinate_distance(start, end, method="euclidean"))
@@ -35373,7 +35420,8 @@ def _locate_point_fraction_on_linestring(line_info: dict[str, Any], point: Coord
 def _line_segment_records(rows: Sequence[Record], geometry_column: str) -> list[dict[str, Any]]:
     segment_records: list[dict[str, Any]] = []
     for row_index, row in enumerate(rows):
-        coordinates = tuple(_as_coordinate(value) for value in row[geometry_column]["coordinates"])
+        geometry = cast(dict[str, Any], row[geometry_column])
+        coordinates = tuple(_as_coordinate(value) for value in cast(Sequence[Any], geometry["coordinates"]))
         for segment_index, (start, end) in enumerate(zip(coordinates, coordinates[1:])):
             segment_records.append(
                 {
@@ -35418,7 +35466,8 @@ def _clean_geometry(
             "collapsed": False,
         }
 
-    coordinates = [_as_coordinate(value) for value in working_geometry["coordinates"]]
+    raw_coordinates = cast(Sequence[Any], working_geometry["coordinates"])
+    coordinates = [_as_coordinate(value) for value in raw_coordinates]
     is_polygon = geometry_kind == "Polygon"
     if is_polygon:
         coordinates = coordinates[:-1]
@@ -36162,7 +36211,9 @@ def _reachable_edge_intervals(
 
 
 def _linestring_subgeometry(geometry: Geometry, start_fraction: float, end_fraction: float) -> Geometry | None:
-    coordinates = [_as_coordinate(value) for value in geometry["coordinates"]]
+    coordinates_obj: Any = geometry["coordinates"]
+    raw_coordinates = cast(Sequence[Any], coordinates_obj)
+    coordinates = [_as_coordinate(value) for value in raw_coordinates]
     if len(coordinates) < 2:
         return None
 
@@ -37106,17 +37157,17 @@ def _snap_geometry_to_grid(geom: Geometry, cell_size: float) -> Geometry:
     gtype = geometry_type(geom)
     coords = geom.get("coordinates")
     if gtype == "Point" and coords:
-        return {"type": "Point", "coordinates": snap_coord(coords)}
+        return {"type": "Point", "coordinates": snap_coord(cast(tuple[float, ...], coords))}
     elif gtype == "LineString" and coords:
-        return {"type": "LineString", "coordinates": [snap_coord(c) for c in coords]}
+        return {"type": "LineString", "coordinates": [snap_coord(cast(tuple[float, ...], c)) for c in cast(Sequence[Any], coords)]}
     elif gtype == "Polygon" and coords:
-        return {"type": "Polygon", "coordinates": [[snap_coord(c) for c in ring] for ring in coords]}
+        return {"type": "Polygon", "coordinates": [[snap_coord(cast(tuple[float, ...], c)) for c in cast(Sequence[Any], ring)] for ring in cast(Sequence[Any], coords)]}
     elif gtype == "MultiPoint" and coords:
-        return {"type": "MultiPoint", "coordinates": [snap_coord(c) for c in coords]}
+        return {"type": "MultiPoint", "coordinates": [snap_coord(cast(tuple[float, ...], c)) for c in cast(Sequence[Any], coords)]}
     elif gtype == "MultiLineString" and coords:
-        return {"type": "MultiLineString", "coordinates": [[snap_coord(c) for c in line] for line in coords]}
+        return {"type": "MultiLineString", "coordinates": [[snap_coord(cast(tuple[float, ...], c)) for c in cast(Sequence[Any], line)] for line in cast(Sequence[Any], coords)]}
     elif gtype == "MultiPolygon" and coords:
-        return {"type": "MultiPolygon", "coordinates": [[[snap_coord(c) for c in ring] for ring in poly] for poly in coords]}
+        return {"type": "MultiPolygon", "coordinates": [[[snap_coord(cast(tuple[float, ...], c)) for c in cast(Sequence[Any], ring)] for ring in cast(Sequence[Any], poly)] for poly in cast(Sequence[Any], coords)]}
     return geom
 
 
@@ -37177,18 +37228,19 @@ def _geometry_to_wkt(geom: Geometry) -> str:
     gtype = geometry_type(geom)
     coords = geom.get("coordinates")
     if gtype == "Point" and coords:
-        return f"POINT ({coords[0]} {coords[1]})"
+        point = cast(Sequence[Any], coords)
+        return f"POINT ({point[0]} {point[1]})"
     elif gtype == "LineString" and coords:
-        pts = ", ".join(f"{c[0]} {c[1]}" for c in coords)
+        pts = ", ".join(f"{c[0]} {c[1]}" for c in cast(Sequence[Sequence[Any]], coords))
         return f"LINESTRING ({pts})"
     elif gtype == "Polygon" and coords:
         rings = ", ".join(
             "(" + ", ".join(f"{c[0]} {c[1]}" for c in ring) + ")"
-            for ring in coords
+            for ring in cast(Sequence[Sequence[Sequence[Any]]], coords)
         )
         return f"POLYGON ({rings})"
     elif gtype == "MultiPoint" and coords:
-        pts = ", ".join(f"({c[0]} {c[1]})" for c in coords)
+        pts = ", ".join(f"({c[0]} {c[1]})" for c in cast(Sequence[Sequence[Any]], coords))
         return f"MULTIPOINT ({pts})"
     return f"{gtype.upper()} EMPTY"
 
@@ -37419,18 +37471,23 @@ def _geometry_to_wkb_hex(geom: Geometry) -> str:
     import struct
     gt = geometry_type(geom)
     parts: list[bytes] = [struct.pack("<B", 1)]  # little-endian
-    coords = geom.get("coordinates", ())
+    coords_obj: Any = geom.get("coordinates", ())
     if gt == "Point":
+        point = _as_coordinate(coords_obj)
         parts.append(struct.pack("<I", 1))
-        parts.append(struct.pack("<dd", float(coords[0]), float(coords[1])))
+        parts.append(struct.pack("<dd", float(point[0]), float(point[1])))
     elif gt == "LineString":
+        line = [_as_coordinate(value) for value in cast(Sequence[Any], coords_obj)]
         parts.append(struct.pack("<I", 2))
-        parts.append(struct.pack("<I", len(coords)))
-        for c in coords:
+        parts.append(struct.pack("<I", len(line)))
+        for c in line:
             parts.append(struct.pack("<dd", float(c[0]), float(c[1])))
     elif gt == "Polygon":
+        rings = [
+            [_as_coordinate(value) for value in cast(Sequence[Any], ring)]
+            for ring in cast(Sequence[Any], coords_obj)
+        ]
         parts.append(struct.pack("<I", 3))
-        rings = coords
         parts.append(struct.pack("<I", len(rings)))
         for ring in rings:
             parts.append(struct.pack("<I", len(ring)))
