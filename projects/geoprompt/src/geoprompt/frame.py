@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from heapq import heappop, heappush, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
-from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, exponential_kernel, gaussian_kernel, gravity_model, inverse_distance_weight, prompt_decay, prompt_influence, prompt_interaction
+from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, exponential_kernel, gaussian_kernel, gravity_model, inverse_distance_weight, prompt_decay, prompt_influence, prompt_interaction, row_normalize, semivariance, shannon_entropy, sigmoid
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_convex_hull, geometry_distance, geometry_envelope, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_vertices, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, geometry_from_shapely, overlay_intersections, overlay_union_faces, polygon_split_faces
 from .spatial_index import SpatialIndex
@@ -9691,7 +9691,7 @@ class GeoPromptFrame:
                 d = coordinate_distance(centroids[i], centroids[j], method=distance_method)
                 if max_distance is not None and d > max_distance:
                     continue
-                sv = 0.5 * (values[i] - values[j]) ** 2
+                sv = semivariance(values[i], values[j])
                 results.append({"distance": d, "semivariance": sv, "point_i": i, "point_j": j})
         return results
 
@@ -25988,10 +25988,6 @@ class GeoPromptFrame:
         w_ho = [rng.gauss(0, 0.5) for _ in range(hidden_size)]
         b_o = rng.gauss(0, 0.1)
 
-        def sigmoid(z: float) -> float:
-            z = max(-500.0, min(500.0, z))
-            return 1.0 / (1.0 + math.exp(-z))
-
         # Train
         n = len(norm_x)
         for _ in range(epochs):
@@ -26071,10 +26067,6 @@ class GeoPromptFrame:
         b_enc = [0.0] * encoding_dim
         w_dec = [[rng.gauss(0, 0.5) for _ in range(encoding_dim)] for _ in range(n_in)]
         b_dec = [0.0] * n_in
-
-        def sigmoid(z: float) -> float:
-            z = max(-500.0, min(500.0, z))
-            return 1.0 / (1.0 + math.exp(-z))
 
         for _ in range(epochs):
             for row in data:
@@ -26886,10 +26878,6 @@ class GeoPromptFrame:
         w = [[rng.gauss(0, 0.5) for _ in range(noise_dim)] for _ in range(2)]
         bias = [0.5, 0.5]
 
-        def sigmoid(z: float) -> float:
-            z = max(-500.0, min(500.0, z))
-            return 1.0 / (1.0 + math.exp(-z))
-
         for _ in range(epochs):
             noise = [rng.gauss(0, 1) for _ in range(noise_dim)]
             gen_x = sigmoid(sum(w[0][d] * noise[d] for d in range(noise_dim)) + bias[0])
@@ -27395,10 +27383,6 @@ class GeoPromptFrame:
         w_out = [rng.gauss(0, 0.3) for _ in range(hs)]
         b_out = 0.0
 
-        def sigmoid(z: float) -> float:
-            z = max(-500.0, min(500.0, z))
-            return 1.0 / (1.0 + math.exp(-z))
-
         def tanh(z: float) -> float:
             z = max(-500.0, min(500.0, z))
             return math.tanh(z)
@@ -27488,10 +27472,6 @@ class GeoPromptFrame:
         data = [[(row[j] - col_min[j]) / col_rng[j] for j in range(n_feat)] for row in raw]
 
         enc_dim = min(hidden_size, n_feat)
-
-        def sigmoid(z: float) -> float:
-            z = max(-500.0, min(500.0, z))
-            return 1.0 / (1.0 + math.exp(-z))
 
         w_enc = [[rng.gauss(0, 0.5) for _ in range(n_feat)] for _ in range(enc_dim)]
         b_enc = [0.0] * enc_dim
@@ -28070,7 +28050,7 @@ class GeoPromptFrame:
             amplitudes: list[float] = []
             for _label, thresh in conditions:
                 # Sigmoid-based soft membership
-                amp = 1.0 / (1.0 + math.exp(-(val - thresh)))
+                amp = sigmoid(val - thresh)
                 amplitudes.append(amp)
             # Normalise as quantum state
             norm = math.sqrt(sum(a * a for a in amplitudes)) or 1e-12
@@ -33562,21 +33542,17 @@ class GeoPromptFrame:
         weights = [0.0] * n_feat
         bias = 0.0
 
-        def _sigmoid(z: float) -> float:
-            z = max(-500.0, min(500.0, z))
-            return 1.0 / (1.0 + math.exp(-z))
-
         for _ in range(epochs):
             for i in range(n):
                 score = bias + sum(weights[f] * raw[i][f] for f in range(n_feat))
-                pred = _sigmoid(score)
+                pred = sigmoid(score)
                 err = pred - labels[i]
                 bias -= learning_rate * err
                 for f in range(n_feat):
                     weights[f] -= learning_rate * err * raw[i][f]
         out_rows: list[Record] = []
         for i in range(n):
-            prob = _sigmoid(bias + sum(weights[f] * raw[i][f] for f in range(n_feat)))
+            prob = sigmoid(bias + sum(weights[f] * raw[i][f] for f in range(n_feat)))
             out_rows.append({
                 self.geometry_column: recs[i][self.geometry_column],
                 f"domain_prob_{suffix}": round(prob, 6),
@@ -36230,7 +36206,7 @@ def _fit_empirical_variogram(
     for i in range(n):
         for j in range(i + 1, n):
             d = coordinate_distance(coordinates[i], coordinates[j], method=distance_method)
-            sv = 0.5 * (values[i] - values[j]) ** 2
+            sv = semivariance(values[i], values[j])
             pair_dists.append(d)
             pair_semivars.append(sv)
     if not pair_dists:

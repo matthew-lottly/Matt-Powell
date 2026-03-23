@@ -104,6 +104,34 @@ def exponential_kernel(distance_value: float, scale: float = 1.0) -> float:
     return math.exp(-distance_value / scale)
 
 
+def sigmoid(x: float) -> float:
+    """Standard logistic sigmoid: 1 / (1 + exp(-x)), clamped to avoid overflow."""
+    x_clamped = max(-500.0, min(500.0, x))
+    return 1.0 / (1.0 + math.exp(-x_clamped))
+
+
+def semivariance(value_a: float, value_b: float) -> float:
+    """Classical semivariance between two observations: 0.5 * (a - b)^2."""
+    return 0.5 * (value_a - value_b) ** 2
+
+
+def shannon_entropy(proportions: list[float]) -> float:
+    """Shannon entropy (natural log) for a list of proportions that sum to ~1."""
+    total = 0.0
+    for p in proportions:
+        if p > 0:
+            total -= p * math.log(p)
+    return total
+
+
+def row_normalize(values: list[float]) -> list[float]:
+    """Normalize a list so its elements sum to 1. Returns zeros if sum is 0."""
+    total = sum(values)
+    if total == 0:
+        return [0.0] * len(values)
+    return [v / total for v in values]
+
+
 def corridor_strength(
     weight: float,
     corridor_length: float,
@@ -206,4 +234,8 @@ __all__ = [
     "prompt_decay",
     "prompt_influence",
     "prompt_interaction",
+    "row_normalize",
+    "semivariance",
+    "shannon_entropy",
+    "sigmoid",
 ]

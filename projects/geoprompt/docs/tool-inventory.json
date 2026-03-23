@@ -1,0 +1,4288 @@
+{
+  "generated": "2026-03-23",
+  "total_tools": 517,
+  "range": [
+    1,
+    520
+  ],
+  "missing_numbers": [
+    169,
+    171,
+    192
+  ],
+  "categories": {
+    "Interpolation": {
+      "count": 47,
+      "tool_numbers": [
+        12,
+        13,
+        53,
+        54,
+        55,
+        100,
+        105,
+        106,
+        131,
+        132,
+        133,
+        155,
+        156,
+        157,
+        191,
+        199,
+        204,
+        205,
+        220,
+        235,
+        245,
+        250,
+        266,
+        279,
+        285,
+        291,
+        292,
+        293,
+        294,
+        296,
+        328,
+        329,
+        337,
+        338,
+        355,
+        363,
+        364,
+        365,
+        393,
+        401,
+        427,
+        431,
+        483,
+        491,
+        493,
+        496,
+        512
+      ]
+    },
+    "Clustering": {
+      "count": 30,
+      "tool_numbers": [
+        74,
+        75,
+        90,
+        107,
+        108,
+        128,
+        159,
+        162,
+        187,
+        188,
+        227,
+        228,
+        229,
+        255,
+        256,
+        261,
+        272,
+        313,
+        422,
+        425,
+        453,
+        462,
+        464,
+        465,
+        467,
+        486,
+        490,
+        497,
+        500,
+        520
+      ]
+    },
+    "Classification": {
+      "count": 16,
+      "tool_numbers": [
+        3,
+        57,
+        77,
+        78,
+        79,
+        211,
+        403,
+        404,
+        405,
+        414,
+        415,
+        416,
+        417,
+        418,
+        420,
+        439
+      ]
+    },
+    "Regression": {
+      "count": 33,
+      "tool_numbers": [
+        21,
+        88,
+        99,
+        109,
+        130,
+        135,
+        136,
+        163,
+        165,
+        197,
+        230,
+        231,
+        232,
+        260,
+        269,
+        270,
+        275,
+        289,
+        290,
+        295,
+        299,
+        300,
+        301,
+        302,
+        340,
+        354,
+        361,
+        383,
+        463,
+        469,
+        472,
+        502,
+        505
+      ]
+    },
+    "Regionalization": {
+      "count": 8,
+      "tool_numbers": [
+        129,
+        160,
+        161,
+        262,
+        271,
+        287,
+        297,
+        298
+      ]
+    },
+    "Network": {
+      "count": 50,
+      "tool_numbers": [
+        22,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        69,
+        70,
+        71,
+        72,
+        73,
+        91,
+        93,
+        112,
+        115,
+        140,
+        141,
+        170,
+        172,
+        186,
+        196,
+        198,
+        208,
+        218,
+        219,
+        222,
+        236,
+        237,
+        238,
+        249,
+        263,
+        274,
+        276,
+        277,
+        304,
+        305,
+        327,
+        333,
+        334,
+        341,
+        375,
+        388,
+        426,
+        445,
+        458,
+        482,
+        498,
+        503,
+        511
+      ]
+    },
+    "Terrain": {
+      "count": 45,
+      "tool_numbers": [
+        9,
+        10,
+        11,
+        56,
+        92,
+        94,
+        95,
+        111,
+        113,
+        114,
+        116,
+        138,
+        139,
+        158,
+        166,
+        167,
+        168,
+        209,
+        210,
+        212,
+        213,
+        214,
+        233,
+        234,
+        251,
+        257,
+        258,
+        259,
+        278,
+        284,
+        303,
+        326,
+        330,
+        339,
+        356,
+        366,
+        367,
+        368,
+        369,
+        370,
+        371,
+        441,
+        457,
+        470,
+        479
+      ]
+    },
+    "Statistics": {
+      "count": 57,
+      "tool_numbers": [
+        16,
+        17,
+        76,
+        80,
+        86,
+        87,
+        89,
+        96,
+        101,
+        102,
+        103,
+        104,
+        110,
+        118,
+        119,
+        120,
+        137,
+        142,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        164,
+        174,
+        185,
+        189,
+        190,
+        206,
+        207,
+        221,
+        223,
+        224,
+        225,
+        226,
+        246,
+        247,
+        248,
+        265,
+        288,
+        306,
+        307,
+        308,
+        309,
+        350,
+        351,
+        352,
+        353,
+        357,
+        358,
+        359,
+        360,
+        447,
+        474,
+        477,
+        508
+      ]
+    },
+    "Geometry": {
+      "count": 58,
+      "tool_numbers": [
+        5,
+        8,
+        14,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        38,
+        44,
+        45,
+        46,
+        63,
+        64,
+        65,
+        67,
+        68,
+        84,
+        121,
+        122,
+        123,
+        124,
+        125,
+        143,
+        144,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        194,
+        195,
+        202,
+        215,
+        216,
+        217,
+        241,
+        242,
+        252,
+        253,
+        254,
+        281,
+        317,
+        318,
+        319,
+        320,
+        331,
+        332,
+        373,
+        385,
+        386,
+        387,
+        398,
+        494
+      ]
+    },
+    "Raster": {
+      "count": 18,
+      "tool_numbers": [
+        1,
+        2,
+        4,
+        6,
+        7,
+        18,
+        81,
+        82,
+        83,
+        184,
+        193,
+        243,
+        244,
+        280,
+        282,
+        283,
+        286,
+        325
+      ]
+    },
+    "IO": {
+      "count": 19,
+      "tool_numbers": [
+        126,
+        145,
+        146,
+        147,
+        148,
+        181,
+        182,
+        183,
+        200,
+        201,
+        321,
+        322,
+        323,
+        324,
+        342,
+        343,
+        345,
+        346,
+        374
+      ]
+    },
+    "Spatial_Weights": {
+      "count": 4,
+      "tool_numbers": [
+        15,
+        273,
+        391,
+        392
+      ]
+    },
+    "Point_Pattern": {
+      "count": 17,
+      "tool_numbers": [
+        41,
+        43,
+        47,
+        51,
+        52,
+        97,
+        117,
+        239,
+        240,
+        264,
+        310,
+        311,
+        312,
+        471,
+        484,
+        509,
+        513
+      ]
+    },
+    "ML_Advanced": {
+      "count": 21,
+      "tool_numbers": [
+        134,
+        402,
+        407,
+        408,
+        409,
+        410,
+        411,
+        412,
+        413,
+        419,
+        456,
+        468,
+        480,
+        485,
+        495,
+        504,
+        506,
+        507,
+        515,
+        516,
+        519
+      ]
+    },
+    "Optimization": {
+      "count": 17,
+      "tool_numbers": [
+        58,
+        60,
+        98,
+        267,
+        421,
+        430,
+        432,
+        444,
+        448,
+        451,
+        454,
+        461,
+        481,
+        487,
+        488,
+        501,
+        510
+      ]
+    },
+    "Time_Series": {
+      "count": 7,
+      "tool_numbers": [
+        39,
+        127,
+        173,
+        314,
+        315,
+        459,
+        492
+      ]
+    },
+    "Diffusion_Smoothing": {
+      "count": 9,
+      "tool_numbers": [
+        31,
+        316,
+        335,
+        434,
+        442,
+        450,
+        466,
+        476,
+        517
+      ]
+    },
+    "Sampling": {
+      "count": 2,
+      "tool_numbers": [
+        85,
+        436
+      ]
+    },
+    "Geocoding": {
+      "count": 1,
+      "tool_numbers": [
+        40
+      ]
+    },
+    "Distance": {
+      "count": 5,
+      "tool_numbers": [
+        42,
+        59,
+        61,
+        62,
+        514
+      ]
+    },
+    "Topology_Advanced": {
+      "count": 8,
+      "tool_numbers": [
+        443,
+        446,
+        449,
+        452,
+        460,
+        489,
+        499,
+        518
+      ]
+    },
+    "Quantum": {
+      "count": 9,
+      "tool_numbers": [
+        423,
+        424,
+        428,
+        429,
+        433,
+        435,
+        437,
+        438,
+        440
+      ]
+    },
+    "Quality_Assurance": {
+      "count": 16,
+      "tool_numbers": [
+        268,
+        336,
+        348,
+        362,
+        372,
+        379,
+        380,
+        381,
+        382,
+        384,
+        389,
+        390,
+        396,
+        397,
+        399,
+        400
+      ]
+    },
+    "Framework": {
+      "count": 9,
+      "tool_numbers": [
+        203,
+        344,
+        347,
+        349,
+        376,
+        377,
+        378,
+        394,
+        395
+      ]
+    },
+    "Spatial_Selection": {
+      "count": 1,
+      "tool_numbers": [
+        66
+      ]
+    },
+    "Descriptive": {
+      "count": 5,
+      "tool_numbers": [
+        19,
+        20,
+        48,
+        49,
+        50
+      ]
+    },
+    "Anomaly_Detection": {
+      "count": 5,
+      "tool_numbers": [
+        406,
+        455,
+        473,
+        475,
+        478
+      ]
+    }
+  },
+  "tools": [
+    {
+      "number": 1,
+      "name": "raster_sample",
+      "method": "raster_sample",
+      "line": 4639,
+      "category": "Raster"
+    },
+    {
+      "number": 2,
+      "name": "zonal_stats",
+      "method": "zonal_stats",
+      "line": 4685,
+      "category": "Raster"
+    },
+    {
+      "number": 3,
+      "name": "reclassify",
+      "method": "reclassify",
+      "line": 4729,
+      "category": "Classification"
+    },
+    {
+      "number": 4,
+      "name": "resample",
+      "method": "resample",
+      "line": 4765,
+      "category": "Raster"
+    },
+    {
+      "number": 5,
+      "name": "raster_clip",
+      "method": "raster_clip",
+      "line": 4807,
+      "category": "Geometry"
+    },
+    {
+      "number": 6,
+      "name": "mosaic",
+      "method": "mosaic",
+      "line": 4826,
+      "category": "Raster"
+    },
+    {
+      "number": 7,
+      "name": "to_points",
+      "method": "to_points",
+      "line": 4867,
+      "category": "Raster"
+    },
+    {
+      "number": 8,
+      "name": "to_polygons",
+      "method": "to_polygons",
+      "line": 4879,
+      "category": "Geometry"
+    },
+    {
+      "number": 9,
+      "name": "contours",
+      "method": "contours",
+      "line": 4912,
+      "category": "Terrain"
+    },
+    {
+      "number": 10,
+      "name": "hillshade",
+      "method": "hillshade",
+      "line": 4981,
+      "category": "Terrain"
+    },
+    {
+      "number": 11,
+      "name": "slope_aspect",
+      "method": "slope_aspect",
+      "line": 5020,
+      "category": "Terrain"
+    },
+    {
+      "number": 12,
+      "name": "idw_interpolation",
+      "method": "idw_interpolation",
+      "line": 5058,
+      "category": "Interpolation"
+    },
+    {
+      "number": 13,
+      "name": "kriging_surface",
+      "method": "kriging_surface",
+      "line": 5126,
+      "category": "Interpolation"
+    },
+    {
+      "number": 14,
+      "name": "thiessen_polygons",
+      "method": "thiessen_polygons",
+      "line": 5272,
+      "category": "Geometry"
+    },
+    {
+      "number": 15,
+      "name": "spatial_weights_matrix",
+      "method": "spatial_weights_matrix",
+      "line": 5383,
+      "category": "Spatial_Weights"
+    },
+    {
+      "number": 16,
+      "name": "hotspot_getis_ord",
+      "method": "hotspot_getis_ord",
+      "line": 5429,
+      "category": "Statistics"
+    },
+    {
+      "number": 17,
+      "name": "local_outlier_factor_spatial",
+      "method": "local_outlier_factor_spatial",
+      "line": 5543,
+      "category": "Statistics"
+    },
+    {
+      "number": 18,
+      "name": "kernel_density",
+      "method": "kernel_density",
+      "line": 5604,
+      "category": "Raster"
+    },
+    {
+      "number": 19,
+      "name": "standard_deviational_ellipse",
+      "method": "standard_deviational_ellipse",
+      "line": 5664,
+      "category": "Descriptive"
+    },
+    {
+      "number": 20,
+      "name": "center_of_minimum_distance",
+      "method": "center_of_minimum_distance",
+      "line": 5714,
+      "category": "Descriptive"
+    },
+    {
+      "number": 21,
+      "name": "spatial_regression",
+      "method": "spatial_regression",
+      "line": 5766,
+      "category": "Regression"
+    },
+    {
+      "number": 22,
+      "name": "geographically_weighted_summary",
+      "method": "geographically_weighted_summary",
+      "line": 5876,
+      "category": "Network"
+    },
+    {
+      "number": 23,
+      "name": "join_by_largest_overlap",
+      "method": "join_by_largest_overlap",
+      "line": 5988,
+      "category": "Geometry"
+    },
+    {
+      "number": 24,
+      "name": "erase",
+      "method": "erase",
+      "line": 6025,
+      "category": "Geometry"
+    },
+    {
+      "number": 25,
+      "name": "identity_overlay",
+      "method": "identity_overlay",
+      "line": 6048,
+      "category": "Geometry"
+    },
+    {
+      "number": 26,
+      "name": "multipart_to_singlepart",
+      "method": "multipart_to_singlepart",
+      "line": 6090,
+      "category": "Geometry"
+    },
+    {
+      "number": 27,
+      "name": "singlepart_to_multipart",
+      "method": "singlepart_to_multipart",
+      "line": 6132,
+      "category": "Geometry"
+    },
+    {
+      "number": 28,
+      "name": "eliminate_slivers",
+      "method": "eliminate_slivers",
+      "line": 6162,
+      "category": "Geometry"
+    },
+    {
+      "number": 29,
+      "name": "simplify",
+      "method": "simplify",
+      "line": 6187,
+      "category": "Geometry"
+    },
+    {
+      "number": 30,
+      "name": "densify",
+      "method": "densify",
+      "line": 6223,
+      "category": "Geometry"
+    },
+    {
+      "number": 31,
+      "name": "smooth_geometry",
+      "method": "smooth_geometry",
+      "line": 6247,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 32,
+      "name": "snap_to_network_nodes",
+      "method": "snap_to_network_nodes",
+      "line": 6272,
+      "category": "Network"
+    },
+    {
+      "number": 33,
+      "name": "origin_destination_matrix",
+      "method": "origin_destination_matrix",
+      "line": 6318,
+      "category": "Network"
+    },
+    {
+      "number": 34,
+      "name": "k_shortest_paths",
+      "method": "k_shortest_paths",
+      "line": 6383,
+      "category": "Network"
+    },
+    {
+      "number": 35,
+      "name": "network_trace",
+      "method": "network_trace",
+      "line": 6478,
+      "category": "Network"
+    },
+    {
+      "number": 36,
+      "name": "route_sequence_optimize",
+      "method": "route_sequence_optimize",
+      "line": 6543,
+      "category": "Network"
+    },
+    {
+      "number": 37,
+      "name": "trajectory_staypoint_detection",
+      "method": "trajectory_staypoint_detection",
+      "line": 6653,
+      "category": "Network"
+    },
+    {
+      "number": 38,
+      "name": "trajectory_simplify",
+      "method": "trajectory_simplify",
+      "line": 6714,
+      "category": "Geometry"
+    },
+    {
+      "number": 39,
+      "name": "spatiotemporal_cube",
+      "method": "spatiotemporal_cube",
+      "line": 6746,
+      "category": "Time_Series"
+    },
+    {
+      "number": 40,
+      "name": "geohash_encode",
+      "method": "geohash_encode",
+      "line": 6831,
+      "category": "Geocoding"
+    },
+    {
+      "number": 41,
+      "name": "nearest_neighbor_distance",
+      "method": "nearest_neighbor_distance",
+      "line": 6852,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 42,
+      "name": "pairwise_distances",
+      "method": "pairwise_distances",
+      "line": 6899,
+      "category": "Distance"
+    },
+    {
+      "number": 43,
+      "name": "point_density",
+      "method": "point_density",
+      "line": 6927,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 44,
+      "name": "line_length",
+      "method": "line_length",
+      "line": 6967,
+      "category": "Geometry"
+    },
+    {
+      "number": 45,
+      "name": "polygon_area",
+      "method": "polygon_area",
+      "line": 6994,
+      "category": "Geometry"
+    },
+    {
+      "number": 46,
+      "name": "polygon_perimeter",
+      "method": "polygon_perimeter",
+      "line": 7008,
+      "category": "Geometry"
+    },
+    {
+      "number": 47,
+      "name": "average_nearest_neighbor",
+      "method": "average_nearest_neighbor",
+      "line": 7035,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 48,
+      "name": "mean_center",
+      "method": "mean_center",
+      "line": 7066,
+      "category": "Descriptive"
+    },
+    {
+      "number": 49,
+      "name": "median_center",
+      "method": "median_center",
+      "line": 7084,
+      "category": "Descriptive"
+    },
+    {
+      "number": 50,
+      "name": "directional_distribution",
+      "method": "directional_distribution",
+      "line": 7122,
+      "category": "Descriptive"
+    },
+    {
+      "number": 51,
+      "name": "quadrat_analysis",
+      "method": "quadrat_analysis",
+      "line": 7151,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 52,
+      "name": "ripleys_k",
+      "method": "ripleys_k",
+      "line": 7178,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 53,
+      "name": "natural_neighbor_interpolation",
+      "method": "natural_neighbor_interpolation",
+      "line": 7230,
+      "category": "Interpolation"
+    },
+    {
+      "number": 54,
+      "name": "spline_interpolation",
+      "method": "spline_interpolation",
+      "line": 7287,
+      "category": "Interpolation"
+    },
+    {
+      "number": 55,
+      "name": "trend_surface",
+      "method": "trend_surface",
+      "line": 7346,
+      "category": "Interpolation"
+    },
+    {
+      "number": 56,
+      "name": "viewshed",
+      "method": "viewshed",
+      "line": 7401,
+      "category": "Terrain"
+    },
+    {
+      "number": 57,
+      "name": "aspect_reclassify",
+      "method": "aspect_reclassify",
+      "line": 7449,
+      "category": "Classification"
+    },
+    {
+      "number": 58,
+      "name": "euclidean_allocation",
+      "method": "euclidean_allocation",
+      "line": 7479,
+      "category": "Optimization"
+    },
+    {
+      "number": 59,
+      "name": "cost_distance",
+      "method": "cost_distance",
+      "line": 7518,
+      "category": "Distance"
+    },
+    {
+      "number": 60,
+      "name": "cost_allocation",
+      "method": "cost_allocation",
+      "line": 7573,
+      "category": "Optimization"
+    },
+    {
+      "number": 61,
+      "name": "near_table",
+      "method": "near_table",
+      "line": 7634,
+      "category": "Distance"
+    },
+    {
+      "number": 62,
+      "name": "point_distance_matrix",
+      "method": "point_distance_matrix",
+      "line": 7668,
+      "category": "Distance"
+    },
+    {
+      "number": 63,
+      "name": "union_overlay",
+      "method": "union_overlay",
+      "line": 7690,
+      "category": "Geometry"
+    },
+    {
+      "number": 64,
+      "name": "update_overlay",
+      "method": "update_overlay",
+      "line": 7744,
+      "category": "Geometry"
+    },
+    {
+      "number": 65,
+      "name": "symmetrical_difference_overlay",
+      "method": "symmetrical_difference_overlay",
+      "line": 7779,
+      "category": "Geometry"
+    },
+    {
+      "number": 66,
+      "name": "spatial_selection",
+      "method": "spatial_selection",
+      "line": 7816,
+      "category": "Spatial_Selection"
+    },
+    {
+      "number": 67,
+      "name": "tabulate_intersection",
+      "method": "tabulate_intersection",
+      "line": 7846,
+      "category": "Geometry"
+    },
+    {
+      "number": 68,
+      "name": "feature_envelope_to_polygon",
+      "method": "feature_envelope_to_polygon",
+      "line": 7878,
+      "category": "Geometry"
+    },
+    {
+      "number": 69,
+      "name": "network_partition",
+      "method": "network_partition",
+      "line": 7897,
+      "category": "Network"
+    },
+    {
+      "number": 70,
+      "name": "network_centrality",
+      "method": "network_centrality",
+      "line": 7938,
+      "category": "Network"
+    },
+    {
+      "number": 71,
+      "name": "network_isochrone",
+      "method": "network_isochrone",
+      "line": 8001,
+      "category": "Network"
+    },
+    {
+      "number": 72,
+      "name": "minimum_spanning_tree",
+      "method": "minimum_spanning_tree",
+      "line": 8073,
+      "category": "Network"
+    },
+    {
+      "number": 73,
+      "name": "traveling_salesman_nn",
+      "method": "traveling_salesman_nn",
+      "line": 8128,
+      "category": "Network"
+    },
+    {
+      "number": 74,
+      "name": "dbscan_cluster",
+      "method": "dbscan_cluster",
+      "line": 8169,
+      "category": "Clustering"
+    },
+    {
+      "number": 75,
+      "name": "hierarchical_cluster",
+      "method": "hierarchical_cluster",
+      "line": 8225,
+      "category": "Clustering"
+    },
+    {
+      "number": 76,
+      "name": "spatial_outlier_zscore",
+      "method": "spatial_outlier_zscore",
+      "line": 8266,
+      "category": "Statistics"
+    },
+    {
+      "number": 77,
+      "name": "jenks_natural_breaks",
+      "method": "jenks_natural_breaks",
+      "line": 8313,
+      "category": "Classification"
+    },
+    {
+      "number": 78,
+      "name": "equal_interval_classify",
+      "method": "equal_interval_classify",
+      "line": 8375,
+      "category": "Classification"
+    },
+    {
+      "number": 79,
+      "name": "quantile_classify",
+      "method": "quantile_classify",
+      "line": 8405,
+      "category": "Classification"
+    },
+    {
+      "number": 80,
+      "name": "focal_statistics",
+      "method": "focal_statistics",
+      "line": 8433,
+      "category": "Statistics"
+    },
+    {
+      "number": 81,
+      "name": "zonal_histogram",
+      "method": "zonal_histogram",
+      "line": 8484,
+      "category": "Raster"
+    },
+    {
+      "number": 82,
+      "name": "raster_calculator",
+      "method": "raster_calculator",
+      "line": 8521,
+      "category": "Raster"
+    },
+    {
+      "number": 83,
+      "name": "aggregate_grid",
+      "method": "aggregate_grid",
+      "line": 8567,
+      "category": "Raster"
+    },
+    {
+      "number": 84,
+      "name": "grid_to_polygons",
+      "method": "grid_to_polygons",
+      "line": 8622,
+      "category": "Geometry"
+    },
+    {
+      "number": 85,
+      "name": "random_points",
+      "method": "random_points",
+      "line": 8661,
+      "category": "Sampling"
+    },
+    {
+      "number": 86,
+      "name": "bivariate_morans_i",
+      "method": "bivariate_morans_i",
+      "line": 8688,
+      "category": "Statistics"
+    },
+    {
+      "number": 87,
+      "name": "local_gearys_c",
+      "method": "local_gearys_c",
+      "line": 8738,
+      "category": "Statistics"
+    },
+    {
+      "number": 88,
+      "name": "loess_regression",
+      "method": "loess_regression",
+      "line": 8790,
+      "category": "Regression"
+    },
+    {
+      "number": 89,
+      "name": "spatial_scan_statistic",
+      "method": "spatial_scan_statistic",
+      "line": 8849,
+      "category": "Statistics"
+    },
+    {
+      "number": 90,
+      "name": "optics_clustering",
+      "method": "optics_clustering",
+      "line": 8949,
+      "category": "Clustering"
+    },
+    {
+      "number": 91,
+      "name": "geographic_detector",
+      "method": "geographic_detector",
+      "line": 9039,
+      "category": "Network"
+    },
+    {
+      "number": 92,
+      "name": "terrain_ruggedness_index",
+      "method": "terrain_ruggedness_index",
+      "line": 9081,
+      "category": "Terrain"
+    },
+    {
+      "number": 93,
+      "name": "topographic_position_index",
+      "method": "topographic_position_index",
+      "line": 9116,
+      "category": "Network"
+    },
+    {
+      "number": 94,
+      "name": "flow_direction",
+      "method": "flow_direction",
+      "line": 9161,
+      "category": "Terrain"
+    },
+    {
+      "number": 95,
+      "name": "flow_accumulation",
+      "method": "flow_accumulation",
+      "line": 9208,
+      "category": "Terrain"
+    },
+    {
+      "number": 96,
+      "name": "mark_correlation_function",
+      "method": "mark_correlation_function",
+      "line": 9258,
+      "category": "Statistics"
+    },
+    {
+      "number": 97,
+      "name": "point_pattern_intensity",
+      "method": "point_pattern_intensity",
+      "line": 9294,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 98,
+      "name": "location_allocation",
+      "method": "location_allocation",
+      "line": 9337,
+      "category": "Optimization"
+    },
+    {
+      "number": 99,
+      "name": "spatial_durbin_model",
+      "method": "spatial_durbin_model",
+      "line": 9394,
+      "category": "Regression"
+    },
+    {
+      "number": 100,
+      "name": "kriging_cross_validation",
+      "method": "kriging_cross_validation",
+      "line": 9463,
+      "category": "Interpolation"
+    },
+    {
+      "number": 101,
+      "name": "getis_ord_g_global",
+      "method": "getis_ord_g_global",
+      "line": 9517,
+      "category": "Statistics"
+    },
+    {
+      "number": 102,
+      "name": "lees_l",
+      "method": "lees_l",
+      "line": 9562,
+      "category": "Statistics"
+    },
+    {
+      "number": 103,
+      "name": "spatial_correlogram",
+      "method": "spatial_correlogram",
+      "line": 9621,
+      "category": "Statistics"
+    },
+    {
+      "number": 104,
+      "name": "variogram_cloud",
+      "method": "variogram_cloud",
+      "line": 9675,
+      "category": "Statistics"
+    },
+    {
+      "number": 105,
+      "name": "universal_kriging",
+      "method": "universal_kriging",
+      "line": 9699,
+      "category": "Interpolation"
+    },
+    {
+      "number": 106,
+      "name": "rbf_interpolation",
+      "method": "rbf_interpolation",
+      "line": 9779,
+      "category": "Interpolation"
+    },
+    {
+      "number": 107,
+      "name": "fuzzy_c_means",
+      "method": "fuzzy_c_means",
+      "line": 9829,
+      "category": "Clustering"
+    },
+    {
+      "number": 108,
+      "name": "gaussian_mixture_spatial",
+      "method": "gaussian_mixture_spatial",
+      "line": 9888,
+      "category": "Clustering"
+    },
+    {
+      "number": 109,
+      "name": "spatial_error_model",
+      "method": "spatial_error_model",
+      "line": 9923,
+      "category": "Regression"
+    },
+    {
+      "number": 110,
+      "name": "spatial_lag_model",
+      "method": "spatial_lag_model",
+      "line": 9993,
+      "category": "Statistics"
+    },
+    {
+      "number": 111,
+      "name": "curvature",
+      "method": "curvature",
+      "line": 10061,
+      "category": "Terrain"
+    },
+    {
+      "number": 112,
+      "name": "topographic_wetness_index",
+      "method": "topographic_wetness_index",
+      "line": 10121,
+      "category": "Network"
+    },
+    {
+      "number": 113,
+      "name": "depression_fill",
+      "method": "depression_fill",
+      "line": 10191,
+      "category": "Terrain"
+    },
+    {
+      "number": 114,
+      "name": "solar_radiation",
+      "method": "solar_radiation",
+      "line": 10250,
+      "category": "Terrain"
+    },
+    {
+      "number": 115,
+      "name": "network_voronoi",
+      "method": "network_voronoi",
+      "line": 10297,
+      "category": "Network"
+    },
+    {
+      "number": 116,
+      "name": "max_flow",
+      "method": "max_flow",
+      "line": 10328,
+      "category": "Terrain"
+    },
+    {
+      "number": 117,
+      "name": "k_cross_function",
+      "method": "k_cross_function",
+      "line": 10394,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 118,
+      "name": "pair_correlation_function",
+      "method": "pair_correlation_function",
+      "line": 10424,
+      "category": "Statistics"
+    },
+    {
+      "number": 119,
+      "name": "nn_g_function",
+      "method": "nn_g_function",
+      "line": 10456,
+      "category": "Statistics"
+    },
+    {
+      "number": 120,
+      "name": "empty_space_f_function",
+      "method": "empty_space_f_function",
+      "line": 10487,
+      "category": "Statistics"
+    },
+    {
+      "number": 121,
+      "name": "minimum_bounding_circle",
+      "method": "minimum_bounding_circle",
+      "line": 10524,
+      "category": "Geometry"
+    },
+    {
+      "number": 122,
+      "name": "minimum_bounding_rectangle",
+      "method": "minimum_bounding_rectangle",
+      "line": 10552,
+      "category": "Geometry"
+    },
+    {
+      "number": 123,
+      "name": "hausdorff_distance",
+      "method": "hausdorff_distance",
+      "line": 10601,
+      "category": "Geometry"
+    },
+    {
+      "number": 124,
+      "name": "snap_to_grid",
+      "method": "snap_to_grid",
+      "line": 10621,
+      "category": "Geometry"
+    },
+    {
+      "number": 125,
+      "name": "polygon_skeleton",
+      "method": "polygon_skeleton",
+      "line": 10640,
+      "category": "Geometry"
+    },
+    {
+      "number": 126,
+      "name": "wkt_to_geometry",
+      "method": "wkt_to_geometry",
+      "line": 10683,
+      "category": "IO"
+    },
+    {
+      "number": 127,
+      "name": "spatial_markov",
+      "method": "spatial_markov",
+      "line": 10715,
+      "category": "Time_Series"
+    },
+    {
+      "number": 128,
+      "name": "spatially_constrained_clustering",
+      "method": "spatially_constrained_clustering",
+      "line": 10762,
+      "category": "Clustering"
+    },
+    {
+      "number": 129,
+      "name": "max_p_regions",
+      "method": "max_p_regions",
+      "line": 10857,
+      "category": "Regionalization"
+    },
+    {
+      "number": 130,
+      "name": "spatial_regime_model",
+      "method": "spatial_regime_model",
+      "line": 10928,
+      "category": "Regression"
+    },
+    {
+      "number": 131,
+      "name": "co_kriging",
+      "method": "co_kriging",
+      "line": 10982,
+      "category": "Interpolation"
+    },
+    {
+      "number": 132,
+      "name": "empirical_bayesian_kriging",
+      "method": "empirical_bayesian_kriging",
+      "line": 11019,
+      "category": "Interpolation"
+    },
+    {
+      "number": 133,
+      "name": "anisotropic_idw",
+      "method": "anisotropic_idw",
+      "line": 11072,
+      "category": "Interpolation"
+    },
+    {
+      "number": 134,
+      "name": "som_spatial",
+      "method": "som_spatial",
+      "line": 11118,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 135,
+      "name": "mgwr",
+      "method": "mgwr",
+      "line": 11187,
+      "category": "Regression"
+    },
+    {
+      "number": 136,
+      "name": "gwr_poisson",
+      "method": "gwr_poisson",
+      "line": 11255,
+      "category": "Regression"
+    },
+    {
+      "number": 137,
+      "name": "spacetime_morans_i",
+      "method": "spacetime_morans_i",
+      "line": 11321,
+      "category": "Statistics"
+    },
+    {
+      "number": 138,
+      "name": "watershed_delineation",
+      "method": "watershed_delineation",
+      "line": 11352,
+      "category": "Terrain"
+    },
+    {
+      "number": 139,
+      "name": "stream_ordering",
+      "method": "stream_ordering",
+      "line": 11412,
+      "category": "Terrain"
+    },
+    {
+      "number": 140,
+      "name": "time_dependent_routing",
+      "method": "time_dependent_routing",
+      "line": 11465,
+      "category": "Network"
+    },
+    {
+      "number": 141,
+      "name": "cvrp",
+      "method": "cvrp",
+      "line": 11519,
+      "category": "Network"
+    },
+    {
+      "number": 142,
+      "name": "inhomogeneous_k",
+      "method": "inhomogeneous_k",
+      "line": 11582,
+      "category": "Statistics"
+    },
+    {
+      "number": 143,
+      "name": "polygon_subdivision",
+      "method": "polygon_subdivision",
+      "line": 11619,
+      "category": "Geometry"
+    },
+    {
+      "number": 144,
+      "name": "line_planarize",
+      "method": "line_planarize",
+      "line": 11654,
+      "category": "Geometry"
+    },
+    {
+      "number": 145,
+      "name": "read_shapefile",
+      "method": "read_shapefile",
+      "line": 11707,
+      "category": "IO"
+    },
+    {
+      "number": 146,
+      "name": "read_geopackage",
+      "method": "read_geopackage",
+      "line": 11752,
+      "category": "IO"
+    },
+    {
+      "number": 147,
+      "name": "read_kml",
+      "method": "read_kml",
+      "line": 11792,
+      "category": "IO"
+    },
+    {
+      "number": 148,
+      "name": "to_topojson",
+      "method": "to_topojson",
+      "line": 11917,
+      "category": "IO"
+    },
+    {
+      "number": 149,
+      "name": "join_count_statistics",
+      "method": "join_count_statistics",
+      "line": 11963,
+      "category": "Statistics"
+    },
+    {
+      "number": 150,
+      "name": "losh",
+      "method": "losh",
+      "line": 12000,
+      "category": "Statistics"
+    },
+    {
+      "number": 151,
+      "name": "bivariate_local_morans_i",
+      "method": "bivariate_local_morans_i",
+      "line": 12032,
+      "category": "Statistics"
+    },
+    {
+      "number": 152,
+      "name": "mantel_test",
+      "method": "mantel_test",
+      "line": 12077,
+      "category": "Statistics"
+    },
+    {
+      "number": 153,
+      "name": "directional_correlogram",
+      "method": "directional_correlogram",
+      "line": 12127,
+      "category": "Statistics"
+    },
+    {
+      "number": 154,
+      "name": "spatial_entropy",
+      "method": "spatial_entropy",
+      "line": 12182,
+      "category": "Statistics"
+    },
+    {
+      "number": 155,
+      "name": "regression_kriging",
+      "method": "regression_kriging",
+      "line": 12215,
+      "category": "Interpolation"
+    },
+    {
+      "number": 156,
+      "name": "indicator_kriging",
+      "method": "indicator_kriging",
+      "line": 12259,
+      "category": "Interpolation"
+    },
+    {
+      "number": 157,
+      "name": "thin_plate_spline",
+      "method": "thin_plate_spline",
+      "line": 12290,
+      "category": "Interpolation"
+    },
+    {
+      "number": 158,
+      "name": "contour_lines",
+      "method": "contour_lines",
+      "line": 12367,
+      "category": "Terrain"
+    },
+    {
+      "number": 159,
+      "name": "spectral_clustering",
+      "method": "spectral_clustering",
+      "line": 12420,
+      "category": "Clustering"
+    },
+    {
+      "number": 160,
+      "name": "skater_regionalization",
+      "method": "skater_regionalization",
+      "line": 12500,
+      "category": "Regionalization"
+    },
+    {
+      "number": 161,
+      "name": "region_compactness",
+      "method": "region_compactness",
+      "line": 12575,
+      "category": "Regionalization"
+    },
+    {
+      "number": 162,
+      "name": "cluster_summary",
+      "method": "cluster_summary",
+      "line": 12613,
+      "category": "Clustering"
+    },
+    {
+      "number": 163,
+      "name": "logistic_gwr",
+      "method": "logistic_gwr",
+      "line": 12647,
+      "category": "Regression"
+    },
+    {
+      "number": 164,
+      "name": "gw_summary_stats",
+      "method": "gw_summary_stats",
+      "line": 12709,
+      "category": "Statistics"
+    },
+    {
+      "number": 165,
+      "name": "model_comparison",
+      "method": "model_comparison",
+      "line": 12752,
+      "category": "Regression"
+    },
+    {
+      "number": 166,
+      "name": "stream_extraction",
+      "method": "stream_extraction",
+      "line": 12783,
+      "category": "Terrain"
+    },
+    {
+      "number": 167,
+      "name": "hand",
+      "method": "hand",
+      "line": 12821,
+      "category": "Terrain"
+    },
+    {
+      "number": 168,
+      "name": "ls_factor",
+      "method": "ls_factor",
+      "line": 12877,
+      "category": "Terrain"
+    },
+    {
+      "number": 170,
+      "name": "od_cost_matrix",
+      "method": "od_cost_matrix",
+      "line": 12920,
+      "category": "Network"
+    },
+    {
+      "number": 172,
+      "name": "min_cut",
+      "method": "min_cut",
+      "line": 12947,
+      "category": "Network"
+    },
+    {
+      "number": 173,
+      "name": "spatiotemporal_knox",
+      "method": "spatiotemporal_knox",
+      "line": 12986,
+      "category": "Time_Series"
+    },
+    {
+      "number": 174,
+      "name": "mark_variogram",
+      "method": "mark_variogram",
+      "line": 13028,
+      "category": "Statistics"
+    },
+    {
+      "number": 175,
+      "name": "polygon_validity_check",
+      "method": "polygon_validity_check",
+      "line": 13068,
+      "category": "Geometry"
+    },
+    {
+      "number": 176,
+      "name": "polygon_repair",
+      "method": "polygon_repair",
+      "line": 13154,
+      "category": "Geometry"
+    },
+    {
+      "number": 177,
+      "name": "line_merge",
+      "method": "line_merge",
+      "line": 13233,
+      "category": "Geometry"
+    },
+    {
+      "number": 178,
+      "name": "voronoi_polygons",
+      "method": "voronoi_polygons",
+      "line": 13284,
+      "category": "Geometry"
+    },
+    {
+      "number": 179,
+      "name": "shared_boundaries",
+      "method": "shared_boundaries",
+      "line": 13411,
+      "category": "Geometry"
+    },
+    {
+      "number": 180,
+      "name": "topology_audit",
+      "method": "topology_audit",
+      "line": 13478,
+      "category": "Geometry"
+    },
+    {
+      "number": 181,
+      "name": "wkb_to_geometry",
+      "method": "wkb_to_geometry",
+      "line": 13532,
+      "category": "IO"
+    },
+    {
+      "number": 182,
+      "name": "geojson_sequence",
+      "method": "read_geojson_seq",
+      "line": 13563,
+      "category": "IO"
+    },
+    {
+      "number": 183,
+      "name": "csv_with_wkt",
+      "method": "read_csv_wkt",
+      "line": 13595,
+      "category": "IO"
+    },
+    {
+      "number": 184,
+      "name": "rasterize",
+      "method": "rasterize",
+      "line": 13613,
+      "category": "Raster"
+    },
+    {
+      "number": 185,
+      "name": "zonal_statistics_grid",
+      "method": "zonal_statistics_grid",
+      "line": 13650,
+      "category": "Statistics"
+    },
+    {
+      "number": 186,
+      "name": "connected_components",
+      "method": "connected_components",
+      "line": 13689,
+      "category": "Network"
+    },
+    {
+      "number": 187,
+      "name": "dbscan",
+      "method": "dbscan",
+      "line": 13731,
+      "category": "Clustering"
+    },
+    {
+      "number": 188,
+      "name": "hdbscan",
+      "method": "hdbscan",
+      "line": 13785,
+      "category": "Clustering"
+    },
+    {
+      "number": 189,
+      "name": "multivariate_morans_i",
+      "method": "multivariate_morans_i",
+      "line": 13886,
+      "category": "Statistics"
+    },
+    {
+      "number": 190,
+      "name": "local_geary_decomposition",
+      "method": "local_geary_decomposition",
+      "line": 13955,
+      "category": "Statistics"
+    },
+    {
+      "number": 191,
+      "name": "adaptive_idw",
+      "method": "adaptive_idw",
+      "line": 14010,
+      "category": "Interpolation"
+    },
+    {
+      "number": 193,
+      "name": "raster_algebra",
+      "method": "raster_algebra",
+      "line": 14092,
+      "category": "Raster"
+    },
+    {
+      "number": 194,
+      "name": "polygon_triangulation",
+      "method": "polygon_triangulation",
+      "line": 14130,
+      "category": "Geometry"
+    },
+    {
+      "number": 195,
+      "name": "service_area_polygons",
+      "method": "service_area_polygons",
+      "line": 14165,
+      "category": "Geometry"
+    },
+    {
+      "number": 196,
+      "name": "isochrones",
+      "method": "isochrones",
+      "line": 14248,
+      "category": "Network"
+    },
+    {
+      "number": 197,
+      "name": "negative_binomial_gwr",
+      "method": "negative_binomial_gwr",
+      "line": 14327,
+      "category": "Regression"
+    },
+    {
+      "number": 198,
+      "name": "geographically_weighted_pca",
+      "method": "geographically_weighted_pca",
+      "line": 14419,
+      "category": "Network"
+    },
+    {
+      "number": 199,
+      "name": "space_time_kriging",
+      "method": "space_time_kriging",
+      "line": 14515,
+      "category": "Interpolation"
+    },
+    {
+      "number": 200,
+      "name": "read_geoparquet",
+      "method": "read_geoparquet",
+      "line": 11827,
+      "category": "IO"
+    },
+    {
+      "number": 201,
+      "name": "read_flatgeobuf",
+      "method": "read_flatgeobuf",
+      "line": 11872,
+      "category": "IO"
+    },
+    {
+      "number": 202,
+      "name": "constrained_delaunay",
+      "method": "constrained_delaunay",
+      "line": 14611,
+      "category": "Geometry"
+    },
+    {
+      "number": 203,
+      "name": "describe_tool",
+      "method": "describe_tool",
+      "line": 14669,
+      "category": "Framework"
+    },
+    {
+      "number": 204,
+      "name": "nearest_neighbor_surface",
+      "method": "nearest_neighbor_surface",
+      "line": 14705,
+      "category": "Interpolation"
+    },
+    {
+      "number": 205,
+      "name": "trend_surface_analysis",
+      "method": "trend_surface_analysis",
+      "line": 14748,
+      "category": "Interpolation"
+    },
+    {
+      "number": 206,
+      "name": "local_getis_ord_g",
+      "method": "local_getis_ord_g",
+      "line": 14813,
+      "category": "Statistics"
+    },
+    {
+      "number": 207,
+      "name": "moran_eigenvector_maps",
+      "method": "moran_eigenvector_maps",
+      "line": 14860,
+      "category": "Statistics"
+    },
+    {
+      "number": 208,
+      "name": "community_detection",
+      "method": "community_detection",
+      "line": 14928,
+      "category": "Network"
+    },
+    {
+      "number": 209,
+      "name": "roughness",
+      "method": "roughness",
+      "line": 14996,
+      "category": "Terrain"
+    },
+    {
+      "number": 210,
+      "name": "ruggedness",
+      "method": "ruggedness",
+      "line": 15026,
+      "category": "Terrain"
+    },
+    {
+      "number": 211,
+      "name": "aspect_classify",
+      "method": "aspect_classify",
+      "line": 15077,
+      "category": "Classification"
+    },
+    {
+      "number": 212,
+      "name": "multi_hillshade",
+      "method": "multi_hillshade",
+      "line": 15130,
+      "category": "Terrain"
+    },
+    {
+      "number": 213,
+      "name": "flow_length",
+      "method": "flow_length",
+      "line": 15175,
+      "category": "Terrain"
+    },
+    {
+      "number": 214,
+      "name": "sink_diagnostics",
+      "method": "sink_diagnostics",
+      "line": 15226,
+      "category": "Terrain"
+    },
+    {
+      "number": 215,
+      "name": "line_offset",
+      "method": "line_offset",
+      "line": 15260,
+      "category": "Geometry"
+    },
+    {
+      "number": 216,
+      "name": "polygon_smooth",
+      "method": "polygon_smooth",
+      "line": 15309,
+      "category": "Geometry"
+    },
+    {
+      "number": 217,
+      "name": "polygon_simplify_topo",
+      "method": "polygon_simplify_topo",
+      "line": 15350,
+      "category": "Geometry"
+    },
+    {
+      "number": 218,
+      "name": "turn_restrictions",
+      "method": "turn_restrictions",
+      "line": 15396,
+      "category": "Network"
+    },
+    {
+      "number": 219,
+      "name": "multi_destination_routing",
+      "method": "multi_destination_routing",
+      "line": 15482,
+      "category": "Network"
+    },
+    {
+      "number": 220,
+      "name": "interpolation_uncertainty",
+      "method": "interpolation_uncertainty",
+      "line": 15535,
+      "category": "Interpolation"
+    },
+    {
+      "number": 221,
+      "name": "spatial_diversity_index",
+      "method": "spatial_diversity_index",
+      "line": 15577,
+      "category": "Statistics"
+    },
+    {
+      "number": 222,
+      "name": "accessibility_score",
+      "method": "accessibility_score",
+      "line": 15611,
+      "category": "Network"
+    },
+    {
+      "number": 223,
+      "name": "directional_variogram",
+      "method": "directional_variogram",
+      "line": 15673,
+      "category": "Statistics"
+    },
+    {
+      "number": 224,
+      "name": "distance_band_scan",
+      "method": "distance_band_scan",
+      "line": 15745,
+      "category": "Statistics"
+    },
+    {
+      "number": 225,
+      "name": "local_entropy",
+      "method": "local_entropy",
+      "line": 15819,
+      "category": "Statistics"
+    },
+    {
+      "number": 226,
+      "name": "spatial_inequality",
+      "method": "spatial_inequality",
+      "line": 15867,
+      "category": "Statistics"
+    },
+    {
+      "number": 227,
+      "name": "hierarchical_spatial_cluster",
+      "method": "hierarchical_spatial_cluster",
+      "line": 15932,
+      "category": "Clustering"
+    },
+    {
+      "number": 228,
+      "name": "constrained_kmeans",
+      "method": "constrained_kmeans",
+      "line": 16016,
+      "category": "Clustering"
+    },
+    {
+      "number": 229,
+      "name": "cluster_stability",
+      "method": "cluster_stability",
+      "line": 16085,
+      "category": "Clustering"
+    },
+    {
+      "number": 230,
+      "name": "local_collinearity",
+      "method": "local_collinearity",
+      "line": 16182,
+      "category": "Regression"
+    },
+    {
+      "number": 231,
+      "name": "local_heteroskedasticity",
+      "method": "local_heteroskedasticity",
+      "line": 16263,
+      "category": "Regression"
+    },
+    {
+      "number": 232,
+      "name": "quantile_regression_local",
+      "method": "quantile_regression_local",
+      "line": 16305,
+      "category": "Regression"
+    },
+    {
+      "number": 233,
+      "name": "viewshed_points",
+      "method": "viewshed_points",
+      "line": 16395,
+      "category": "Terrain"
+    },
+    {
+      "number": 234,
+      "name": "intervisibility",
+      "method": "intervisibility",
+      "line": 16470,
+      "category": "Terrain"
+    },
+    {
+      "number": 235,
+      "name": "least_cost_surface",
+      "method": "least_cost_surface",
+      "line": 16535,
+      "category": "Interpolation"
+    },
+    {
+      "number": 236,
+      "name": "edge_criticality",
+      "method": "edge_criticality",
+      "line": 16593,
+      "category": "Network"
+    },
+    {
+      "number": 237,
+      "name": "network_resilience",
+      "method": "network_resilience",
+      "line": 16670,
+      "category": "Network"
+    },
+    {
+      "number": 238,
+      "name": "route_barriers",
+      "method": "route_barriers",
+      "line": 16772,
+      "category": "Network"
+    },
+    {
+      "number": 239,
+      "name": "quadrat_grid",
+      "method": "quadrat_grid",
+      "line": 16861,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 240,
+      "name": "space_time_k",
+      "method": "space_time_k",
+      "line": 16914,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 241,
+      "name": "mesh_subdivision",
+      "method": "mesh_subdivision",
+      "line": 16970,
+      "category": "Geometry"
+    },
+    {
+      "number": 242,
+      "name": "gap_overlap_repair",
+      "method": "gap_overlap_repair",
+      "line": 17041,
+      "category": "Geometry"
+    },
+    {
+      "number": 243,
+      "name": "nodata_mask",
+      "method": "nodata_mask",
+      "line": 17098,
+      "category": "Raster"
+    },
+    {
+      "number": 244,
+      "name": "grid_resample",
+      "method": "grid_resample",
+      "line": 17140,
+      "category": "Raster"
+    },
+    {
+      "number": 245,
+      "name": "surface_difference",
+      "method": "surface_difference",
+      "line": 17202,
+      "category": "Interpolation"
+    },
+    {
+      "number": 246,
+      "name": "local_variance_decomposition",
+      "method": "local_variance_decomposition",
+      "line": 17246,
+      "category": "Statistics"
+    },
+    {
+      "number": 247,
+      "name": "robust_morans_i",
+      "method": "robust_morans_i",
+      "line": 17285,
+      "category": "Statistics"
+    },
+    {
+      "number": 248,
+      "name": "weighted_join_count",
+      "method": "weighted_join_count",
+      "line": 17325,
+      "category": "Statistics"
+    },
+    {
+      "number": 249,
+      "name": "local_network_association",
+      "method": "local_network_association",
+      "line": 17373,
+      "category": "Network"
+    },
+    {
+      "number": 250,
+      "name": "surface_masking",
+      "method": "surface_masking",
+      "line": 17443,
+      "category": "Interpolation"
+    },
+    {
+      "number": 251,
+      "name": "contour_to_polygon",
+      "method": "contour_to_polygon",
+      "line": 17487,
+      "category": "Terrain"
+    },
+    {
+      "number": 252,
+      "name": "ring_orientation",
+      "method": "ring_orientation",
+      "line": 17581,
+      "category": "Geometry"
+    },
+    {
+      "number": 253,
+      "name": "multipart_normalize",
+      "method": "multipart_normalize",
+      "line": 17620,
+      "category": "Geometry"
+    },
+    {
+      "number": 254,
+      "name": "segment_intersection",
+      "method": "segment_intersection",
+      "line": 17674,
+      "category": "Geometry"
+    },
+    {
+      "number": 255,
+      "name": "cluster_explanation",
+      "method": "cluster_explanation",
+      "line": 17737,
+      "category": "Clustering"
+    },
+    {
+      "number": 256,
+      "name": "auto_cluster_k",
+      "method": "auto_cluster_k",
+      "line": 17807,
+      "category": "Clustering"
+    },
+    {
+      "number": 257,
+      "name": "d_infinity_flow",
+      "method": "d_infinity_flow",
+      "line": 17872,
+      "category": "Terrain"
+    },
+    {
+      "number": 258,
+      "name": "terrain_derivative_bundle",
+      "method": "terrain_derivative_bundle",
+      "line": 17935,
+      "category": "Terrain"
+    },
+    {
+      "number": 259,
+      "name": "watershed_summary",
+      "method": "watershed_summary",
+      "line": 18010,
+      "category": "Terrain"
+    },
+    {
+      "number": 260,
+      "name": "spatial_two_stage_ls",
+      "method": "spatial_two_stage_ls",
+      "line": 18055,
+      "category": "Regression"
+    },
+    {
+      "number": 261,
+      "name": "balanced_clustering",
+      "method": "balanced_clustering",
+      "line": 18156,
+      "category": "Clustering"
+    },
+    {
+      "number": 262,
+      "name": "soft_regionalization",
+      "method": "soft_regionalization",
+      "line": 18229,
+      "category": "Regionalization"
+    },
+    {
+      "number": 263,
+      "name": "route_explanation",
+      "method": "route_explanation",
+      "line": 18294,
+      "category": "Network"
+    },
+    {
+      "number": 264,
+      "name": "event_burst_detection",
+      "method": "event_burst_detection",
+      "line": 18376,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 265,
+      "name": "local_dispersion",
+      "method": "local_dispersion",
+      "line": 18420,
+      "category": "Statistics"
+    },
+    {
+      "number": 266,
+      "name": "kriging_confidence",
+      "method": "kriging_confidence",
+      "line": 18463,
+      "category": "Interpolation"
+    },
+    {
+      "number": 267,
+      "name": "coverage_validation",
+      "method": "coverage_validation",
+      "line": 18527,
+      "category": "Optimization"
+    },
+    {
+      "number": 268,
+      "name": "seed_determinism_check",
+      "method": "seed_determinism_check",
+      "line": 18584,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 269,
+      "name": "slx_model",
+      "method": "slx_model",
+      "line": 18638,
+      "category": "Regression"
+    },
+    {
+      "number": 270,
+      "name": "sac_model",
+      "method": "sac_model",
+      "line": 18703,
+      "category": "Regression"
+    },
+    {
+      "number": 271,
+      "name": "region_autocorrelation",
+      "method": "region_autocorrelation",
+      "line": 18799,
+      "category": "Regionalization"
+    },
+    {
+      "number": 272,
+      "name": "cluster_comparison",
+      "method": "cluster_comparison",
+      "line": 18872,
+      "category": "Clustering"
+    },
+    {
+      "number": 273,
+      "name": "contiguity_repair",
+      "method": "contiguity_repair",
+      "line": 18918,
+      "category": "Spatial_Weights"
+    },
+    {
+      "number": 274,
+      "name": "stream_network_summary",
+      "method": "stream_network_summary",
+      "line": 18994,
+      "category": "Network"
+    },
+    {
+      "number": 275,
+      "name": "ridge_valley_extraction",
+      "method": "ridge_valley_extraction",
+      "line": 19065,
+      "category": "Regression"
+    },
+    {
+      "number": 276,
+      "name": "multi_source_routing",
+      "method": "multi_source_routing",
+      "line": 19114,
+      "category": "Network"
+    },
+    {
+      "number": 277,
+      "name": "route_sequencing",
+      "method": "route_sequencing",
+      "line": 19181,
+      "category": "Network"
+    },
+    {
+      "number": 278,
+      "name": "flow_assignment",
+      "method": "flow_assignment",
+      "line": 19270,
+      "category": "Terrain"
+    },
+    {
+      "number": 279,
+      "name": "surface_blending",
+      "method": "surface_blending",
+      "line": 19366,
+      "category": "Interpolation"
+    },
+    {
+      "number": 280,
+      "name": "grid_algebra",
+      "method": "grid_algebra",
+      "line": 19404,
+      "category": "Raster"
+    },
+    {
+      "number": 281,
+      "name": "grid_clip",
+      "method": "grid_clip",
+      "line": 19443,
+      "category": "Geometry"
+    },
+    {
+      "number": 282,
+      "name": "raster_summary",
+      "method": "raster_summary",
+      "line": 19489,
+      "category": "Raster"
+    },
+    {
+      "number": 283,
+      "name": "grid_neighborhood",
+      "method": "grid_neighborhood",
+      "line": 19524,
+      "category": "Raster"
+    },
+    {
+      "number": 284,
+      "name": "local_morphology",
+      "method": "local_morphology",
+      "line": 19566,
+      "category": "Terrain"
+    },
+    {
+      "number": 285,
+      "name": "surface_threshold",
+      "method": "surface_threshold",
+      "line": 19612,
+      "category": "Interpolation"
+    },
+    {
+      "number": 286,
+      "name": "focal_stats",
+      "method": "focal_stats",
+      "line": 19647,
+      "category": "Raster"
+    },
+    {
+      "number": 287,
+      "name": "regionalization_feasibility",
+      "method": "regionalization_feasibility",
+      "line": 19700,
+      "category": "Regionalization"
+    },
+    {
+      "number": 288,
+      "name": "local_influence",
+      "method": "local_influence",
+      "line": 19760,
+      "category": "Statistics"
+    },
+    {
+      "number": 289,
+      "name": "residual_spatial_diagnostics",
+      "method": "residual_spatial_diagnostics",
+      "line": 19831,
+      "category": "Regression"
+    },
+    {
+      "number": 290,
+      "name": "regression_report",
+      "method": "regression_report",
+      "line": 19871,
+      "category": "Regression"
+    },
+    {
+      "number": 291,
+      "name": "cokriging_cross_variogram",
+      "method": "cokriging_cross_variogram",
+      "line": 19951,
+      "category": "Interpolation"
+    },
+    {
+      "number": 292,
+      "name": "breakline_interpolation",
+      "method": "breakline_interpolation",
+      "line": 20047,
+      "category": "Interpolation"
+    },
+    {
+      "number": 293,
+      "name": "surface_resample",
+      "method": "surface_resample",
+      "line": 20116,
+      "category": "Interpolation"
+    },
+    {
+      "number": 294,
+      "name": "surface_comparison",
+      "method": "surface_comparison",
+      "line": 20173,
+      "category": "Interpolation"
+    },
+    {
+      "number": 295,
+      "name": "drift_diagnostics",
+      "method": "drift_diagnostics",
+      "line": 20209,
+      "category": "Regression"
+    },
+    {
+      "number": 296,
+      "name": "interpolator_recommendation",
+      "method": "interpolator_recommendation",
+      "line": 20296,
+      "category": "Interpolation"
+    },
+    {
+      "number": 297,
+      "name": "redcap_regionalization",
+      "method": "redcap_regionalization",
+      "line": 20364,
+      "category": "Regionalization"
+    },
+    {
+      "number": 298,
+      "name": "region_compactness_diagnostics",
+      "method": "region_compactness_diagnostics",
+      "line": 20486,
+      "category": "Regionalization"
+    },
+    {
+      "number": 299,
+      "name": "panel_spatial_regression",
+      "method": "panel_spatial_regression",
+      "line": 20537,
+      "category": "Regression"
+    },
+    {
+      "number": 300,
+      "name": "local_leverage",
+      "method": "local_leverage",
+      "line": 20613,
+      "category": "Regression"
+    },
+    {
+      "number": 301,
+      "name": "model_family_comparison",
+      "method": "model_family_comparison",
+      "line": 20676,
+      "category": "Regression"
+    },
+    {
+      "number": 302,
+      "name": "bandwidth_recommendation",
+      "method": "bandwidth_recommendation",
+      "line": 20769,
+      "category": "Regression"
+    },
+    {
+      "number": 303,
+      "name": "roughness_segmentation",
+      "method": "roughness_segmentation",
+      "line": 20828,
+      "category": "Terrain"
+    },
+    {
+      "number": 304,
+      "name": "pickup_delivery_routing",
+      "method": "pickup_delivery_routing",
+      "line": 20872,
+      "category": "Network"
+    },
+    {
+      "number": 305,
+      "name": "transit_routing",
+      "method": "transit_routing",
+      "line": 20947,
+      "category": "Network"
+    },
+    {
+      "number": 306,
+      "name": "nn_contingency",
+      "method": "nn_contingency",
+      "line": 21015,
+      "category": "Statistics"
+    },
+    {
+      "number": 307,
+      "name": "pairwise_directionality",
+      "method": "pairwise_directionality",
+      "line": 21056,
+      "category": "Statistics"
+    },
+    {
+      "number": 308,
+      "name": "inhomogeneous_pair_correlation",
+      "method": "inhomogeneous_pair_correlation",
+      "line": 21102,
+      "category": "Statistics"
+    },
+    {
+      "number": 309,
+      "name": "covariate_intensity",
+      "method": "covariate_intensity",
+      "line": 21154,
+      "category": "Statistics"
+    },
+    {
+      "number": 310,
+      "name": "hotspot_duration",
+      "method": "hotspot_duration",
+      "line": 21195,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 311,
+      "name": "point_process_simulation",
+      "method": "point_process_simulation",
+      "line": 21254,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 312,
+      "name": "multitype_interaction",
+      "method": "multitype_interaction",
+      "line": 21319,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 313,
+      "name": "local_cluster_persistence",
+      "method": "local_cluster_persistence",
+      "line": 21387,
+      "category": "Clustering"
+    },
+    {
+      "number": 314,
+      "name": "time_slice_comparison",
+      "method": "time_slice_comparison",
+      "line": 21447,
+      "category": "Time_Series"
+    },
+    {
+      "number": 315,
+      "name": "event_density_trend",
+      "method": "event_density_trend",
+      "line": 21486,
+      "category": "Time_Series"
+    },
+    {
+      "number": 316,
+      "name": "event_anisotropy",
+      "method": "event_anisotropy",
+      "line": 21534,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 317,
+      "name": "medial_axis_refine",
+      "method": "medial_axis_refine",
+      "line": 21581,
+      "category": "Geometry"
+    },
+    {
+      "number": 318,
+      "name": "mesh_quality",
+      "method": "mesh_quality",
+      "line": 21646,
+      "category": "Geometry"
+    },
+    {
+      "number": 319,
+      "name": "boundary_generalize",
+      "method": "boundary_generalize",
+      "line": 21712,
+      "category": "Geometry"
+    },
+    {
+      "number": 320,
+      "name": "topology_normalize",
+      "method": "topology_normalize",
+      "line": 21766,
+      "category": "Geometry"
+    },
+    {
+      "number": 321,
+      "name": "feather_export",
+      "method": "feather_export",
+      "line": 21818,
+      "category": "IO"
+    },
+    {
+      "number": 322,
+      "name": "schema_report",
+      "method": "schema_report",
+      "line": 21859,
+      "category": "IO"
+    },
+    {
+      "number": 323,
+      "name": "format_autodetect",
+      "method": "format_autodetect",
+      "line": 21902,
+      "category": "IO"
+    },
+    {
+      "number": 324,
+      "name": "export_validation",
+      "method": "export_validation",
+      "line": 21941,
+      "category": "IO"
+    },
+    {
+      "number": 325,
+      "name": "grid_provenance",
+      "method": "grid_provenance",
+      "line": 21974,
+      "category": "Raster"
+    },
+    {
+      "number": 326,
+      "name": "flow_direction_diagnostics",
+      "method": "flow_direction_diagnostics",
+      "line": 22026,
+      "category": "Terrain"
+    },
+    {
+      "number": 327,
+      "name": "route_failure_diagnostics",
+      "method": "route_failure_diagnostics",
+      "line": 22071,
+      "category": "Network"
+    },
+    {
+      "number": 328,
+      "name": "tps_stability",
+      "method": "tps_stability",
+      "line": 22138,
+      "category": "Interpolation"
+    },
+    {
+      "number": 329,
+      "name": "kriging_uncertainty",
+      "method": "kriging_uncertainty",
+      "line": 22186,
+      "category": "Interpolation"
+    },
+    {
+      "number": 330,
+      "name": "contour_stitch",
+      "method": "contour_stitch",
+      "line": 22243,
+      "category": "Terrain"
+    },
+    {
+      "number": 331,
+      "name": "polygon_repair_strategy",
+      "method": "polygon_repair_strategy",
+      "line": 22343,
+      "category": "Geometry"
+    },
+    {
+      "number": 332,
+      "name": "topology_audit_extended",
+      "method": "topology_audit_extended",
+      "line": 22426,
+      "category": "Geometry"
+    },
+    {
+      "number": 333,
+      "name": "line_merge_graph",
+      "method": "line_merge_graph",
+      "line": 22494,
+      "category": "Network"
+    },
+    {
+      "number": 334,
+      "name": "od_matrix_extended",
+      "method": "od_matrix_extended",
+      "line": 22562,
+      "category": "Network"
+    },
+    {
+      "number": 335,
+      "name": "tps_smoothing_select",
+      "method": "tps_smoothing_select",
+      "line": 22634,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 336,
+      "name": "nn_fallback_quality",
+      "method": "nn_fallback_quality",
+      "line": 22692,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 337,
+      "name": "regression_kriging_diagnostics",
+      "method": "regression_kriging_diagnostics",
+      "line": 22735,
+      "category": "Interpolation"
+    },
+    {
+      "number": 338,
+      "name": "indicator_kriging_diagnostics",
+      "method": "indicator_kriging_diagnostics",
+      "line": 22820,
+      "category": "Interpolation"
+    },
+    {
+      "number": 339,
+      "name": "terrain_tiebreak",
+      "method": "terrain_tiebreak",
+      "line": 22858,
+      "category": "Terrain"
+    },
+    {
+      "number": 340,
+      "name": "min_cut_residual",
+      "method": "min_cut_residual",
+      "line": 22907,
+      "category": "Regression"
+    },
+    {
+      "number": 341,
+      "name": "centrality_directed",
+      "method": "centrality_directed",
+      "line": 23007,
+      "category": "Network"
+    },
+    {
+      "number": 342,
+      "name": "kmz_export",
+      "method": "kmz_export",
+      "line": 23086,
+      "category": "IO"
+    },
+    {
+      "number": 343,
+      "name": "metadata_roundtrip",
+      "method": "metadata_roundtrip",
+      "line": 23128,
+      "category": "IO"
+    },
+    {
+      "number": 344,
+      "name": "dependency_report",
+      "method": "dependency_report",
+      "line": 23166,
+      "category": "Framework"
+    },
+    {
+      "number": 345,
+      "name": "encoding_diagnostics",
+      "method": "encoding_diagnostics",
+      "line": 23202,
+      "category": "IO"
+    },
+    {
+      "number": 346,
+      "name": "path_normalize",
+      "method": "path_normalize",
+      "line": 23247,
+      "category": "IO"
+    },
+    {
+      "number": 347,
+      "name": "config_defaults",
+      "method": "config_defaults",
+      "line": 23273,
+      "category": "Framework"
+    },
+    {
+      "number": 348,
+      "name": "diagnostics_unified",
+      "method": "diagnostics_unified",
+      "line": 23305,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 349,
+      "name": "provenance_track",
+      "method": "provenance_track",
+      "line": 23363,
+      "category": "Framework"
+    },
+    {
+      "number": 350,
+      "name": "moran_review_diagnostics",
+      "method": "moran_review_diagnostics",
+      "line": 23403,
+      "category": "Statistics"
+    },
+    {
+      "number": 351,
+      "name": "geary_review_diagnostics",
+      "method": "geary_review_diagnostics",
+      "line": 23463,
+      "category": "Statistics"
+    },
+    {
+      "number": 352,
+      "name": "getis_review_diagnostics",
+      "method": "getis_review_diagnostics",
+      "line": 23511,
+      "category": "Statistics"
+    },
+    {
+      "number": 353,
+      "name": "variogram_review_diagnostics",
+      "method": "variogram_review_diagnostics",
+      "line": 23563,
+      "category": "Statistics"
+    },
+    {
+      "number": 354,
+      "name": "ols_review_diagnostics",
+      "method": "ols_review_diagnostics",
+      "line": 23633,
+      "category": "Regression"
+    },
+    {
+      "number": 355,
+      "name": "kriging_review_diagnostics",
+      "method": "kriging_review_diagnostics",
+      "line": 23719,
+      "category": "Interpolation"
+    },
+    {
+      "number": 356,
+      "name": "terrain_review_diagnostics",
+      "method": "terrain_review_diagnostics",
+      "line": 23765,
+      "category": "Terrain"
+    },
+    {
+      "number": 357,
+      "name": "join_count_review",
+      "method": "join_count_review",
+      "line": 23829,
+      "category": "Statistics"
+    },
+    {
+      "number": 358,
+      "name": "losh_review",
+      "method": "losh_review",
+      "line": 23893,
+      "category": "Statistics"
+    },
+    {
+      "number": 359,
+      "name": "bivariate_moran_review",
+      "method": "bivariate_moran_review",
+      "line": 23944,
+      "category": "Statistics"
+    },
+    {
+      "number": 360,
+      "name": "spatial_lag_review",
+      "method": "spatial_lag_review",
+      "line": 24002,
+      "category": "Statistics"
+    },
+    {
+      "number": 361,
+      "name": "gwr_review",
+      "method": "gwr_review",
+      "line": 24079,
+      "category": "Regression"
+    },
+    {
+      "number": 362,
+      "name": "model_comparison_review",
+      "method": "model_comparison_review",
+      "line": 24160,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 363,
+      "name": "universal_kriging_review",
+      "method": "universal_kriging_review",
+      "line": 24250,
+      "category": "Interpolation"
+    },
+    {
+      "number": 364,
+      "name": "cokriging_review",
+      "method": "cokriging_review",
+      "line": 24312,
+      "category": "Interpolation"
+    },
+    {
+      "number": 365,
+      "name": "ebk_review",
+      "method": "ebk_review",
+      "line": 24382,
+      "category": "Interpolation"
+    },
+    {
+      "number": 366,
+      "name": "contour_review",
+      "method": "contour_review",
+      "line": 24453,
+      "category": "Terrain"
+    },
+    {
+      "number": 367,
+      "name": "flow_direction_review",
+      "method": "flow_direction_review",
+      "line": 24517,
+      "category": "Terrain"
+    },
+    {
+      "number": 368,
+      "name": "accumulation_review",
+      "method": "accumulation_review",
+      "line": 24583,
+      "category": "Terrain"
+    },
+    {
+      "number": 369,
+      "name": "watershed_review",
+      "method": "watershed_review",
+      "line": 24659,
+      "category": "Terrain"
+    },
+    {
+      "number": 370,
+      "name": "stream_order_review",
+      "method": "stream_order_review",
+      "line": 24726,
+      "category": "Terrain"
+    },
+    {
+      "number": 371,
+      "name": "twi_ls_hand_review",
+      "method": "twi_ls_hand_review",
+      "line": 24818,
+      "category": "Terrain"
+    },
+    {
+      "number": 372,
+      "name": "bounding_shape_review",
+      "method": "bounding_shape_review",
+      "line": 24908,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 373,
+      "name": "hausdorff_review",
+      "method": "hausdorff_review",
+      "line": 24967,
+      "category": "Geometry"
+    },
+    {
+      "number": 374,
+      "name": "format_fidelity_review",
+      "method": "format_fidelity_review",
+      "line": 25017,
+      "category": "IO"
+    },
+    {
+      "number": 375,
+      "name": "method_chain_audit",
+      "method": "method_chain_audit",
+      "line": 25062,
+      "category": "Network"
+    },
+    {
+      "number": 376,
+      "name": "structured_log",
+      "method": "structured_log",
+      "line": 25096,
+      "category": "Framework"
+    },
+    {
+      "number": 377,
+      "name": "progress_callback",
+      "method": "progress_callback",
+      "line": 25130,
+      "category": "Framework"
+    },
+    {
+      "number": 378,
+      "name": "exception_enriched",
+      "method": "exception_enriched",
+      "line": 25154,
+      "category": "Framework"
+    },
+    {
+      "number": 379,
+      "name": "empty_frame_guard",
+      "method": "empty_frame_guard",
+      "line": 25193,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 380,
+      "name": "one_row_guard",
+      "method": "one_row_guard",
+      "line": 25216,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 381,
+      "name": "two_row_guard",
+      "method": "two_row_guard",
+      "line": 25236,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 382,
+      "name": "duplicate_coord_guard",
+      "method": "duplicate_coord_guard",
+      "line": 25257,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 383,
+      "name": "collinear_guard",
+      "method": "collinear_guard",
+      "line": 25285,
+      "category": "Regression"
+    },
+    {
+      "number": 384,
+      "name": "null_geometry_guard",
+      "method": "null_geometry_guard",
+      "line": 25322,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 385,
+      "name": "multipart_guard",
+      "method": "multipart_guard",
+      "line": 25355,
+      "category": "Geometry"
+    },
+    {
+      "number": 386,
+      "name": "polygon_hole_guard",
+      "method": "polygon_hole_guard",
+      "line": 25383,
+      "category": "Geometry"
+    },
+    {
+      "number": 387,
+      "name": "self_intersection_guard",
+      "method": "self_intersection_guard",
+      "line": 25415,
+      "category": "Geometry"
+    },
+    {
+      "number": 388,
+      "name": "disconnected_network_guard",
+      "method": "disconnected_network_guard",
+      "line": 25469,
+      "category": "Network"
+    },
+    {
+      "number": 389,
+      "name": "coord_range_guard",
+      "method": "coord_range_guard",
+      "line": 25525,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 390,
+      "name": "deterministic_seed_guard",
+      "method": "deterministic_seed_guard",
+      "line": 25557,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 391,
+      "name": "neighbor_cache_report",
+      "method": "neighbor_cache_report",
+      "line": 25588,
+      "category": "Spatial_Weights"
+    },
+    {
+      "number": 392,
+      "name": "sparse_adjacency_report",
+      "method": "sparse_adjacency_report",
+      "line": 25620,
+      "category": "Spatial_Weights"
+    },
+    {
+      "number": 393,
+      "name": "chunked_interpolation_report",
+      "method": "chunked_interpolation_report",
+      "line": 25658,
+      "category": "Interpolation"
+    },
+    {
+      "number": 394,
+      "name": "config_central",
+      "method": "config_central",
+      "line": 25709,
+      "category": "Framework"
+    },
+    {
+      "number": 395,
+      "name": "plugin_registry_report",
+      "method": "plugin_registry_report",
+      "line": 25738,
+      "category": "Framework"
+    },
+    {
+      "number": 396,
+      "name": "stable_api_review",
+      "method": "stable_api_review",
+      "line": 25773,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 397,
+      "name": "inplace_strategy_review",
+      "method": "inplace_strategy_review",
+      "line": 25800,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 398,
+      "name": "voronoi_semantics_review",
+      "method": "voronoi_semantics_review",
+      "line": 25826,
+      "category": "Geometry"
+    },
+    {
+      "number": 399,
+      "name": "parity_edge_case_audit",
+      "method": "parity_edge_case_audit",
+      "line": 25872,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 400,
+      "name": "release_checklist",
+      "method": "release_checklist",
+      "line": 25913,
+      "category": "Quality_Assurance"
+    },
+    {
+      "number": 401,
+      "name": "neural_spatial_interpolation",
+      "method": "neural_spatial_interpolation",
+      "line": 25947,
+      "category": "Interpolation"
+    },
+    {
+      "number": 402,
+      "name": "spatial_autoencoder",
+      "method": "spatial_autoencoder",
+      "line": 26037,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 403,
+      "name": "ai_spatial_classifier",
+      "method": "ai_spatial_classifier",
+      "line": 26114,
+      "category": "Classification"
+    },
+    {
+      "number": 404,
+      "name": "gradient_boosted_spatial_regression",
+      "method": "gradient_boosted_spatial_regression",
+      "line": 26209,
+      "category": "Classification"
+    },
+    {
+      "number": 405,
+      "name": "random_forest_spatial_classifier",
+      "method": "random_forest_spatial_classifier",
+      "line": 26303,
+      "category": "Classification"
+    },
+    {
+      "number": 406,
+      "name": "spatial_anomaly_detector",
+      "method": "spatial_anomaly_detector",
+      "line": 26405,
+      "category": "Anomaly_Detection"
+    },
+    {
+      "number": 407,
+      "name": "self_organizing_map_spatial",
+      "method": "self_organizing_map_spatial",
+      "line": 26492,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 408,
+      "name": "spatial_reinforcement_learner",
+      "method": "spatial_reinforcement_learner",
+      "line": 26567,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 409,
+      "name": "evolutionary_feature_selection",
+      "method": "evolutionary_feature_selection",
+      "line": 26637,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 410,
+      "name": "spatial_attention_mechanism",
+      "method": "spatial_attention_mechanism",
+      "line": 26716,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 411,
+      "name": "spatial_bayesian_optimizer",
+      "method": "spatial_bayesian_optimizer",
+      "line": 26771,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 412,
+      "name": "spatial_gan_augmentor",
+      "method": "spatial_gan_augmentor",
+      "line": 26855,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 413,
+      "name": "spatial_embedding",
+      "method": "spatial_embedding",
+      "line": 26926,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 414,
+      "name": "fuzzy_spatial_classifier",
+      "method": "fuzzy_spatial_classifier",
+      "line": 27013,
+      "category": "Classification"
+    },
+    {
+      "number": 415,
+      "name": "spatial_decision_tree",
+      "method": "spatial_decision_tree",
+      "line": 27082,
+      "category": "Classification"
+    },
+    {
+      "number": 416,
+      "name": "spatial_knn_imputer",
+      "method": "spatial_knn_imputer",
+      "line": 27161,
+      "category": "Classification"
+    },
+    {
+      "number": 417,
+      "name": "spatial_naive_bayes",
+      "method": "spatial_naive_bayes",
+      "line": 27225,
+      "category": "Classification"
+    },
+    {
+      "number": 418,
+      "name": "spatial_svm_classifier",
+      "method": "spatial_svm_classifier",
+      "line": 27287,
+      "category": "Classification"
+    },
+    {
+      "number": 419,
+      "name": "spatial_lstm_sequence",
+      "method": "spatial_lstm_sequence",
+      "line": 27356,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 420,
+      "name": "ai_land_use_classifier",
+      "method": "ai_land_use_classifier",
+      "line": 27457,
+      "category": "Classification"
+    },
+    {
+      "number": 421,
+      "name": "quantum_spatial_annealer",
+      "method": "quantum_spatial_annealer",
+      "line": 27549,
+      "category": "Optimization"
+    },
+    {
+      "number": 422,
+      "name": "quantum_walk_clustering",
+      "method": "quantum_walk_clustering",
+      "line": 27640,
+      "category": "Clustering"
+    },
+    {
+      "number": 423,
+      "name": "quantum_feature_map",
+      "method": "quantum_feature_map",
+      "line": 27729,
+      "category": "Quantum"
+    },
+    {
+      "number": 424,
+      "name": "quantum_approximate_counting",
+      "method": "quantum_approximate_counting",
+      "line": 27788,
+      "category": "Quantum"
+    },
+    {
+      "number": 425,
+      "name": "quantum_phase_clustering",
+      "method": "quantum_phase_clustering",
+      "line": 27839,
+      "category": "Clustering"
+    },
+    {
+      "number": 426,
+      "name": "quantum_entanglement_graph",
+      "method": "quantum_entanglement_graph",
+      "line": 27916,
+      "category": "Network"
+    },
+    {
+      "number": 427,
+      "name": "quantum_teleportation_interpolation",
+      "method": "quantum_teleportation_interpolation",
+      "line": 27974,
+      "category": "Interpolation"
+    },
+    {
+      "number": 428,
+      "name": "quantum_superposition_query",
+      "method": "quantum_superposition_query",
+      "line": 28041,
+      "category": "Quantum"
+    },
+    {
+      "number": 429,
+      "name": "quantum_grover_search",
+      "method": "quantum_grover_search",
+      "line": 28090,
+      "category": "Quantum"
+    },
+    {
+      "number": 430,
+      "name": "quantum_variational_optimizer",
+      "method": "quantum_variational_optimizer",
+      "line": 28152,
+      "category": "Optimization"
+    },
+    {
+      "number": 431,
+      "name": "quantum_error_corrected_interpolation",
+      "method": "quantum_error_corrected_interpolation",
+      "line": 28231,
+      "category": "Interpolation"
+    },
+    {
+      "number": 432,
+      "name": "quantum_tunneling_optimizer",
+      "method": "quantum_tunneling_optimizer",
+      "line": 28288,
+      "category": "Optimization"
+    },
+    {
+      "number": 433,
+      "name": "quantum_born_rule_density",
+      "method": "quantum_born_rule_density",
+      "line": 28367,
+      "category": "Quantum"
+    },
+    {
+      "number": 434,
+      "name": "quantum_decoherence_smoothing",
+      "method": "quantum_decoherence_smoothing",
+      "line": 28420,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 435,
+      "name": "quantum_interference_pattern",
+      "method": "quantum_interference_pattern",
+      "line": 28480,
+      "category": "Quantum"
+    },
+    {
+      "number": 436,
+      "name": "quantum_boltzmann_sampler",
+      "method": "quantum_boltzmann_sampler",
+      "line": 28532,
+      "category": "Sampling"
+    },
+    {
+      "number": 437,
+      "name": "qubit_spatial_encoder",
+      "method": "qubit_spatial_encoder",
+      "line": 28593,
+      "category": "Quantum"
+    },
+    {
+      "number": 438,
+      "name": "quantum_fourier_spatial_analysis",
+      "method": "quantum_fourier_spatial_analysis",
+      "line": 28638,
+      "category": "Quantum"
+    },
+    {
+      "number": 439,
+      "name": "quantum_measurement_classifier",
+      "method": "quantum_measurement_classifier",
+      "line": 28703,
+      "category": "Classification"
+    },
+    {
+      "number": 440,
+      "name": "quantum_adiabatic_solver",
+      "method": "quantum_adiabatic_solver",
+      "line": 28775,
+      "category": "Quantum"
+    },
+    {
+      "number": 441,
+      "name": "gravity_flow_model",
+      "method": "gravity_flow_model",
+      "line": 28864,
+      "category": "Terrain"
+    },
+    {
+      "number": 442,
+      "name": "diffusion_kernel_smooth",
+      "method": "diffusion_kernel_smooth",
+      "line": 28921,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 443,
+      "name": "topological_persistence",
+      "method": "topological_persistence",
+      "line": 28986,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 444,
+      "name": "levy_flight_optimizer",
+      "method": "levy_flight_optimizer",
+      "line": 29079,
+      "category": "Optimization"
+    },
+    {
+      "number": 445,
+      "name": "spectral_graph_partition",
+      "method": "spectral_graph_partition",
+      "line": 29150,
+      "category": "Network"
+    },
+    {
+      "number": 446,
+      "name": "spatial_wavelet_decompose",
+      "method": "spatial_wavelet_decompose",
+      "line": 29239,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 447,
+      "name": "spatial_information_entropy",
+      "method": "spatial_information_entropy",
+      "line": 29302,
+      "category": "Statistics"
+    },
+    {
+      "number": 448,
+      "name": "ant_colony_path_finder",
+      "method": "ant_colony_path_finder",
+      "line": 29364,
+      "category": "Optimization"
+    },
+    {
+      "number": 449,
+      "name": "fractal_dimension_estimator",
+      "method": "fractal_dimension_estimator",
+      "line": 29461,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 450,
+      "name": "reaction_diffusion_pattern",
+      "method": "reaction_diffusion_pattern",
+      "line": 29515,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 451,
+      "name": "spatial_pagerank",
+      "method": "spatial_pagerank",
+      "line": 29595,
+      "category": "Optimization"
+    },
+    {
+      "number": 452,
+      "name": "cellular_automata_simulator",
+      "method": "cellular_automata_simulator",
+      "line": 29647,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 453,
+      "name": "spatial_label_propagation",
+      "method": "spatial_label_propagation",
+      "line": 29728,
+      "category": "Clustering"
+    },
+    {
+      "number": 454,
+      "name": "optimal_facility_locator",
+      "method": "optimal_facility_locator",
+      "line": 29805,
+      "category": "Optimization"
+    },
+    {
+      "number": 455,
+      "name": "spatial_outlier_ensemble",
+      "method": "spatial_outlier_ensemble",
+      "line": 29872,
+      "category": "Anomaly_Detection"
+    },
+    {
+      "number": 456,
+      "name": "spatial_reservoir_computer",
+      "method": "spatial_reservoir_computer",
+      "line": 29958,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 457,
+      "name": "spatial_contour_tree",
+      "method": "spatial_contour_tree",
+      "line": 30063,
+      "category": "Terrain"
+    },
+    {
+      "number": 458,
+      "name": "multi_scale_geographically_weighted",
+      "method": "multi_scale_geographically_weighted",
+      "line": 30142,
+      "category": "Network"
+    },
+    {
+      "number": 459,
+      "name": "spatial_markov_chain",
+      "method": "spatial_markov_chain",
+      "line": 30220,
+      "category": "Time_Series"
+    },
+    {
+      "number": 460,
+      "name": "spatial_homology_betti",
+      "method": "spatial_homology_betti",
+      "line": 30299,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 461,
+      "name": "spatial_potential_field",
+      "method": "spatial_potential_field",
+      "line": 30402,
+      "category": "Optimization"
+    },
+    {
+      "number": 462,
+      "name": "particle_swarm_cluster",
+      "method": "particle_swarm_cluster",
+      "line": 30458,
+      "category": "Clustering"
+    },
+    {
+      "number": 463,
+      "name": "spatial_elastic_net",
+      "method": "spatial_elastic_net",
+      "line": 30545,
+      "category": "Regression"
+    },
+    {
+      "number": 464,
+      "name": "spatial_dbscan_clustering",
+      "method": "spatial_dbscan_clustering",
+      "line": 30619,
+      "category": "Clustering"
+    },
+    {
+      "number": 465,
+      "name": "spatial_mean_shift",
+      "method": "spatial_mean_shift",
+      "line": 30700,
+      "category": "Clustering"
+    },
+    {
+      "number": 466,
+      "name": "spatial_gradient_field",
+      "method": "spatial_gradient_field",
+      "line": 30762,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 467,
+      "name": "spatial_hdbscan",
+      "method": "spatial_hdbscan",
+      "line": 30822,
+      "category": "Clustering"
+    },
+    {
+      "number": 468,
+      "name": "spatial_copula_dependence",
+      "method": "spatial_copula_dependence",
+      "line": 30959,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 469,
+      "name": "spatial_loess_regression",
+      "method": "spatial_loess_regression",
+      "line": 31028,
+      "category": "Regression"
+    },
+    {
+      "number": 470,
+      "name": "spatial_flow_accumulation",
+      "method": "spatial_flow_accumulation",
+      "line": 31100,
+      "category": "Terrain"
+    },
+    {
+      "number": 471,
+      "name": "spatial_cross_k_function",
+      "method": "spatial_cross_k_function",
+      "line": 31159,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 472,
+      "name": "harmonic_regression_spatial",
+      "method": "harmonic_regression_spatial",
+      "line": 31215,
+      "category": "Regression"
+    },
+    {
+      "number": 473,
+      "name": "spatial_bootstrap_confidence",
+      "method": "spatial_bootstrap_confidence",
+      "line": 31279,
+      "category": "Anomaly_Detection"
+    },
+    {
+      "number": 474,
+      "name": "spatial_variogram_cloud",
+      "method": "spatial_variogram_cloud",
+      "line": 31332,
+      "category": "Statistics"
+    },
+    {
+      "number": 475,
+      "name": "spatial_permutation_test",
+      "method": "spatial_permutation_test",
+      "line": 31386,
+      "category": "Anomaly_Detection"
+    },
+    {
+      "number": 476,
+      "name": "spatial_random_walk_diffusion",
+      "method": "spatial_random_walk_diffusion",
+      "line": 31446,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 477,
+      "name": "adaptive_spatial_scan_statistic",
+      "method": "adaptive_spatial_scan_statistic",
+      "line": 31502,
+      "category": "Statistics"
+    },
+    {
+      "number": 478,
+      "name": "spatial_silhouette_score",
+      "method": "spatial_silhouette_score",
+      "line": 31568,
+      "category": "Anomaly_Detection"
+    },
+    {
+      "number": 479,
+      "name": "spatial_curvature_estimator",
+      "method": "spatial_curvature_estimator",
+      "line": 31627,
+      "category": "Terrain"
+    },
+    {
+      "number": 480,
+      "name": "spatial_causal_inference",
+      "method": "spatial_causal_inference",
+      "line": 31691,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 481,
+      "name": "spatial_optimal_transport",
+      "method": "spatial_optimal_transport",
+      "line": 31754,
+      "category": "Optimization"
+    },
+    {
+      "number": 482,
+      "name": "graph_neural_spatial_smoother",
+      "method": "graph_neural_spatial_smoother",
+      "line": 31810,
+      "category": "Network"
+    },
+    {
+      "number": 483,
+      "name": "anisotropic_diffusion_surface",
+      "method": "anisotropic_diffusion_surface",
+      "line": 31859,
+      "category": "Interpolation"
+    },
+    {
+      "number": 484,
+      "name": "persistent_hotspot_tracker",
+      "method": "persistent_hotspot_tracker",
+      "line": 31912,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 485,
+      "name": "spatial_conformal_predictor",
+      "method": "spatial_conformal_predictor",
+      "line": 31974,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 486,
+      "name": "geodesic_medoid_clustering",
+      "method": "geodesic_medoid_clustering",
+      "line": 32069,
+      "category": "Clustering"
+    },
+    {
+      "number": 487,
+      "name": "spatial_sinkhorn_barycenter",
+      "method": "spatial_sinkhorn_barycenter",
+      "line": 32135,
+      "category": "Optimization"
+    },
+    {
+      "number": 488,
+      "name": "multi_agent_coverage",
+      "method": "multi_agent_coverage",
+      "line": 32173,
+      "category": "Optimization"
+    },
+    {
+      "number": 489,
+      "name": "manifold_alignment_spatial",
+      "method": "manifold_alignment_spatial",
+      "line": 32211,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 490,
+      "name": "spatial_stochastic_blockmodel",
+      "method": "spatial_stochastic_blockmodel",
+      "line": 32258,
+      "category": "Clustering"
+    },
+    {
+      "number": 491,
+      "name": "adaptive_mesh_refinement_surface",
+      "method": "adaptive_mesh_refinement_surface",
+      "line": 32307,
+      "category": "Interpolation"
+    },
+    {
+      "number": 492,
+      "name": "spatial_koopman_forecaster",
+      "method": "spatial_koopman_forecaster",
+      "line": 32370,
+      "category": "Time_Series"
+    },
+    {
+      "number": 493,
+      "name": "barycentric_spatial_interpolator",
+      "method": "barycentric_spatial_interpolator",
+      "line": 32416,
+      "category": "Interpolation"
+    },
+    {
+      "number": 494,
+      "name": "topological_skeleton_extractor",
+      "method": "topological_skeleton_extractor",
+      "line": 32468,
+      "category": "Geometry"
+    },
+    {
+      "number": 495,
+      "name": "spatial_contrastive_embedding",
+      "method": "spatial_contrastive_embedding",
+      "line": 32503,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 496,
+      "name": "uncertainty_aware_idw",
+      "method": "uncertainty_aware_idw",
+      "line": 32543,
+      "category": "Interpolation"
+    },
+    {
+      "number": 497,
+      "name": "spatial_federated_clusterer",
+      "method": "spatial_federated_clusterer",
+      "line": 32577,
+      "category": "Clustering"
+    },
+    {
+      "number": 498,
+      "name": "graph_wave_propagation",
+      "method": "graph_wave_propagation",
+      "line": 32630,
+      "category": "Network"
+    },
+    {
+      "number": 499,
+      "name": "spatial_morse_smale_partition",
+      "method": "spatial_morse_smale_partition",
+      "line": 32673,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 500,
+      "name": "optimal_transport_clustering",
+      "method": "optimal_transport_clustering",
+      "line": 32724,
+      "category": "Clustering"
+    },
+    {
+      "number": 501,
+      "name": "game_theoretic_location_equilibrium",
+      "method": "game_theoretic_location_equilibrium",
+      "line": 32770,
+      "category": "Optimization"
+    },
+    {
+      "number": 502,
+      "name": "spatial_ordinal_regression",
+      "method": "spatial_ordinal_regression",
+      "line": 32824,
+      "category": "Regression"
+    },
+    {
+      "number": 503,
+      "name": "graph_total_variation_denoise",
+      "method": "graph_total_variation_denoise",
+      "line": 32878,
+      "category": "Network"
+    },
+    {
+      "number": 504,
+      "name": "spatial_nystrom_kernel_map",
+      "method": "spatial_nystrom_kernel_map",
+      "line": 32919,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 505,
+      "name": "terrain_ridge_detector",
+      "method": "terrain_ridge_detector",
+      "line": 32955,
+      "category": "Regression"
+    },
+    {
+      "number": 506,
+      "name": "spatial_conformal_outlier",
+      "method": "spatial_conformal_outlier",
+      "line": 32988,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 507,
+      "name": "hyperbolic_spatial_embedding",
+      "method": "hyperbolic_spatial_embedding",
+      "line": 33036,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 508,
+      "name": "spatial_energy_distance_test",
+      "method": "spatial_energy_distance_test",
+      "line": 33069,
+      "category": "Statistics"
+    },
+    {
+      "number": 509,
+      "name": "adaptive_radius_hotspot",
+      "method": "adaptive_radius_hotspot",
+      "line": 33107,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 510,
+      "name": "spatial_transport_accessibility",
+      "method": "spatial_transport_accessibility",
+      "line": 33150,
+      "category": "Optimization"
+    },
+    {
+      "number": 511,
+      "name": "graph_heat_centrality",
+      "method": "graph_heat_centrality",
+      "line": 33185,
+      "category": "Network"
+    },
+    {
+      "number": 512,
+      "name": "spatial_bayes_blend_interpolator",
+      "method": "spatial_bayes_blend_interpolator",
+      "line": 33224,
+      "category": "Interpolation"
+    },
+    {
+      "number": 513,
+      "name": "spatial_jensen_shannon_scan",
+      "method": "spatial_jensen_shannon_scan",
+      "line": 33260,
+      "category": "Point_Pattern"
+    },
+    {
+      "number": 514,
+      "name": "front_propagation_distance",
+      "method": "front_propagation_distance",
+      "line": 33313,
+      "category": "Distance"
+    },
+    {
+      "number": 515,
+      "name": "spatial_kernel_herding",
+      "method": "spatial_kernel_herding",
+      "line": 33367,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 516,
+      "name": "spatial_mutual_information_map",
+      "method": "spatial_mutual_information_map",
+      "line": 33416,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 517,
+      "name": "robust_spatial_median_field",
+      "method": "robust_spatial_median_field",
+      "line": 33468,
+      "category": "Diffusion_Smoothing"
+    },
+    {
+      "number": 518,
+      "name": "spatial_bifurcation_detector",
+      "method": "spatial_bifurcation_detector",
+      "line": 33500,
+      "category": "Topology_Advanced"
+    },
+    {
+      "number": 519,
+      "name": "spatial_adversarial_validator",
+      "method": "spatial_adversarial_validator",
+      "line": 33538,
+      "category": "ML_Advanced"
+    },
+    {
+      "number": 520,
+      "name": "spatial_consensus_partition",
+      "method": "spatial_consensus_partition",
+      "line": 33589,
+      "category": "Clustering"
+    }
+  ]
+}

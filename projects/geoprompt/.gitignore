@@ -8,11 +8,9 @@ dist/
 # Test / dev artifacts
 .pytest_cache/
 __pycache__/
-tests/
 benchmarks/
 
-# Internal docs and data
-docs/
+# Data and outputs (generated at runtime)
 data/
 outputs/
 
