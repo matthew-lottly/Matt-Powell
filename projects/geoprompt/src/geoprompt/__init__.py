@@ -1,4 +1,4 @@
-from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, directional_bearing, euclidean_distance, gravity_model, haversine_distance, prompt_decay, prompt_influence, prompt_interaction
+from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, directional_bearing, euclidean_distance, exponential_kernel, gaussian_kernel, gravity_model, haversine_distance, inverse_distance_weight, prompt_decay, prompt_influence, prompt_interaction
 from .frame import Bounds, GeoPromptFrame, SpatialWeights
 from .geometry import geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_convex_hull, geometry_distance, geometry_envelope, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, transform_geometry
 from .overlay import buffer_geometries, dissolve_geometries, geometry_from_shapely, geometry_to_geojson, geometry_to_shapely
@@ -18,8 +18,10 @@ __all__ = [
     "directional_alignment",
     "directional_bearing",
     "euclidean_distance",
+    "exponential_kernel",
     "frame_to_geojson",
     "frame_to_records_flat",
+    "gaussian_kernel",
     "geometry_convex_hull",
     "geometry_distance",
     "geometry_envelope",
@@ -38,6 +40,7 @@ __all__ = [
     "geometry_within_bounds",
     "gravity_model",
     "haversine_distance",
+    "inverse_distance_weight",
     "read_geojson",
     "prompt_decay",
     "prompt_influence",

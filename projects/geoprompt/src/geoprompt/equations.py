@@ -70,6 +70,40 @@ def prompt_interaction(
     )
 
 
+def inverse_distance_weight(
+    distance_value: float,
+    power: float = 1.0,
+    min_distance: float = 1e-12,
+    offset: float = 0.0,
+) -> float:
+    if distance_value < 0:
+        raise ValueError("distance_value must be zero or greater")
+    if power <= 0:
+        raise ValueError("power must be greater than zero")
+    if min_distance < 0:
+        raise ValueError("min_distance must be zero or greater")
+    if offset < 0:
+        raise ValueError("offset must be zero or greater")
+    effective_distance = max(distance_value, min_distance) + offset
+    return 1.0 / math.pow(effective_distance, power)
+
+
+def gaussian_kernel(distance_value: float, bandwidth: float = 1.0) -> float:
+    if distance_value < 0:
+        raise ValueError("distance_value must be zero or greater")
+    if bandwidth <= 0:
+        raise ValueError("bandwidth must be greater than zero")
+    return math.exp(-0.5 * math.pow(distance_value / bandwidth, 2))
+
+
+def exponential_kernel(distance_value: float, scale: float = 1.0) -> float:
+    if distance_value < 0:
+        raise ValueError("distance_value must be zero or greater")
+    if scale <= 0:
+        raise ValueError("scale must be greater than zero")
+    return math.exp(-distance_value / scale)
+
+
 def corridor_strength(
     weight: float,
     corridor_length: float,
@@ -164,8 +198,11 @@ __all__ = [
     "directional_alignment",
     "directional_bearing",
     "euclidean_distance",
+    "exponential_kernel",
+    "gaussian_kernel",
     "gravity_model",
     "haversine_distance",
+    "inverse_distance_weight",
     "prompt_decay",
     "prompt_influence",
     "prompt_interaction",

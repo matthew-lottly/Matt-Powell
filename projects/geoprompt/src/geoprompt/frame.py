@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from heapq import heappop, heappush, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
-from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, gravity_model, prompt_decay, prompt_influence, prompt_interaction
+from .equations import accessibility_index, area_similarity, coordinate_distance, corridor_strength, directional_alignment, exponential_kernel, gaussian_kernel, gravity_model, inverse_distance_weight, prompt_decay, prompt_influence, prompt_interaction
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_convex_hull, geometry_distance, geometry_envelope, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_vertices, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, geometry_from_shapely, overlay_intersections, overlay_union_faces, polygon_split_faces
 from .spatial_index import SpatialIndex
@@ -31780,7 +31780,7 @@ class GeoPromptFrame:
         kernel = [[0.0] * n for _ in range(n)]
         for i in range(n):
             for j in range(n):
-                kernel[i][j] = math.exp(-dm[i][j] / max(reg, 1e-6))
+                kernel[i][j] = exponential_kernel(dm[i][j], scale=max(reg, 1e-6))
         u = [1.0] * n
         v = [1.0] * n
         for _ in range(n_iterations):
@@ -31840,7 +31840,7 @@ class GeoPromptFrame:
                 agg = (1.0 - blend) * hidden[i]
                 w_sum = (1.0 - blend)
                 for j in neighbours[i]:
-                    w = blend / max(1.0 + dm[i][j], 1e-12)
+                    w = blend * inverse_distance_weight(dm[i][j], power=1.0, min_distance=0.0, offset=1.0)
                     agg += w * hidden[j]
                     w_sum += w
                 new_hidden[i] = agg / max(w_sum, 1e-12)
@@ -31891,8 +31891,8 @@ class GeoPromptFrame:
                 weight_sum = 0.0
                 for j in neighbours[i]:
                     grad = current[j] - current[i]
-                    c = math.exp(-(grad / max(conductance, 1e-12)) ** 2)
-                    weight = c / max(1.0 + dm[i][j], 1e-12)
+                    c = gaussian_kernel(abs(grad), bandwidth=max(conductance, 1e-12))
+                    weight = c * inverse_distance_weight(dm[i][j], power=1.0, min_distance=0.0, offset=1.0)
                     flux += weight * grad
                     weight_sum += weight
                 if weight_sum > 0:
@@ -32027,8 +32027,11 @@ class GeoPromptFrame:
             den = 0.0
             for d, j in neighbours:
                 feature_distance = sum((features[i][f] - features[j][f]) ** 2 for f in range(n_feat))
-                spatial_weight = 1.0 / max(1.0 + d, 1e-12)
-                feature_weight = math.exp(-0.5 * feature_distance / max(n_feat, 1))
+                spatial_weight = prompt_decay(distance_value=d, scale=1.0, power=1.0)
+                feature_weight = gaussian_kernel(
+                    math.sqrt(feature_distance / max(n_feat, 1)),
+                    bandwidth=1.0,
+                )
                 weight = spatial_weight * feature_weight
                 num += weight * targets[j]
                 den += weight
