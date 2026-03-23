@@ -18,10 +18,11 @@ A pure-Python spatial analysis toolkit providing **520+ geospatial tools** for p
 pip install geoprompt
 ```
 
-For optional acceleration with reference-grade libraries:
+For optional support libraries and reference-grade comparisons:
 
 ```bash
-pip install geoprompt[full]  # includes shapely, scipy, numpy
+pip install geoprompt[compare,overlay,projection]
+pip install geoprompt[io,raster]
 ```
 
 ## Quick Start

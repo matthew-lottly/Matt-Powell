@@ -9,7 +9,7 @@ python -m venv .venv
 source .venv/bin/activate      # Linux/macOS
 .venv\Scripts\activate         # Windows
 
-pip install -e ".[dev,compare,overlay,projection]"
+pip install -e ".[dev,compare,overlay,projection,io,raster]"
 ```
 
 ## Running Tests
