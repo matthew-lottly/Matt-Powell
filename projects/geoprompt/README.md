@@ -65,7 +65,7 @@ GeoPrompt maintains an evidence-based accuracy posture. Each tool is classified 
 
 ## Tool Reference
 
-### Interpolation & Surface Analysis (Tools 12–13, 53, 80, 191, 193, 199)
+### Interpolation & Surface Analysis (Tools 12–13, 53, 80, 191–193, 199)
 
 | Tool | Method | Key Parameters |
 |------|--------|---------------|
@@ -75,6 +75,7 @@ GeoPrompt maintains an evidence-based accuracy posture. Each tool is classified 
 | `spline_interpolation` | Thin-plate spline | `grid_resolution`, `smoothing` |
 | `kriging_cross_validation` | Leave-one-out CV for kriging quality | Returns RMSE, MAE |
 | `adaptive_idw` | IDW with LOO cross-validated local power | `k_neighbors`, `powers` |
+| `conformal_kriging` | Spatially calibrated conformal kriging intervals | `calibration_fraction`, `alpha`, `local_k` |
 | `raster_algebra` | Safe math expression on grid values | `expression` (uses `x`) |
 | `space_time_kriging` | Product-sum variogram space-time kriging | `value_column`, `time_column` |
 

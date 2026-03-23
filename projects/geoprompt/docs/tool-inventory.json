@@ -1,18 +1,17 @@
 {
   "generated": "2026-03-23",
-  "total_tools": 517,
+  "total_tools": 518,
   "range": [
     1,
     520
   ],
   "missing_numbers": [
     169,
-    171,
-    192
+    171
   ],
   "categories": {
     "Interpolation": {
-      "count": 47,
+      "count": 48,
       "tool_numbers": [
         12,
         13,
@@ -29,6 +28,7 @@
         156,
         157,
         191,
+        192,
         199,
         204,
         205,

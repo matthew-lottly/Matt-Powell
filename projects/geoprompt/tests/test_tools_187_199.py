@@ -379,6 +379,43 @@ class TestAdaptiveIDW:
         assert len(result) == 1
 
 
+class TestConformalKriging:
+    """Tests for conformal_kriging (tool 192)."""
+
+    def test_basic_output(self):
+        pts = [(0, 0), (1, 0), (0, 1), (1, 1), (0.5, 0.5), (1.5, 0.5)]
+        vals = [1.0, 2.0, 3.0, 4.0, 2.5, 3.1]
+        gf = _make_point_frame(pts, vals)
+        result = gf.conformal_kriging("value", grid_resolution=5, calibration_fraction=0.34, alpha=0.1, local_k=3)
+        rows = result.to_records()
+        assert len(rows) == 25
+        row = rows[0]
+        assert "predicted_ckg" in row
+        assert "lower_ckg" in row
+        assert "upper_ckg" in row
+        assert "interval_width_ckg" in row
+        assert row["method_ckg"] == "conformal_ordinary_kriging"
+        for rec in rows:
+            assert rec["lower_ckg"] <= rec["predicted_ckg"] <= rec["upper_ckg"]
+            assert rec["interval_width_ckg"] >= 0.0
+            assert rec["calibration_n_ckg"] >= 1
+
+    def test_lower_alpha_widens_intervals(self):
+        pts = [(0, 0), (1, 0), (0, 1), (1, 1), (0.5, 0.5), (1.5, 0.5)]
+        vals = [1.0, 2.0, 3.0, 4.0, 2.5, 3.1]
+        gf = _make_point_frame(pts, vals)
+        wider = gf.conformal_kriging("value", grid_resolution=4, calibration_fraction=0.34, alpha=0.05, local_k=3)
+        narrower = gf.conformal_kriging("value", grid_resolution=4, calibration_fraction=0.34, alpha=0.3, local_k=3)
+        mean_wider = sum(r["interval_width_ckg"] for r in wider.to_records()) / len(wider)
+        mean_narrower = sum(r["interval_width_ckg"] for r in narrower.to_records()) / len(narrower)
+        assert mean_wider >= mean_narrower
+
+    def test_invalid_fraction_raises(self):
+        gf = _make_point_frame([(0, 0), (1, 0), (0, 1)], [1.0, 2.0, 3.0])
+        with pytest.raises(ValueError, match="calibration_fraction"):
+            gf.conformal_kriging("value", calibration_fraction=1.0)
+
+
 class TestFocalStatistics:
     """Tests for focal_statistics (existing tool 80 — verify no regression)."""
 

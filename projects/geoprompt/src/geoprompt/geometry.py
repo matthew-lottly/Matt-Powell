@@ -421,7 +421,7 @@ def geometry_centroid(geometry: Geometry) -> Coordinate:
     )
 
 
-def geometry_distance(origin: Geometry, destination: Geometry, method: DistanceMethod = "euclidean") -> float:
+def geometry_distance(origin: Geometry, destination: Geometry, method: DistanceMethod | str = "euclidean") -> float:
     return coordinate_distance(geometry_centroid(origin), geometry_centroid(destination), method=method)
 
 

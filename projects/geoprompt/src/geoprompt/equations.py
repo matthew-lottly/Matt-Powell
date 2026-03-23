@@ -36,10 +36,11 @@ def haversine_distance(origin: Coordinate, destination: Coordinate, radius_km: f
     return radius_km * angular_distance
 
 
-def coordinate_distance(origin: Coordinate, destination: Coordinate, method: DistanceMethod = "euclidean") -> float:
-    if method == "euclidean":
+def coordinate_distance(origin: Coordinate, destination: Coordinate, method: DistanceMethod | str = "euclidean") -> float:
+    normalized_method = method.lower().replace("-", "_")
+    if normalized_method == "euclidean":
         return euclidean_distance(origin, destination)
-    if method == "haversine":
+    if normalized_method == "haversine":
         return haversine_distance(origin, destination)
     raise ValueError(f"unsupported distance method: {method}")
 
