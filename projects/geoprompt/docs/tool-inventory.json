@@ -1,9 +1,9 @@
 {
   "generated": "2026-03-23",
-  "total_tools": 518,
+  "total_tools": 520,
   "range": [
     1,
-    520
+    522
   ],
   "missing_numbers": [
     169,
@@ -120,7 +120,7 @@
       ]
     },
     "Regression": {
-      "count": 33,
+      "count": 34,
       "tool_numbers": [
         21,
         88,
@@ -154,7 +154,8 @@
         469,
         472,
         502,
-        505
+        505,
+        522
       ]
     },
     "Regionalization": {
@@ -276,7 +277,7 @@
       ]
     },
     "Statistics": {
-      "count": 57,
+      "count": 58,
       "tool_numbers": [
         16,
         17,
@@ -334,7 +335,8 @@
         447,
         474,
         477,
-        508
+        508,
+        521
       ]
     },
     "Geometry": {
@@ -4283,6 +4285,20 @@
       "method": "spatial_consensus_partition",
       "line": 33589,
       "category": "Clustering"
+    },
+    {
+      "number": 521,
+      "name": "transport_aware_hotspot",
+      "method": "transport_aware_hotspot",
+      "line": 33911,
+      "category": "Statistics"
+    },
+    {
+      "number": 522,
+      "name": "counterfactual_gwr",
+      "method": "counterfactual_gwr",
+      "line": 33999,
+      "category": "Regression"
     }
   ]
 }

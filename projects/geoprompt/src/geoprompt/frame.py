@@ -33908,6 +33908,220 @@ class GeoPromptFrame:
         return GeoPromptFrame._from_internal_rows(out_rows, geometry_column=self.geometry_column, crs=self.crs)
 
     # ------------------------------------------------------------------
+    # Tool 521: transport_aware_hotspot
+    # ------------------------------------------------------------------
+    def transport_aware_hotspot(
+        self,
+        value_column: str,
+        supply_column: str | None = None,
+        *,
+        beta: float = 1.5,
+        n_radii: int = 8,
+        max_radius: float | None = None,
+        suffix: str = "tah",
+    ) -> "GeoPromptFrame":
+        """Hotspot detection weighted by transport-style accessibility.
+
+        Combines adaptive-radius neighbourhood scoring (Tool 509) with
+        Hansen-style distance-decay accessibility (Tool 510) so that
+        hotspot significance is modulated by how reachable each location
+        is within the network of surrounding features.
+        """
+        self._require_column(value_column)
+        centroids = self._centroids()
+        recs = self.to_records()
+        if not recs:
+            return self.copy()
+        n = len(recs)
+        values = [float(r.get(value_column, 0) or 0) for r in recs]
+        supply = (
+            [max(float(r.get(supply_column, 0) or 0), 0.0) for r in recs]
+            if supply_column
+            else values
+        )
+        extent = max(
+            self.bounds().max_x - self.bounds().min_x,
+            self.bounds().max_y - self.bounds().min_y,
+            1e-6,
+        )
+        max_r = max_radius or extent / 2
+        radii = [max_r * (r_idx + 1) / n_radii for r_idx in range(n_radii)]
+        global_mean = sum(values) / n
+        global_std = math.sqrt(sum((v - global_mean) ** 2 for v in values) / n) or 1e-12
+
+        # Pre-compute pairwise distances once
+        dists = [[0.0] * n for _ in range(n)]
+        for i in range(n):
+            for j in range(i + 1, n):
+                d = math.hypot(
+                    centroids[i][0] - centroids[j][0],
+                    centroids[i][1] - centroids[j][1],
+                )
+                dists[i][j] = d
+                dists[j][i] = d
+
+        # Accessibility score per location (Hansen-style)
+        accessibility = [0.0] * n
+        for i in range(n):
+            acc = 0.0
+            for j in range(n):
+                acc += supply[j] / (1.0 + dists[i][j]) ** beta
+            accessibility[i] = acc
+        max_acc = max(accessibility) or 1e-12
+
+        out_rows: list[Record] = []
+        for i in range(n):
+            best_score = -float("inf")
+            best_radius = radii[0]
+            for radius in radii:
+                nb = [j for j in range(n) if dists[i][j] <= radius]
+                local_mean = sum(values[j] for j in nb) / max(len(nb), 1)
+                score = (local_mean - global_mean) / global_std
+                if score > best_score:
+                    best_score = score
+                    best_radius = radius
+            # Transport-weighted hotspot score
+            norm_acc = accessibility[i] / max_acc
+            weighted_score = best_score * norm_acc
+            out_rows.append({
+                self.geometry_column: recs[i][self.geometry_column],
+                f"hotspot_score_{suffix}": round(best_score, 6),
+                f"weighted_score_{suffix}": round(weighted_score, 6),
+                f"accessibility_{suffix}": round(accessibility[i], 6),
+                f"best_radius_{suffix}": round(best_radius, 6),
+                f"is_hotspot_{suffix}": 1 if weighted_score > 1.0 else 0,
+            })
+        return GeoPromptFrame._from_internal_rows(
+            out_rows, geometry_column=self.geometry_column, crs=self.crs,
+        )
+
+    # ------------------------------------------------------------------
+    # Tool 522: counterfactual_gwr
+    # ------------------------------------------------------------------
+    def counterfactual_gwr(
+        self,
+        dependent_column: str,
+        independent_columns: Sequence[str],
+        scenario: dict[str, float],
+        *,
+        bandwidth: float | None = None,
+        auto_bandwidth: bool = False,
+        distance_method: str = "euclidean",
+        suffix: str = "cfgwr",
+    ) -> "GeoPromptFrame":
+        """Geographically weighted regression with counterfactual scenario analysis.
+
+        Fits a local GWR model at each location, then re-predicts under a
+        counterfactual *scenario* where one or more independent variables
+        are shifted by a fixed amount.  The output includes the baseline
+        prediction, the counterfactual prediction, and the spatially
+        varying marginal effect (difference) — enabling causal-style
+        "what-if" sensitivity analysis across geography.
+
+        Parameters
+        ----------
+        scenario : dict[str, float]
+            Mapping of column name → additive perturbation.  For example
+            ``{"income": 1000}`` predicts what happens if income is
+            raised by 1 000 at every location, using local coefficients.
+        """
+        self._require_column(dependent_column)
+        for col in independent_columns:
+            self._require_column(col)
+        n = len(self._rows)
+        if n == 0:
+            return GeoPromptFrame._from_internal_rows(
+                [], geometry_column=self.geometry_column, crs=self.crs,
+            )
+        centroids = self._centroids()
+        dist_matrix = _pairwise_distance_matrix(centroids, distance_method)
+        b = self.bounds()
+        extent = max(b.max_x - b.min_x, b.max_y - b.min_y, 1e-9)
+        p = len(independent_columns) + 1
+        y_vals = [float(row[dependent_column]) for row in self._rows]
+        x_matrix = [
+            [1.0] + [float(row.get(col, 0) or 0) for col in independent_columns]
+            for row in self._rows
+        ]
+
+        # Build the counterfactual X matrix
+        delta = [0.0] + [scenario.get(col, 0.0) for col in independent_columns]
+        x_cf = [[x_matrix[i][j] + delta[j] for j in range(p)] for i in range(n)]
+
+        # Bandwidth selection (golden-section CV, same as Tool 22)
+        def _cv(h: float) -> float:
+            sse = 0.0
+            for i in range(n):
+                wts = [0.0] * n
+                for j in range(n):
+                    if i == j:
+                        continue
+                    u = dist_matrix[i][j] / max(h, 1e-12)
+                    wts[j] = math.exp(-0.5 * u * u) if u < 3.0 else 0.0
+                wxtx = [
+                    [sum(wts[k] * x_matrix[k][a] * x_matrix[k][b_] for k in range(n)) for b_ in range(p)]
+                    for a in range(p)
+                ]
+                wxty = [sum(wts[k] * x_matrix[k][a] * y_vals[k] for k in range(n)) for a in range(p)]
+                coeffs = _solve_linear_system(wxtx, wxty)
+                pred = (
+                    sum(coeffs[j] * x_matrix[i][j] for j in range(p))
+                    if coeffs is not None
+                    else sum(y_vals) / n
+                )
+                sse += (y_vals[i] - pred) ** 2
+            return sse
+
+        if bandwidth is not None:
+            h = bandwidth
+        elif auto_bandwidth and n > 2:
+            h_lo, h_hi = extent * 0.05, extent * 2.0
+            gr = (math.sqrt(5) + 1) / 2
+            for _ in range(15):
+                h1 = h_hi - (h_hi - h_lo) / gr
+                h2 = h_lo + (h_hi - h_lo) / gr
+                if _cv(h1) < _cv(h2):
+                    h_hi = h2
+                else:
+                    h_lo = h1
+            h = (h_lo + h_hi) / 2.0
+        else:
+            h = extent / 3.0
+
+        rows: list[Record] = []
+        for i in range(n):
+            # Local weights
+            wts = [0.0] * n
+            for j in range(n):
+                u = dist_matrix[i][j] / max(h, 1e-12)
+                wts[j] = math.exp(-0.5 * u * u) if u < 3.0 else 0.0
+            wxtx = [
+                [sum(wts[k] * x_matrix[k][a] * x_matrix[k][b_] for k in range(n)) for b_ in range(p)]
+                for a in range(p)
+            ]
+            wxty = [sum(wts[k] * x_matrix[k][a] * y_vals[k] for k in range(n)) for a in range(p)]
+            coeffs = _solve_linear_system(wxtx, wxty)
+            if coeffs is None:
+                coeffs = [0.0] * p
+
+            baseline_pred = sum(coeffs[j] * x_matrix[i][j] for j in range(p))
+            cf_pred = sum(coeffs[j] * x_cf[i][j] for j in range(p))
+            effect = cf_pred - baseline_pred
+
+            resolved = dict(self._rows[i])
+            resolved[f"predicted_{suffix}"] = round(baseline_pred, 6)
+            resolved[f"counterfactual_{suffix}"] = round(cf_pred, 6)
+            resolved[f"effect_{suffix}"] = round(effect, 6)
+            resolved[f"bandwidth_{suffix}"] = round(h, 6)
+            resolved[f"intercept_{suffix}"] = round(coeffs[0], 6)
+            for ci, col in enumerate(independent_columns):
+                resolved[f"coeff_{col}_{suffix}"] = round(coeffs[ci + 1], 6)
+            rows.append(resolved)
+        return GeoPromptFrame._from_internal_rows(
+            rows, geometry_column=self.geometry_column, crs=self.crs,
+        )
+
+    # ------------------------------------------------------------------
     # Internal helper: IDW grid generation
     # ------------------------------------------------------------------
     def _idw_grid(
