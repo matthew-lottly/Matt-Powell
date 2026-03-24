@@ -5,10 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "geoprompt"
 version = "0.1.18"
-description = "Custom spatial analysis package with GeoPandas-style frame workflows and GeoPrompt equations."
+description = "Pure-Python spatial analysis toolkit with GeoJSON-native geometries and GeoPandas-style frame workflows."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
+authors = [
+    {name = "Matthew Powell"},
+]
 keywords = ["spatial-analysis", "gis", "geojson", "geometry"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -16,12 +19,21 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: GIS",
     "Typing :: Typed",
 ]
 dependencies = [
     "matplotlib>=3.9,<4.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/matthew-lottly/Matt-Powell/tree/main/projects/geoprompt"
+Repository = "https://github.com/matthew-lottly/Matt-Powell"
+Issues = "https://github.com/matthew-lottly/Matt-Powell/issues"
+Documentation = "https://github.com/matthew-lottly/Matt-Powell/tree/main/projects/geoprompt"
 
 [project.optional-dependencies]
 dev = [

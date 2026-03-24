@@ -1,13 +1,13 @@
 # GeoPrompt
 
-A pure-Python spatial analysis toolkit providing **530 geospatial tools** for point, line, and polygon workflows. GeoPrompt delivers GeoPandas-style frame access, GeoJSON-compatible I/O, CRS-aware reprojection, spatial joins, geographic distance methods, and a comprehensive suite of spatial statistics, interpolation, clustering, terrain analysis, network routing, AI-powered analysis, pseudo-quantum computing, optimal transport, topological analysis, graph diffusion, conformal prediction, and interchange formats — all without requiring compiled C extensions.
+A pure-Python spatial analysis toolkit providing **530 geospatial tools** for point, line, and polygon workflows. GeoPrompt delivers GeoPandas-style frame access, GeoJSON-compatible I/O, CRS-aware reprojection, spatial joins, geographic distance methods, and a comprehensive suite of spatial statistics, interpolation, clustering, terrain analysis, network routing, AI-powered analysis, pseudo-quantum computing, optimal transport, topological analysis, graph diffusion, conformal prediction, and interchange formats.
 
-![Generated neighborhood pressure plot from the GeoPrompt demo](assets/neighborhood-pressure-review-live.png)
+![Generated neighborhood pressure plot from the GeoPrompt demo](https://raw.githubusercontent.com/matthew-lottly/Matt-Powell/main/projects/geoprompt/assets/neighborhood-pressure-review-live.png)
 
 ## Key Features
 
 - **530 spatial analysis tools** covering interpolation, classification, clustering, regression, terrain analysis, network analysis, point patterns, geometry utilities, I/O formats, raster operations, AI/ML methods, pseudo-quantum algorithms, optimal transport, topological inference, graph dynamics, and more
-- **Zero compiled dependencies** — runs on any Python 3.11+ environment; optionally accelerates with Shapely, SciPy, and PySAL when available
+- **Pure-Python package code** — published as a universal wheel; optional extras integrate with heavier geospatial and statistical stacks when needed
 - **GeoJSON-native** — all geometries use standard GeoJSON format internally
 - **CRS-aware** — coordinate reference system assignment and reprojection via `to_crs()`
 - **Scientifically grounded** — algorithms validated against Shapely, SciPy, NumPy, PySAL, PyKrige, GeoPandas, scikit-learn, and statsmodels
@@ -24,6 +24,14 @@ For optional support libraries and reference-grade comparisons:
 pip install geoprompt[compare,overlay,projection]
 pip install geoprompt[io,raster]
 ```
+
+## Install Notes
+
+- `pip install geoprompt` installs the base package and core plotting dependency.
+- `pip install geoprompt[compare]` adds reference-comparison libraries such as PySAL, GeoPandas, PyKrige, Shapely, and statsmodels.
+- `pip install geoprompt[overlay,projection]` adds geometry overlay and CRS transformation support.
+- `pip install geoprompt[io,raster]` adds Fiona, OpenPyXL, PyShp, and Rasterio for broader file-format and raster workflows.
+- Optional extras may pull in compiled third-party wheels depending on platform.
 
 ## Quick Start
 
@@ -64,6 +72,8 @@ GeoPrompt maintains an evidence-based accuracy posture. Each tool is classified 
 | **Heuristic** | Optimization shortcut — useful but not guaranteed globally optimal |
 
 ## Tool Reference
+
+This section is a curated reference to major tool families. The full machine-readable inventory is available in `docs/tool-inventory.json`.
 
 ### Interpolation & Surface Analysis (Tools 12–13, 53, 80, 191–193, 199)
 
