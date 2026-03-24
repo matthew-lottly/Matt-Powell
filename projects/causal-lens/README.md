@@ -88,15 +88,46 @@ It also writes paper-oriented artifacts under `outputs/charts/` and `outputs/tab
 
 Current artifact generation already supports the first wave of article figures and summary tables, including public benchmark comparisons.
 
+## Installation
+
+```bash
+pip install .
+```
+
+Or in development mode:
+
+```bash
+pip install -e .
+```
+
+## Quick Start
+
+```python
+from causal_lens import (
+    generate_synthetic_observational_data,
+    RegressionAdjustmentEstimator,
+    DoublyRobustEstimator,
+    results_to_frame,
+)
+
+data = generate_synthetic_observational_data(n=500, seed=42)
+confounders = ["x1", "x2"]
+
+reg = RegressionAdjustmentEstimator()
+result_reg = reg.estimate(data, "treatment", "outcome", confounders)
+
+dr = DoublyRobustEstimator()
+result_dr = dr.estimate(data, "treatment", "outcome", confounders)
+
+df = results_to_frame([result_reg, result_dr])
+print(df[["estimator", "effect", "se", "p_value"]].to_string(index=False))
+```
+
+## Documentation
+
 See [docs/architecture.md](docs/architecture.md) for the design notes.
-See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
 See [docs/methodology.md](docs/methodology.md) for assumptions, reasoning, and estimator justification.
-See [docs/article-positioning.md](docs/article-positioning.md) for software-paper framing.
 See [docs/public-benchmarks.md](docs/public-benchmarks.md) for the public dataset choices and benchmark rationale.
 See [docs/benchmark-interpretation.md](docs/benchmark-interpretation.md) for a results-oriented reading of the current benchmark artifacts.
 See [docs/reference-validation.md](docs/reference-validation.md) for executable validation logic tied to the future journal article.
-See [docs/manuscript-outline.md](docs/manuscript-outline.md) for a section-by-section software-paper outline.
 See [docs/limitations-and-assumptions.md](docs/limitations-and-assumptions.md) for a paper-ready limitations section.
-See [docs/figure-captions.md](docs/figure-captions.md) for reusable captions tied to the generated artifacts.
-See [docs/literature-comparison.md](docs/literature-comparison.md) for published reference value comparison.
-The submission manuscript is kept in a local ignored drafts folder until submission; the public repo intentionally exposes only the supporting methodology and benchmark notes.
