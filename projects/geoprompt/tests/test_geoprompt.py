@@ -38,6 +38,11 @@ def test_distance_and_decay_equations() -> None:
     assert round(prompt_interaction(0.71, 0.88, distance_value=distance_value, scale=0.16, power=1.5), 4) == 0.3388
 
 
+def test_prompt_decay_rejects_negative_distance() -> None:
+    with pytest.raises(ValueError, match="distance_value must be zero or greater"):
+        prompt_decay(distance_value=-1.0)
+
+
 def test_neighborhood_pressure_and_anchor_influence() -> None:
     frame = read_points(PROJECT_ROOT / "data" / "sample_points.json")
 

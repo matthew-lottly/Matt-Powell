@@ -46,6 +46,8 @@ def coordinate_distance(origin: Coordinate, destination: Coordinate, method: Dis
 
 
 def prompt_decay(distance_value: float, scale: float = 1.0, power: float = 2.0) -> float:
+    if distance_value < 0:
+        raise ValueError("distance_value must be zero or greater")
     if scale <= 0:
         raise ValueError("scale must be greater than zero")
     if power <= 0:
