@@ -4,6 +4,29 @@ All notable changes to CausalLens will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0] — 2025-07-24
+
+### Added
+- Fuzzy regression discontinuity design via the local Wald ratio with delta-method standard errors and first-stage F-statistic / weak-instrument diagnostics.
+- Robust bias-corrected RD inference following Calonico, Cattaneo & Titiunik (2014): pilot-bandwidth curvature estimation, bias correction, robust standard errors and confidence intervals in the `RDEstimate` result object.
+- McCrary (2008) density manipulation test as `.mccrary_test()` on the `RegressionDiscontinuity` class, returning a structured `McCraryResult` with z-statistic, p-value, and manipulation flag.
+- Structural bunching elasticity estimation via `.elasticity()` on `BunchingEstimator`, implementing the Saez (2010) / Kleven (2016) kink-point formula with bootstrap confidence intervals, returning a `BunchingElasticity` result object.
+- Cross-design Monte Carlo simulation DGPs for sharp RD, fuzzy RD, and bunching (kink) in `simulation.py`, plus `run_rdd_simulation()` runner.
+- `RDD_DGP_REGISTRY` dict for programmatic access to RD/bunching data-generating processes.
+- `RDEstimate` expanded with 11 new fields: `bias_corrected_effect`, `robust_se`, `robust_p_value`, `robust_ci_low`, `robust_ci_high`, `pilot_bandwidth`, `first_stage_effect`, `first_stage_se`, `first_stage_f`, `reduced_form_effect`, `reduced_form_se`.
+- New dataclasses: `McCraryResult`, `BunchingElasticity`.
+- 10 new tests covering robust bias correction, fuzzy RD, McCrary testing, structural elasticity, and cross-design simulation.
+- Substantially expanded literature review with 50+ references, software positioning table, and novelty assessment section.
+- Updated methodology docs with full quasi-experimental methods section covering RD, bunching, and simulation.
+
+## [0.4.0] — 2026-03-24
+
+### Added
+- Local sharp regression discontinuity estimator (`RegressionDiscontinuity`) with weighted local-polynomial fitting, heteroskedasticity-robust inference, optional covariate adjustment, and cutoff-local density ratio reporting.
+- Descriptive bunching estimator (`BunchingEstimator`) measuring excess mass around a threshold by comparing observed histogram mass against a smooth polynomial counterfactual.
+- Public literature review and software-positioning document in `docs/literature-review.md` to narrow repository claims and add citation coverage across observational estimators, panel methods, IV, RDD, bunching, and adjacent Python causal packages.
+- 5 new tests covering RDD and bunching behavior on synthetic data.
+
 ## [0.3.0] — 2025-07-24
 
 ### Added

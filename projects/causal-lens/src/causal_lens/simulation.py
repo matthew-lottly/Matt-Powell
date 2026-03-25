@@ -97,6 +97,138 @@ DGP_REGISTRY: dict[str, Any] = {
 
 
 # ---------------------------------------------------------------------------
+# RDD and Bunching DGPs (cross-design simulation)
+# ---------------------------------------------------------------------------
+
+def _dgp_sharp_rdd(
+    n: int, rng: np.random.Generator, treatment_effect: float,
+) -> pd.DataFrame:
+    """Sharp RD with polynomial outcome and known cutoff effect."""
+    running = rng.uniform(-1.0, 1.0, n)
+    outcome = (
+        1.5 + treatment_effect * (running >= 0.0)
+        + 1.5 * running + 0.8 * running ** 2
+        + rng.normal(0, 0.5, n)
+    )
+    return pd.DataFrame({"running": running, "outcome": outcome})
+
+
+def _dgp_fuzzy_rdd(
+    n: int, rng: np.random.Generator, treatment_effect: float,
+) -> pd.DataFrame:
+    """Fuzzy RD where treatment jumps at cutoff but isn't deterministic."""
+    running = rng.uniform(-1.0, 1.0, n)
+    treat_prob = np.clip(0.2 + 0.5 * (running >= 0.0) + 0.1 * running, 0.05, 0.95)
+    treatment = rng.binomial(1, treat_prob, n).astype(float)
+    outcome = 1.0 + treatment_effect * treatment + 1.2 * running + rng.normal(0, 0.6, n)
+    return pd.DataFrame({"running": running, "outcome": outcome, "treatment": treatment})
+
+
+def _dgp_bunching_kink(
+    n: int, rng: np.random.Generator, _treatment_effect: float,
+) -> pd.DataFrame:
+    """Income distribution with bunching at a kink point for elasticity recovery.
+
+    True elasticity is 0.25 with a kink at 50000.
+    """
+    zstar = 50000.0
+    elasticity = 0.25
+    t1, t2 = 0.15, 0.25
+    ntr = (t2 - t1) / (1.0 - t1)
+    dz = elasticity * zstar * ntr
+
+    z0 = rng.uniform(30000, 70000, n)
+    z_obs = z0.copy()
+    in_region = (z0 > zstar) & (z0 <= zstar + dz)
+    z_obs[in_region] = zstar + rng.uniform(-25, 25, int(in_region.sum()))
+    z_obs += rng.normal(0, 200, n)
+
+    return pd.DataFrame({"income": z_obs})
+
+
+RDD_DGP_REGISTRY: dict[str, Any] = {
+    "sharp_rdd": _dgp_sharp_rdd,
+    "fuzzy_rdd": _dgp_fuzzy_rdd,
+    "bunching_kink": _dgp_bunching_kink,
+}
+
+
+def run_rdd_simulation(
+    n_replications: int = 100,
+    sample_sizes: tuple[int, ...] = (500, 2000),
+    true_effect: float = 2.75,
+    seed: int = 42,
+) -> pd.DataFrame:
+    """Monte Carlo simulation for RDD and bunching estimators."""
+    from causal_lens.rdd import BunchingEstimator, RegressionDiscontinuity
+
+    rng = np.random.default_rng(seed)
+    rows: list[dict] = []
+
+    for dgp_name in ("sharp_rdd", "fuzzy_rdd"):
+        dgp_fn = RDD_DGP_REGISTRY[dgp_name]
+        for n in sample_sizes:
+            for rep in range(n_replications):
+                data = dgp_fn(n, rng, true_effect)
+                try:
+                    if dgp_name == "sharp_rdd":
+                        est = RegressionDiscontinuity("running", "outcome", cutoff=0.0, bandwidth=0.4)
+                    else:
+                        est = RegressionDiscontinuity(
+                            "running", "outcome", cutoff=0.0, bandwidth=0.4,
+                            treatment_col="treatment",
+                        )
+                    result = est.fit(data)
+
+                    # Use conventional for sharp, Wald for fuzzy
+                    eff = result.effect
+                    se = result.se
+                    ci_lo = result.ci_low
+                    ci_hi = result.ci_high
+
+                    covered = (
+                        ci_lo is not None and ci_hi is not None
+                        and ci_lo <= true_effect <= ci_hi
+                    )
+
+                    # Also record bias-corrected
+                    bc_eff = result.bias_corrected_effect
+                    r_se = result.robust_se
+                    r_lo = result.robust_ci_low
+                    r_hi = result.robust_ci_high
+                    bc_covered = (
+                        r_lo is not None and r_hi is not None
+                        and r_lo <= true_effect <= r_hi
+                    )
+
+                    rows.append({
+                        "dgp": dgp_name, "n": n, "replication": rep,
+                        "estimator": "RD_conventional",
+                        "estimate": eff, "se": se,
+                        "ci_low": ci_lo, "ci_high": ci_hi,
+                        "covered": covered, "true_effect": true_effect,
+                    })
+                    rows.append({
+                        "dgp": dgp_name, "n": n, "replication": rep,
+                        "estimator": "RD_bias_corrected",
+                        "estimate": bc_eff, "se": r_se,
+                        "ci_low": r_lo, "ci_high": r_hi,
+                        "covered": bc_covered, "true_effect": true_effect,
+                    })
+                except Exception:
+                    for est_name in ("RD_conventional", "RD_bias_corrected"):
+                        rows.append({
+                            "dgp": dgp_name, "n": n, "replication": rep,
+                            "estimator": est_name,
+                            "estimate": np.nan, "se": np.nan,
+                            "ci_low": np.nan, "ci_high": np.nan,
+                            "covered": np.nan, "true_effect": true_effect,
+                        })
+
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
 # Estimator factory
 # ---------------------------------------------------------------------------
 

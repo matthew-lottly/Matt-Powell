@@ -28,11 +28,15 @@ from causal_lens.reporting import benchmark_to_frame, export_benchmark_artifacts
 from causal_lens.synthetic import generate_synthetic_observational_data
 from causal_lens.panel import DifferenceInDifferences, SyntheticControl, DiDEstimate, SyntheticControlEstimate
 from causal_lens.iv import TwoStageLeastSquares, IVEstimate
-from causal_lens.simulation import SimulationConfig, run_simulation, summarize_simulation, run_quick_simulation, DGP_REGISTRY
+from causal_lens.rdd import BunchingElasticity, BunchingEstimate, BunchingEstimator, McCraryResult, RDEstimate, RegressionDiscontinuity
+from causal_lens.simulation import SimulationConfig, run_simulation, summarize_simulation, run_quick_simulation, run_rdd_simulation, DGP_REGISTRY, RDD_DGP_REGISTRY
 
 __all__ = [
     "CausalEstimate",
     "benchmark_to_frame",
+    "BunchingElasticity",
+    "BunchingEstimate",
+    "BunchingEstimator",
     "CrossFittedDREstimator",
     "DGP_REGISTRY",
     "DiagnosticSummary",
@@ -49,14 +53,19 @@ __all__ = [
     "load_lalonde_benchmark",
     "load_monitoring_intervention_sample",
     "load_nhefs_complete_benchmark",
+    "McCraryResult",
     "NHEFS_COMPLETE_CONFOUNDERS",
     "PlaceboResult",
     "PropensityMatcher",
+    "RDD_DGP_REGISTRY",
+    "RDEstimate",
     "RegressionAdjustmentEstimator",
+    "RegressionDiscontinuity",
     "results_to_frame",
     "RosenbaumSensitivity",
     "run_placebo_test",
     "run_quick_simulation",
+    "run_rdd_simulation",
     "run_simulation",
     "SensitivitySummary",
     "SimulationConfig",

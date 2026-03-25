@@ -143,6 +143,18 @@
       "extraPaths": [
         "src"
       ]
+    },
+    {
+      "root": "projects/causal-lens",
+      "extraPaths": [
+        "src"
+      ]
+    },
+    {
+      "root": "standalone-checkouts/causal-lens",
+      "extraPaths": [
+        "src"
+      ]
     }
   ]
 }

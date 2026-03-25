@@ -7,12 +7,12 @@ Data science portfolio project for causal effect estimation, observational-study
 - Lane: Data science and causal inference
 - Domain: Observational treatment-effect estimation
 - Stack: Python, pandas, scikit-learn, statsmodels, lightweight estimator objects
-- Includes: regression adjustment, propensity scoring, matching, inverse probability weighting, doubly robust estimation, difference-in-differences, synthetic control, instrumental variables / 2SLS, diagnostics, subgroup summaries, sensitivity analysis, Monte Carlo simulation study, tests
+- Includes: regression adjustment, propensity scoring, matching, inverse probability weighting, doubly robust estimation, difference-in-differences, synthetic control, instrumental variables / 2SLS, sharp and fuzzy regression discontinuity with robust bias-corrected inference, McCrary manipulation testing, descriptive bunching analysis, structural bunching elasticity estimation, diagnostics, subgroup summaries, sensitivity analysis, Monte Carlo simulation study, tests
 - Includes: a fixed observational intervention dataset, two public benchmark datasets, synthetic known-effect validation, formal simulation study, and publication-oriented methodology notes
 
 ## Overview
 
-CausalLens packages core causal-inference workflows for observational tabular data into a small, testable Python library. The initial release is designed around practical treatment-effect estimation rather than theory-heavy experimentation: estimate treatment effects, inspect overlap and balance, and compare estimators with consistent result objects.
+CausalLens packages core causal-inference workflows for observational tabular data and quasi-experimental designs into a small, testable Python library. It is the first Python package to integrate observational estimators, panel methods, instrumental variables, sharp and fuzzy regression discontinuity with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity estimation through a unified diagnostics-first API. The contribution is a compact implementation that makes assumptions, benchmark evidence, and estimator comparison explicit enough to review.
 
 The current repository now uses four complementary evidence tracks:
 
@@ -55,7 +55,13 @@ The current repository now uses four complementary evidence tracks:
 - Difference-in-differences estimator with regression-based ATT, cluster-robust standard errors, and a parallel-trends pre-test
 - Synthetic control method with constrained least-squares donor weights and placebo inference via leave-one-out permutation
 - Two-stage least squares (2SLS) instrumental variables estimator with proper IV variance, first-stage F-statistic, and weak-instrument detection
-- Monte Carlo simulation framework with five DGPs (linear, nonlinear outcome, nonlinear propensity, double nonlinear, strong confounding) evaluating bias, RMSE, coverage, and SE calibration ratio
+- Local sharp regression discontinuity estimator with weighted local-polynomial fitting near the cutoff
+- Fuzzy regression discontinuity via the local Wald ratio with delta-method standard errors and first-stage F-statistic reporting
+- Robust bias-corrected RD inference following Calonico, Cattaneo & Titiunik (2014): pilot-bandwidth curvature estimation, bias correction, and robust standard errors/confidence intervals
+- McCrary (2008) density manipulation test integrated as a method on the RD estimator for running-variable sorting detection
+- Descriptive bunching estimator that measures excess mass around a threshold by comparing observed and smooth counterfactual histogram mass
+- Structural bunching elasticity estimation following Saez (2010) and Kleven (2016), recovering compensated elasticities from kink-point designs with bootstrap confidence intervals
+- Monte Carlo simulation framework with five observational DGPs plus cross-design DGPs for sharp RD, fuzzy RD, and bunching, evaluating bias, RMSE, coverage, and SE calibration ratio
 - IPW standard errors corrected for propensity-score estimation uncertainty via the Lunceford & Davidian (2004) stacked estimating equations adjustment
 
 ## Current Output
@@ -92,10 +98,12 @@ It also writes paper-oriented artifacts under `outputs/charts/` and `outputs/tab
 ## Next Upgrade Path
 
 - add article figures, benchmark tables, and formal estimator-comparison writeups for DiD, synthetic control, and IV
-- add regression discontinuity design (RDD) and bunching estimators
+- add MSE-optimal bandwidth selection for RD (Calonico, Cattaneo & Farrell 2020 approach)
 - expand simulation study to additional sample sizes and publish summary tables
+- add staggered-adoption DiD estimators
+- add notch-design bunching estimation
 
-All cross-sectional estimators, panel-data methods, IV, and simulation infrastructure are now in place.
+Cross-sectional estimators, panel-data methods, IV, sharp and fuzzy RDD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity are now in place.
 
 ## Installation
 
@@ -158,3 +166,4 @@ See [docs/public-benchmarks.md](docs/public-benchmarks.md) for the public datase
 See [docs/benchmark-interpretation.md](docs/benchmark-interpretation.md) for a results-oriented reading of the current benchmark artifacts.
 See [docs/reference-validation.md](docs/reference-validation.md) for executable validation logic tied to the future journal article.
 See [docs/limitations-and-assumptions.md](docs/limitations-and-assumptions.md) for a paper-ready limitations section.
+See [docs/literature-review.md](docs/literature-review.md) for claim boundaries, software positioning, and cited methodological references.

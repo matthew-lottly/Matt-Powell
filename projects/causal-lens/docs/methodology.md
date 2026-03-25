@@ -4,7 +4,7 @@ This document records the reasoning behind the current CausalLens design and the
 
 ## Scope
 
-CausalLens currently targets observational tabular data with binary treatment assignment. The package intentionally starts with estimators that are standard, interpretable, and widely cited, because the early journal value of the project is not a new estimator. The value is a disciplined implementation that makes assumptions, diagnostics, and estimator comparison explicit.
+CausalLens currently targets observational tabular data with binary treatment assignment, plus adjacent quasi-experimental settings where local design-based assumptions are credible. The package intentionally centers standard, interpretable, and widely cited estimators because the journal value of the project is not a new estimator. The value is a disciplined implementation that makes assumptions, diagnostics, and estimator comparison explicit.
 
 ## Why these estimators
 
@@ -76,6 +76,31 @@ The project is not novel because it re-invents matching or weighting. Its differ
 2. diagnostics shipped by default rather than left to ad hoc user code
 3. explicit support for both real-style reproducible fixtures and synthetic known-effect validation
 4. a publication-oriented design where methods, assumptions, and checks are documented alongside code
+5. support for multiple identification strategies in one small package: observational adjustment, panel comparisons, IV, sharp and fuzzy RDD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity estimation
+
+## Quasi-Experimental Methods
+
+### Regression discontinuity
+
+The `RegressionDiscontinuity` class implements local-polynomial estimation for sharp and fuzzy RD designs.
+
+**Sharp RD.** In the sharp design, treatment is a deterministic function of the running variable crossing a cutoff. The estimator fits kernel-weighted local polynomials (degree 1 or 2) on each side of the cutoff, with the treatment-effect estimate given by the discontinuity in the conditional expectation at the cutoff. Standard errors use HC1 heteroskedasticity-robust inference.
+
+**Fuzzy RD.** In the fuzzy design, crossing the cutoff increases the probability of treatment but does not determine it. The estimator computes a local Wald ratio (reduced form / first stage) where both the outcome-discontinuity and treatment-discontinuity regressions are run on the same kernel-weighted local sample. Standard errors for the Wald ratio use the delta method. The first-stage F-statistic is reported for weak-instrument diagnostics.
+
+**Robust bias-corrected inference.** Following Calonico, Cattaneo, and Titiunik (2014), the estimator computes a bias correction using a pilot local polynomial of one degree higher than the main specification, fitted on a wider bandwidth (default: 1.5x main bandwidth). The leading bias is estimated from the curvature difference across the cutoff, and the variance contribution of the bias estimate is added to produce robust standard errors and confidence intervals that account for smoothing bias.
+
+**McCrary manipulation test.** The `mccrary_test()` method implements a kernel-weighted density comparison around the cutoff, testing whether observations bunch disproportionately on one side. Under the null of no manipulation, the fraction of observations on each side follows a binomial distribution centered at 0.5. A significant departure provides evidence for sorting on the running variable.
+
+### Bunching estimation
+
+The `BunchingEstimator` class measures excess mass around a threshold (kink or notch) by comparing the observed histogram against a smooth polynomial counterfactual fitted on bins outside the excluded window.
+
+**Structural elasticity.** The `elasticity()` method implements the Saez (2010) / Kleven (2016) structural estimation formula. Given marginal tax rates below and above a kink, the excess mass at the kink is converted to an implied shift in taxable income, which yields a compensated elasticity. Bootstrap confidence intervals are computed by resampling the microdata.
+
+### Simulation framework
+
+The Monte Carlo framework now covers data-generating processes for all identification strategies: observational DGPs (linear, nonlinear outcome, nonlinear propensity, double nonlinear, strong confounding), RDD DGPs (sharp RD with polynomial outcome, fuzzy RD with probabilistic treatment compliance), and a bunching DGP (income distribution with bunching at a tax kink point). The `run_rdd_simulation()` function runs both conventional and bias-corrected RD across these DGPs and reports bias, coverage, and SE calibration.
 
 ## Current evidence strategy
 
