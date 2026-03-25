@@ -92,7 +92,7 @@ The default command writes `outputs/causal_report.json` with:
 - Rosenbaum sensitivity bounds for matched-pair designs
 - external comparison and stability-analysis summaries for the exported benchmark artifacts
 
-It also writes paper-oriented artifacts under `outputs/charts/` and `outputs/tables/` including:
+It also writes paper-oriented artifacts under `outputs/charts/`, `outputs/tables/`, and `outputs/paper/` including:
 
 - estimator comparison charts with confidence intervals
 - balance before/after summary charts
@@ -104,6 +104,8 @@ It also writes paper-oriented artifacts under `outputs/charts/` and `outputs/tab
 - `placebo_test.csv` showing falsification test results on pre-treatment outcomes
 - `rosenbaum_bounds.csv` showing matched-pair sensitivity to hidden bias at each Gamma level
 - Love plots and propensity-score overlap histograms for each benchmark dataset
+- PDF and SVG figure variants alongside the PNG exports for publication workflows
+- a curated manuscript bundle under `outputs/paper/figures/` and `outputs/paper/tables/`
 
 ## Next Upgrade Path
 

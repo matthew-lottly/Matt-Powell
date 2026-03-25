@@ -6,6 +6,8 @@ dist/
 build/
 outputs/*.json
 !outputs/.gitkeep
+outputs/charts/*.pdf
+outputs/charts/*.svg
 
 # Local manuscript drafting stays off the published repo until submission.
 .private-drafts/

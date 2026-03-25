@@ -11,6 +11,12 @@ import pandas as pd
 
 
 CHART_DPI = 300
+FIGURE_EXTENSIONS = (".png", ".pdf", ".svg")
+
+# JSS text width is ~15.5 cm.  Use that for full-width paper figures.
+PAPER_FIGURE_WIDTH_IN = 6.1
+PAPER_FIGURE_ASPECT = 0.618  # golden ratio
+
 PALETTE = {
     "ink": "#1F2A44",
     "blue": "#4C78A8",
@@ -26,6 +32,12 @@ METHOD_LABELS = {
     "IPWEstimator": "IPW",
     "DoublyRobustEstimator": "Doubly robust",
     "DifferenceInDifferences": "Difference-in-differences",
+}
+DATASET_LABELS = {
+    "real_dataset": "Monitoring fixture",
+    "lalonde_public_benchmark": "Lalonde benchmark",
+    "nhefs_public_benchmark": "NHEFS benchmark",
+    "synthetic_validation_dataset": "Synthetic validation",
 }
 
 
@@ -134,6 +146,147 @@ def export_benchmark_artifacts(report_payload: dict, output_dir: Path) -> None:
     benchmark_tex.write_text(_frame_to_latex(benchmark_frame, caption="Cross-dataset benchmark summary.", label="tab:cross-dataset-benchmarks"), encoding="utf-8")
 
 
+def export_paper_artifacts(
+    report_payload: dict,
+    output_dir: Path,
+    *,
+    placebo_results: list[dict] | None = None,
+    rosenbaum_results: list[dict] | None = None,
+    stability_summary: pd.DataFrame | None = None,
+) -> None:
+    paper_dir = output_dir / "paper"
+    figures_dir = paper_dir / "figures"
+    tables_dir = paper_dir / "tables"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
+    benchmark_frame = benchmark_to_frame(report_payload)
+    overview_frame = _paper_benchmark_overview_frame(report_payload)
+    overview_frame.to_csv(tables_dir / "table01_benchmark_overview.csv", index=False)
+    (tables_dir / "table01_benchmark_overview.tex").write_text(
+        _frame_to_latex(
+            overview_frame,
+            caption="Benchmark overview across the manuscript datasets.",
+            label="tab:paper-benchmark-overview",
+            environment="table",
+            size_command="\\footnotesize",
+        ),
+        encoding="utf-8",
+    )
+
+    paper_dataset_keys = [
+        "lalonde_public_benchmark",
+        "nhefs_public_benchmark",
+        "synthetic_validation_dataset",
+    ]
+    for index, dataset_key in enumerate(paper_dataset_keys, start=2):
+        dataset_payload = report_payload[dataset_key]
+        results_frame = results_to_frame(dataset_payload["results"])
+        paper_frame = _paper_estimator_table_frame(results_frame)
+        table_stem = tables_dir / f"table{index:02d}_{dataset_key}_estimators"
+        paper_frame.to_csv(table_stem.with_suffix(".csv"), index=False)
+        table_stem.with_suffix(".tex").write_text(
+            _frame_to_latex(
+                paper_frame,
+                caption=f"{_paper_dataset_name(dataset_key)} estimator summary.",
+                label=f"tab:paper-{dataset_key}-estimators",
+                environment="table",
+                size_command="\\footnotesize",
+            ),
+            encoding="utf-8",
+        )
+
+    lalonde_frame = results_to_frame(report_payload["lalonde_public_benchmark"]["results"])
+    nhefs_frame = results_to_frame(report_payload["nhefs_public_benchmark"]["results"])
+    synthetic_frame = results_to_frame(report_payload["synthetic_validation_dataset"]["results"])
+
+    paper_w = PAPER_FIGURE_WIDTH_IN
+    paper_h = paper_w * PAPER_FIGURE_ASPECT
+
+    _plot_estimator_comparison(
+        lalonde_frame,
+        title="Lalonde benchmark: estimator comparison",
+        output_path=figures_dir / "figure01_lalonde_estimators.png",
+        figsize=(paper_w, paper_h),
+    )
+    _plot_estimator_comparison(
+        nhefs_frame,
+        title="NHEFS benchmark: estimator comparison",
+        output_path=figures_dir / "figure02_nhefs_estimators.png",
+        figsize=(paper_w, paper_h),
+    )
+    _plot_love(
+        report_payload["nhefs_public_benchmark"]["results"][-1]["diagnostics"]["balance_before"],
+        report_payload["nhefs_public_benchmark"]["results"][-1]["diagnostics"]["balance_after"],
+        title="NHEFS benchmark: covariate balance",
+        output_path=figures_dir / "figure03_nhefs_love_plot.png",
+        figsize=(paper_w, paper_h + 1.0),
+    )
+    _plot_estimator_comparison(
+        synthetic_frame,
+        title="Synthetic validation: estimator comparison",
+        output_path=figures_dir / "figure04_synthetic_estimators.png",
+        figsize=(paper_w, paper_h),
+    )
+    _plot_benchmark_balance_overview(
+        benchmark_frame,
+        title="Benchmark balance improvement across methods",
+        output_path=figures_dir / "figure05_balance_overview.png",
+        figsize=(paper_w, paper_h + 2.0),
+    )
+
+    # Paper-curated placebo table
+    next_table = 5
+    if placebo_results is not None:
+        placebo_frame = _paper_placebo_frame(placebo_results)
+        stem = tables_dir / f"table{next_table:02d}_placebo_test"
+        placebo_frame.to_csv(stem.with_suffix(".csv"), index=False)
+        stem.with_suffix(".tex").write_text(
+            _frame_to_latex(
+                placebo_frame,
+                caption="Placebo/falsification test results (Lalonde, outcome = re74).",
+                label="tab:paper-placebo-test",
+                environment="table",
+                size_command="\\footnotesize",
+            ),
+            encoding="utf-8",
+        )
+        next_table += 1
+
+    # Paper-curated Rosenbaum bounds table
+    if rosenbaum_results is not None:
+        rosenbaum_frame = _paper_rosenbaum_frame(rosenbaum_results)
+        stem = tables_dir / f"table{next_table:02d}_rosenbaum_bounds"
+        rosenbaum_frame.to_csv(stem.with_suffix(".csv"), index=False)
+        stem.with_suffix(".tex").write_text(
+            _frame_to_latex(
+                rosenbaum_frame,
+                caption="Rosenbaum sensitivity bounds (Lalonde matched pairs).",
+                label="tab:paper-rosenbaum-bounds",
+                environment="table",
+                size_command="\\footnotesize",
+            ),
+            encoding="utf-8",
+        )
+        next_table += 1
+
+    # Paper-curated stability summary table
+    if stability_summary is not None and not stability_summary.empty:
+        stability_frame = _paper_stability_frame(stability_summary)
+        stem = tables_dir / f"table{next_table:02d}_stability_summary"
+        stability_frame.to_csv(stem.with_suffix(".csv"), index=False)
+        stem.with_suffix(".tex").write_text(
+            _frame_to_latex(
+                stability_frame,
+                caption="Bootstrap stability summary across datasets and estimators.",
+                label="tab:paper-stability-summary",
+                environment="table",
+                size_command="\\footnotesize",
+            ),
+            encoding="utf-8",
+        )
+
+
 def benchmark_to_frame(report_payload: dict) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for dataset_key, dataset in report_payload.items():
@@ -158,7 +311,13 @@ def benchmark_to_frame(report_payload: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _plot_estimator_comparison(results_frame: pd.DataFrame, title: str, output_path: Path) -> None:
+def _plot_estimator_comparison(
+    results_frame: pd.DataFrame,
+    title: str,
+    output_path: Path,
+    *,
+    figsize: tuple[float, float] | None = None,
+) -> None:
     frame = results_frame.copy().sort_values("effect")
     effect = frame["effect"].astype(float).to_numpy()
     ci_low = frame["ci_low"].astype(float).to_numpy()
@@ -167,7 +326,8 @@ def _plot_estimator_comparison(results_frame: pd.DataFrame, title: str, output_p
     upper = (ci_high - effect).clip(min=0.0)
     y_positions = np.arange(len(frame))
     labels = [_clean_method_name(method) for method in frame["method"]]
-    fig, ax = plt.subplots(figsize=(8.6, max(4.6, 0.72 * len(frame) + 1.2)))
+    size = figsize or (8.6, max(4.6, 0.72 * len(frame) + 1.2))
+    fig, ax = plt.subplots(figsize=size)
     _apply_publication_style(ax)
     ax.hlines(y_positions, ci_low, ci_high, color=PALETTE["ink"], linewidth=2.0, zorder=2)
     ax.scatter(effect, y_positions, s=60, color=PALETTE["blue"], edgecolor="white", linewidth=0.8, zorder=3)
@@ -177,7 +337,7 @@ def _plot_estimator_comparison(results_frame: pd.DataFrame, title: str, output_p
     ax.set_xlabel("Estimated effect with 95% confidence interval")
     ax.set_title(title, loc="left", pad=10)
     fig.tight_layout()
-    fig.savefig(output_path, dpi=CHART_DPI, bbox_inches="tight")
+    _save_figure(fig, output_path)
     plt.close(fig)
 
 
@@ -200,7 +360,7 @@ def _plot_balance_summary(results_frame: pd.DataFrame, title: str, output_path: 
     ax.set_title(title, loc="left", pad=10)
     ax.legend(frameon=False, loc="lower right")
     fig.tight_layout()
-    fig.savefig(output_path, dpi=CHART_DPI, bbox_inches="tight")
+    _save_figure(fig, output_path)
     plt.close(fig)
 
 
@@ -227,7 +387,7 @@ def _plot_sensitivity_summary(sensitivity_frame: pd.DataFrame, title: str, outpu
     ax.set_xlabel("Additive hidden-bias shift")
     ax.set_ylabel("Adjusted effect")
     fig.tight_layout()
-    fig.savefig(output_path, dpi=CHART_DPI, bbox_inches="tight")
+    _save_figure(fig, output_path)
     plt.close(fig)
 
 
@@ -249,7 +409,7 @@ def _plot_subgroup_effects(subgroup_frame: pd.DataFrame, title: str, output_path
     ax.set_yticks(y_positions)
     ax.set_yticklabels(frame["subgroup"])
     fig.tight_layout()
-    fig.savefig(output_path, dpi=CHART_DPI, bbox_inches="tight")
+    _save_figure(fig, output_path)
     plt.close(fig)
 
 
@@ -290,7 +450,7 @@ def export_propensity_overlap(
     ax.set_title(title, loc="left", pad=10)
     ax.legend(frameon=False)
     fig.tight_layout()
-    fig.savefig(output_path, dpi=CHART_DPI, bbox_inches="tight")
+    _save_figure(fig, output_path)
     plt.close(fig)
 
 
@@ -317,6 +477,8 @@ def _plot_love(
     balance_after: dict[str, float],
     title: str,
     output_path: Path,
+    *,
+    figsize: tuple[float, float] | None = None,
 ) -> None:
     """Love plot: covariate-level |SMD| before and after adjustment."""
     covariates = sorted(balance_before.keys(), key=lambda covariate: abs(balance_before[covariate]), reverse=True)
@@ -324,7 +486,8 @@ def _plot_love(
     abs_before = [abs(balance_before[c]) for c in covariates]
     abs_after = [abs(balance_after[c]) for c in covariates]
 
-    fig, ax = plt.subplots(figsize=(8.4, max(4.8, 0.52 * len(covariates) + 1.1)))
+    size = figsize or (8.4, max(4.8, 0.52 * len(covariates) + 1.1))
+    fig, ax = plt.subplots(figsize=size)
     _apply_publication_style(ax)
     for y_position, before_value, after_value in zip(y_positions, abs_before, abs_after):
         ax.hlines(y_position, min(before_value, after_value), max(before_value, after_value), color=PALETTE["grid"], linewidth=2.0, zorder=1)
@@ -338,7 +501,42 @@ def _plot_love(
     ax.set_title(title, loc="left", pad=10)
     ax.legend(loc="lower right", frameon=False, fontsize=8)
     fig.tight_layout()
-    fig.savefig(output_path, dpi=CHART_DPI, bbox_inches="tight")
+    _save_figure(fig, output_path)
+    plt.close(fig)
+
+
+def _plot_benchmark_balance_overview(
+    benchmark_frame: pd.DataFrame,
+    title: str,
+    output_path: Path,
+    *,
+    figsize: tuple[float, float] | None = None,
+) -> None:
+    frame = benchmark_frame.copy()
+    frame["label"] = frame.apply(
+        lambda row: f"{_short_dataset_name(str(row['dataset']))}: {_clean_method_name(row['method'])}",
+        axis=1,
+    )
+    frame = frame.sort_values("balance_improvement", ascending=True)
+    y_positions = np.arange(len(frame))
+    before = frame["mean_abs_balance_before"].astype(float).to_numpy()
+    after = frame["mean_abs_balance_after"].astype(float).to_numpy()
+
+    size = figsize or (9.4, max(5.4, 0.42 * len(frame) + 1.4))
+    fig, ax = plt.subplots(figsize=size)
+    _apply_publication_style(ax)
+    for y_position, before_value, after_value in zip(y_positions, before, after):
+        ax.hlines(y_position, min(before_value, after_value), max(before_value, after_value), color=PALETTE["grid"], linewidth=2.2, zorder=1)
+    ax.scatter(before, y_positions, s=48, color=PALETTE["ochre"], label="Before adjustment", zorder=3)
+    ax.scatter(after, y_positions, s=48, color=PALETTE["teal"], label="After adjustment", zorder=3)
+    ax.axvline(0.1, color=PALETTE["rose"], linestyle=":", linewidth=1.2)
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels(frame["label"])
+    ax.set_xlabel("Mean absolute standardized mean difference")
+    ax.set_title(title, loc="left", pad=10)
+    ax.legend(frameon=False, loc="lower right")
+    fig.tight_layout()
+    _save_figure(fig, output_path)
     plt.close(fig)
 
 
@@ -358,9 +556,21 @@ def _frame_to_markdown(frame: pd.DataFrame) -> str:
     return "\n".join(rows) + "\n"
 
 
-def _frame_to_latex(frame: pd.DataFrame, caption: str, label: str) -> str:
-    formatted = _format_table_frame(frame)
-    return formatted.to_latex(index=False, escape=False, caption=caption, label=label)
+def _frame_to_latex(
+    frame: pd.DataFrame,
+    caption: str,
+    label: str,
+    *,
+    environment: str = "table",
+    size_command: str = "\\small",
+) -> str:
+    return _render_latex_table(
+        frame,
+        caption=caption,
+        label=label,
+        environment=environment,
+        size_command=size_command,
+    )
 
 
 def _format_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -396,6 +606,181 @@ def _format_numeric_value(column: str, value: object) -> str:
 def _clean_method_name(method: object) -> str:
     method_str = str(method)
     return METHOD_LABELS.get(method_str, method_str.replace("Estimator", "").replace("_", " "))
+
+
+def _paper_dataset_name(dataset_key: str) -> str:
+    return DATASET_LABELS.get(dataset_key, _display_name(dataset_key))
+
+
+def _short_dataset_name(dataset_key: str) -> str:
+    short_names = {
+        "real_dataset": "Fixture",
+        "lalonde_public_benchmark": "Lalonde",
+        "nhefs_public_benchmark": "NHEFS",
+        "synthetic_validation_dataset": "Synthetic",
+    }
+    return short_names.get(dataset_key, _paper_dataset_name(dataset_key))
+
+
+def _paper_benchmark_overview_frame(report_payload: dict) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for dataset_key in [
+        "lalonde_public_benchmark",
+        "nhefs_public_benchmark",
+        "synthetic_validation_dataset",
+    ]:
+        results_frame = results_to_frame(report_payload[dataset_key]["results"])
+        rows.append(
+            {
+                "Dataset": _paper_dataset_name(dataset_key),
+                "Effect range": _format_interval(
+                    float(results_frame["effect"].min()),
+                    float(results_frame["effect"].max()),
+                ),
+                "Best mean |SMD| after": float(results_frame["mean_abs_balance_after"].min()),
+                "All overlap checks": bool(results_frame["overlap_ok"].all()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _paper_estimator_table_frame(results_frame: pd.DataFrame) -> pd.DataFrame:
+    frame = results_frame.copy()
+    return pd.DataFrame(
+        {
+            "Method": frame["method"].map(_clean_method_name),
+            "Estimand": frame["estimand"],
+            "Effect": frame["effect"],
+            "95% CI": [
+                _format_interval(float(ci_low), float(ci_high))
+                for ci_low, ci_high in zip(frame["ci_low"], frame["ci_high"])
+            ],
+            "p": frame["p_value"],
+            "Mean |SMD| after": frame["mean_abs_balance_after"],
+        }
+    )
+
+
+def _paper_placebo_frame(placebo_results: list[dict]) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for result in placebo_results:
+        method = _clean_method_name(result["method"])
+        rows.append(
+            {
+                "Method": method,
+                "Effect": result["effect"],
+                "95% CI": _format_interval(float(result["ci_low"]), float(result["ci_high"])),
+                "Passes": "Yes" if result["passes"] else "No",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _paper_rosenbaum_frame(rosenbaum_results: list[dict]) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for result in rosenbaum_results:
+        gamma = result["gamma"]
+        p = result["p_upper"]
+        rows.append(
+            {
+                "Gamma": gamma,
+                "p (upper)": p,
+                "Significant at 0.05": "Yes" if result["significant_at_05"] else "No",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _paper_stability_frame(stability_summary: pd.DataFrame) -> pd.DataFrame:
+    frame = stability_summary.copy()
+    cols: dict[str, object] = {
+        "Dataset": frame["dataset"].map(_short_dataset_name) if "dataset" in frame.columns else frame.iloc[:, 0],
+        "Method": frame["method"].map(_clean_method_name) if "method" in frame.columns else frame.iloc[:, 1],
+    }
+    if "mean_effect" in frame.columns:
+        cols["Mean effect"] = frame["mean_effect"]
+    if "std_effect" in frame.columns:
+        cols["SD effect"] = frame["std_effect"]
+    if "cv_effect" in frame.columns:
+        cols["CV"] = frame["cv_effect"]
+    if "mean_balance_after" in frame.columns:
+        cols["Mean |SMD| after"] = frame["mean_balance_after"]
+    return pd.DataFrame(cols)
+
+
+def _format_interval(low: float, high: float) -> str:
+    if max(abs(low), abs(high)) >= 100:
+        return f"[{low:,.1f}, {high:,.1f}]"
+    return f"[{low:.3f}, {high:.3f}]"
+
+
+def _render_latex_table(
+    frame: pd.DataFrame,
+    *,
+    caption: str,
+    label: str,
+    environment: str = "table",
+    size_command: str = "\\small",
+) -> str:
+    formatted = _format_table_frame(frame)
+    alignments = "".join(_latex_alignment_for_column(formatted[column]) for column in formatted.columns)
+    lines = [
+        f"\\begin{{{environment}}}[t!]",
+        "\\centering",
+        size_command,
+        f"\\caption{{{_escape_latex(caption)}}}",
+        f"\\label{{{label}}}",
+        "\\setlength{\\tabcolsep}{4.5pt}",
+        f"\\begin{{tabular}}{{{alignments}}}",
+        "\\hline",
+        " & ".join(_escape_latex(str(column)) for column in formatted.columns) + r" \\",
+        "\\hline",
+    ]
+    for _, row in formatted.iterrows():
+        cells = [_latex_cell(row[column]) for column in formatted.columns]
+        lines.append(" & ".join(cells) + r" \\")
+    lines.extend(["\\hline", "\\end{tabular}", f"\\end{{{environment}}}"])
+    return "\n".join(lines) + "\n"
+
+
+def _latex_alignment_for_column(series: pd.Series) -> str:
+    if pd.api.types.is_numeric_dtype(series):
+        return "r"
+    return "l"
+
+
+def _latex_cell(value: object) -> str:
+    value_str = str(value)
+    if value_str.startswith("<"):
+        return r"$<$" + _escape_latex(value_str[1:])
+    return _escape_latex(value_str)
+
+
+def _escape_latex(value: str) -> str:
+    replacements = {
+        "\\": r"\\textbackslash{}",
+        "&": r"\\&",
+        "%": r"\\%",
+        "$": r"\\$",
+        "#": r"\\#",
+        "_": r"\\_",
+        "{": r"\\{",
+        "}": r"\\}",
+    }
+    escaped = value
+    for old, new in replacements.items():
+        escaped = escaped.replace(old, new)
+    return escaped
+
+
+def _save_figure(fig: plt.Figure, output_path: Path) -> None:
+    base_path = output_path.with_suffix("")
+    for extension in FIGURE_EXTENSIONS:
+        target_path = base_path.with_suffix(extension)
+        save_kwargs: dict[str, object] = {"bbox_inches": "tight"}
+        if extension == ".png":
+            save_kwargs["dpi"] = CHART_DPI
+        fig.savefig(target_path, **save_kwargs)
 
 
 def _apply_publication_style(ax: plt.Axes) -> None:

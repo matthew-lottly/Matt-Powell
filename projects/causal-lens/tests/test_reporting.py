@@ -13,6 +13,7 @@ from causal_lens.estimators import (
 )
 from causal_lens.reporting import (
     export_dataset_artifacts,
+    export_paper_artifacts,
     export_placebo_artifacts,
     export_rosenbaum_artifacts,
     results_to_frame,
@@ -73,6 +74,8 @@ def test_export_dataset_artifacts_writes_tables_and_charts(tmp_path: Path) -> No
     assert (tmp_path / "tables" / "real_dataset_estimator_summary.md").exists()
     assert (tmp_path / "tables" / "real_dataset_estimator_summary.tex").exists()
     assert (tmp_path / "charts" / "real_dataset_estimator_comparison.png").exists()
+    assert (tmp_path / "charts" / "real_dataset_estimator_comparison.pdf").exists()
+    assert (tmp_path / "charts" / "real_dataset_estimator_comparison.svg").exists()
     assert (tmp_path / "charts" / "real_dataset_balance_summary.png").exists()
     assert (tmp_path / "charts" / "real_dataset_sensitivity_curve.png").exists()
     assert (tmp_path / "charts" / "real_dataset_subgroup_effects.png").exists()
@@ -131,3 +134,50 @@ def test_export_rosenbaum_artifacts_writes_csv(tmp_path: Path) -> None:
     frame = export_rosenbaum_artifacts([r.to_dict() for r in bounds], tmp_path)
     assert len(frame) == 7
     assert (tmp_path / "tables" / "rosenbaum_bounds.csv").exists()
+
+
+def test_export_paper_artifacts_writes_curated_tables_and_figures(tmp_path: Path) -> None:
+    paper_payload = {
+        "lalonde_public_benchmark": _payload(),
+        "nhefs_public_benchmark": _payload(),
+        "synthetic_validation_dataset": _payload(),
+        "real_dataset": _payload(),
+    }
+    placebo = [
+        {"placebo_outcome": "x", "method": "IPWEstimator", "effect": 0.1, "ci_low": -0.5, "ci_high": 0.7, "passes": True},
+        {"placebo_outcome": "x", "method": "DoublyRobustEstimator", "effect": 0.2, "ci_low": -0.3, "ci_high": 0.8, "passes": True},
+    ]
+    rosenbaum = [
+        {"gamma": 1.0, "p_upper": 0.04, "significant_at_05": True},
+        {"gamma": 1.5, "p_upper": 0.12, "significant_at_05": False},
+    ]
+    import pandas as pd
+    stability = pd.DataFrame(
+        {
+            "dataset": ["lalonde", "nhefs"],
+            "method": ["DoublyRobustEstimator", "IPWEstimator"],
+            "mean_effect": [800.0, 3.3],
+            "std_effect": [10.0, 0.1],
+            "cv_effect": [0.012, 0.03],
+            "mean_balance_after": [0.15, 0.01],
+            "n_runs": [5, 5],
+        }
+    )
+    export_paper_artifacts(
+        paper_payload,
+        tmp_path,
+        placebo_results=placebo,
+        rosenbaum_results=rosenbaum,
+        stability_summary=stability,
+    )
+    assert (tmp_path / "paper" / "tables" / "table01_benchmark_overview.tex").exists()
+    assert (tmp_path / "paper" / "tables" / "table02_lalonde_public_benchmark_estimators.tex").exists()
+    assert (tmp_path / "paper" / "tables" / "table05_placebo_test.tex").exists()
+    assert (tmp_path / "paper" / "tables" / "table05_placebo_test.csv").exists()
+    assert (tmp_path / "paper" / "tables" / "table06_rosenbaum_bounds.tex").exists()
+    assert (tmp_path / "paper" / "tables" / "table06_rosenbaum_bounds.csv").exists()
+    assert (tmp_path / "paper" / "tables" / "table07_stability_summary.tex").exists()
+    assert (tmp_path / "paper" / "tables" / "table07_stability_summary.csv").exists()
+    assert (tmp_path / "paper" / "figures" / "figure01_lalonde_estimators.png").exists()
+    assert (tmp_path / "paper" / "figures" / "figure01_lalonde_estimators.pdf").exists()
+    assert (tmp_path / "paper" / "figures" / "figure05_balance_overview.svg").exists()

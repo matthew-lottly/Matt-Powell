@@ -23,6 +23,7 @@ from causal_lens.estimators import (
 from causal_lens.reporting import (
     export_benchmark_artifacts,
     export_dataset_artifacts,
+    export_paper_artifacts,
     export_placebo_artifacts,
     export_propensity_overlap,
     export_rosenbaum_artifacts,
@@ -196,6 +197,14 @@ def main() -> None:
     )
     rosenbaum_results = lalonde_matcher.rosenbaum_sensitivity(lalonde_dataset)
     export_rosenbaum_artifacts([r.to_dict() for r in rosenbaum_results], output_dir)
+
+    export_paper_artifacts(
+        payload,
+        output_dir,
+        placebo_results=[r.to_dict() for r in placebo_results],
+        rosenbaum_results=[r.to_dict() for r in rosenbaum_results],
+        stability_summary=stability_summary,
+    )
 
     # Propensity overlap histograms for public benchmarks
     import numpy as np

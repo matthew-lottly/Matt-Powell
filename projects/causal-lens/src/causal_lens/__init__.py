@@ -28,7 +28,7 @@ from causal_lens.results import (
     StaggeredDiDEstimate,
     SubgroupEstimate,
 )
-from causal_lens.reporting import benchmark_to_frame, export_benchmark_artifacts, export_dataset_artifacts, results_to_frame
+from causal_lens.reporting import benchmark_to_frame, export_benchmark_artifacts, export_dataset_artifacts, export_paper_artifacts, results_to_frame
 from causal_lens.synthetic import generate_synthetic_observational_data
 from causal_lens.panel import DifferenceInDifferences, StaggeredDiD, SyntheticControl, DiDEstimate, SyntheticControlEstimate
 from causal_lens.iv import TwoStageLeastSquares, IVEstimate
@@ -66,6 +66,7 @@ __all__ = [
     "DoublyRobustEstimator",
     "export_benchmark_artifacts",
     "export_dataset_artifacts",
+    "export_paper_artifacts",
     "FlexibleDoublyRobustEstimator",
     "generate_synthetic_observational_data",
     "IPWEstimator",

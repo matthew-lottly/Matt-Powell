@@ -1,14 +1,17 @@
-\begin{table}
+\begin{table}[t!]
+\centering
+\small
 \caption{Real Dataset estimator summary.}
 \label{tab:real_dataset-estimators}
+\setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{llllllllllll}
-\toprule
-method & estimand & effect & se & p_value & ci_low & ci_high & overlap_ok & mean_abs_balance_before & mean_abs_balance_after & ess_treated & ess_control \\
-\midrule
-Regression adjustment & ATE & -0.044 & 0.002 & <0.001 & -0.047 & -0.041 & Yes & 0.008 & 0.008 &  &  \\
-Propensity matching & ATT & -0.045 & 0.007 & <0.001 & -0.060 & -0.031 & Yes & 0.008 & 0.008 & 24 & 24 \\
+\hline
+method & estimand & effect & se & p\\_value & ci\\_low & ci\\_high & overlap\\_ok & mean\\_abs\\_balance\\_before & mean\\_abs\\_balance\\_after & ess\\_treated & ess\\_control \\
+\hline
+Regression adjustment & ATE & -0.044 & 0.002 & $<$0.001 & -0.047 & -0.041 & Yes & 0.008 & 0.008 &  &  \\
+Propensity matching & ATT & -0.045 & 0.007 & $<$0.001 & -0.060 & -0.031 & Yes & 0.008 & 0.008 & 24 & 24 \\
 IPW & ATE & -0.045 & 0.016 & 0.004 & -0.050 & -0.040 & Yes & 0.008 & 0.005 & 24 & 24 \\
-Doubly robust & ATE & -0.044 & 0.002 & <0.001 & -0.048 & -0.041 & Yes & 0.008 & 0.005 & 24 & 24 \\
-\bottomrule
+Doubly robust & ATE & -0.044 & 0.002 & $<$0.001 & -0.048 & -0.041 & Yes & 0.008 & 0.005 & 24 & 24 \\
+\hline
 \end{tabular}
 \end{table}
