@@ -360,7 +360,9 @@ class IPWEstimator(BaseEstimator):
         treated_mean = np.average(outcome[treatment == 1], weights=weights[treatment == 1])
         control_mean = np.average(outcome[treatment == 0], weights=weights[treatment == 0])
         effect = float(treated_mean - control_mean)
-        # Hajek influence-function SE
+        # Hajek influence-function SE (sandwich variance)
+        # Influence values are normalized by sum(w), not mean(w), so the
+        # correct sandwich variance is n * Var(phi) rather than Var(phi)/n.
         n = len(outcome)
         sum_w1 = weights[treatment == 1].sum()
         sum_w0 = weights[treatment == 0].sum()
@@ -370,7 +372,7 @@ class IPWEstimator(BaseEstimator):
             -weights * (outcome - control_mean) / sum_w0,
         )
         if n > 1:
-            self._last_se = float(np.sqrt(np.var(influence, ddof=1) / n))
+            self._last_se = float(np.sqrt(np.var(influence, ddof=1) * n))
             if self._last_se > 1e-12:
                 z = effect / self._last_se
                 self._last_p_value = float(2.0 * (1.0 - norm.cdf(abs(z))))
@@ -693,9 +695,9 @@ class SLearner:
             mu1 = model.predict(x1)
             mu0 = model.predict(x0)
         else:
-            x_full_c = sm.add_constant(x_full)
-            x1_c = sm.add_constant(x1)
-            x0_c = sm.add_constant(x0)
+            x_full_c = np.column_stack([np.ones(len(frame)), x_full])
+            x1_c = np.column_stack([np.ones(len(frame)), x1])
+            x0_c = np.column_stack([np.ones(len(frame)), x0])
             model = sm.OLS(outcome, x_full_c).fit()
             mu1 = model.predict(x1_c)
             mu0 = model.predict(x0_c)

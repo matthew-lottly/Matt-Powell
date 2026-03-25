@@ -191,6 +191,18 @@ def test_se_consistent_with_bootstrap_ci() -> None:
     assert 0.3 < ratio < 3.0  # within a factor of 3
 
 
+def test_ipw_se_consistent_with_bootstrap_ci() -> None:
+    """IPW sandwich SE should be broadly consistent with bootstrap CI width."""
+    confounders, dataset = _dataset()
+    result = IPWEstimator("treatment", "outcome", confounders, bootstrap_repeats=40).fit(dataset)
+    assert result.se is not None
+    assert result.ci_low is not None and result.ci_high is not None
+    bootstrap_width = result.ci_high - result.ci_low
+    analytic_width = 2 * 1.96 * result.se
+    ratio = analytic_width / bootstrap_width
+    assert 0.3 < ratio < 5.0  # IPW sandwich SE can be conservative
+
+
 def test_matching_reports_abadie_imbens_se() -> None:
     confounders, dataset = _dataset()
     result = PropensityMatcher("treatment", "outcome", confounders, bootstrap_repeats=20).fit(dataset)
