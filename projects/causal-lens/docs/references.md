@@ -18,6 +18,9 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 | S7 | Calonico, S., Cattaneo, M. D., Farrell, M. H., and Titiunik, R. (2017). rdrobust: Software for regression discontinuity designs. The Stata Journal, 17(2), 372–404. | Stata companion to S6. | rdrobust (Stata) | |
 | S8 | Cattaneo, M. D., Jansson, M., and Ma, X. (2020). Simple local polynomial density estimators. Journal of the American Statistical Association, 115(531), 1449–1455. | rddensity provides formal manipulation testing; CausalLens embeds a simpler McCrary test as an integrated diagnostic. | rddensity (R/Stata) | |
 | S9 | Mavrokonstantis, P., and Lockwood, B. (2020). bunching: An R package for bunching estimation. Working paper. | R bunching package is deeper on bunching-specific features; CausalLens adds cross-design integration value. | bunching (R) | Citation status: working paper. Verify journal publication status before submission. |
+| S10 | Ho, D. E., Imai, K., King, G., and Stuart, E. A. (2011). MatchIt: Nonparametric preprocessing for parametric causal inference. Journal of Statistical Software, 42(8), 1–28. | MatchIt is a strong matching and balance-workflow comparator rather than a cross-design package. | MatchIt (R) | Strong JSS software-paper precedent for a focused causal-workflow tool. |
+| S11 | Abadie, A., Diamond, A., and Hainmueller, J. (2011). Synth: An R package for synthetic control methods in comparative case studies. Journal of Statistical Software, 42(13), 1–17. | Synth is the direct single-design synthetic-control comparator. | Synth (R) | Strong JSS software-paper precedent for a focused quasi-experimental tool. |
+| S12 | Cinelli, C., Ferwerda, J., and Hazlett, C. (2020). sensemakr: Sensitivity analysis tools for omitted variable bias in R and Stata. Journal of Open Source Software, 5(54), 2279. | sensemakr is the clearest software comparator for OVB sensitivity analysis. | sensemakr (R/Stata) | Useful to bound OVB claims and avoid implying package-depth parity. |
 
 ---
 
@@ -30,6 +33,9 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 | O3 | Lunceford, J. K., and Davidian, M. (2004). Stratification and weighting via the propensity score in estimation of causal treatment effects: a comparative study. Statistics in Medicine, 23(19), 2937–2960. | IPW variance derivation used in CausalLens SE correction. | |
 | O4 | Abadie, A., and Imbens, G. W. (2006). Large sample properties of matching estimators for average treatment effects. Econometrica, 74(1), 235–267. | Matching estimator standard errors. | |
 | O5 | Imbens, G. W. (2004). Nonparametric estimation of average treatment effects under exogeneity: a review. Review of Economics and Statistics, 86(1), 4–29. | General ATE estimation review. | |
+| O6 | Stuart, E. A. (2010). Matching methods for causal inference: A review and a look forward. Statistical Science, 25(1), 1–21. | Reviewer-facing matching and design review reference. | Strong methods-review citation for observational-study framing. |
+| O7 | Austin, P. C. (2009). Balance diagnostics for comparing the distribution of baseline covariates between treatment groups in propensity-score matched samples. Statistics in Medicine, 28(25), 3083–3107. | Standardized mean differences and balance diagnostics. | Supports Love plots and post-match balance reporting. |
+| O8 | Austin, P. C., and Stuart, E. A. (2015). Moving towards best practice when using inverse probability of treatment weighting using the propensity score to estimate causal treatment effects in observational studies. Statistics in Medicine, 34(28), 3661–3679. | Best-practice weighting diagnostics and reporting. | Supports effective sample size, balance, and stabilized-weight discussion. |
 
 ---
 
@@ -51,6 +57,7 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 | SA1 | VanderWeele, T. J., and Ding, P. (2017). Sensitivity analysis in observational research: introducing the E-value. Annals of Internal Medicine, 167(4), 268–274. | E-value implementation in CausalLens diagnostics. | |
 | SA2 | Rosenbaum, P. R. (2002). Observational Studies. 2nd ed. Springer. | Rosenbaum bounds for matched-pair sensitivity. | |
 | SA3 | Cinelli, C., and Hazlett, C. (2020). Making sense of sensitivity: extending omitted variable bias. Journal of the Royal Statistical Society Series B, 82(1), 39–67. | OVB partial-R² framework implemented in CausalLens `ovb_bounds()` function with robustness values and benchmark-calibrated bounds. | |
+| SA4 | Cinelli, C., Ferwerda, J., and Hazlett, C. (2020). sensemakr: Sensitivity analysis tools for omitted variable bias in R and Stata. Journal of Open Source Software, 5(54), 2279. | Software comparator for omitted-variable-bias sensitivity tooling. | Useful for delimiting the software-depth claim. |
 
 ---
 
@@ -61,6 +68,8 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 | P1 | Angrist, J. D., and Pischke, J.-S. (2009). Mostly Harmless Econometrics. Princeton University Press. | General DiD and IV identification framework. | |
 | P2 | Callaway, B., and Sant'Anna, P. H. C. (2021). Difference-in-differences with multiple time periods. Journal of Econometrics, 225(2), 200–230. | Staggered DiD now implemented in CausalLens `StaggeredDiD` class with group-time ATT aggregation. | |
 | P3 | de Chaisemartin, C., and D'Haultfoeuille, X. (2020). Two-way fixed effects estimators with heterogeneous treatment effects. American Economic Review, 110(9), 2964–2996. | Heterogeneous-treatment-effect DiD diagnostics. Motivates the staggered implementation. | |
+| P4 | Sant'Anna, P. H. C., and Zhao, J. (2020). Doubly robust difference-in-differences estimators. Journal of Econometrics, 219(1), 101–122. | Stronger modern DiD identification and estimation context. | Useful if the manuscript emphasizes reviewer-grade panel validity. |
+| P5 | Sun, L., and Abraham, S. (2021). Estimating dynamic treatment effects in event studies with heterogeneous treatment effects. Journal of Econometrics, 225(2), 175–199. | Event-study caution and staggered-treatment interpretation. | Good support for avoiding naive TWFE/event-study claims. |
 
 ---
 
@@ -70,6 +79,7 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 |-----|----------|----------------|-------|
 | SC1 | Abadie, A., Diamond, A., and Hainmueller, J. (2010). Synthetic control methods for comparative case studies. Journal of the American Statistical Association, 105(490), 493–505. | Synthetic control method implementation basis. | |
 | SC2 | Abadie, A. (2021). Using synthetic controls: feasibility, data requirements, and methodological aspects. Journal of Economic Literature, 59(2), 391–425. | Updated survey and methodological review. | |
+| SC3 | Abadie, A., Diamond, A., and Hainmueller, J. (2011). Synth: An R package for synthetic control methods in comparative case studies. Journal of Statistical Software, 42(13), 1–17. | Software precedent for single-design synthetic-control tooling. | Strong comparator when describing workflow depth tradeoffs. |
 
 ---
 
@@ -165,6 +175,18 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 
 ---
 
+## Reproducibility and Scientific Software
+
+| Ref | Citation | Claim Supported | Notes |
+|-----|----------|----------------|-------|
+| R1 | Peng, R. D. (2011). Reproducible research in computational science. Science, 334(6060), 1226–1227. | Reproducibility rationale for software-paper workflow. | High-level reproducibility framing. |
+| R2 | Sandve, G. K., Nekrutenko, A., Taylor, J., and Hovig, E. (2013). Ten simple rules for reproducible computational research. PLoS Computational Biology, 9(10), e1003285. | Practical reproducibility principles. | Supports replication-bundle and export discipline. |
+| R3 | Wilson, G., Aruliah, D. A., Brown, C. T., Chue Hong, N. P., Davis, M., Guy, R. T., Haddock, S. H. D., Huff, K. D., Mitchell, I. M., Plumbley, M. D., Waugh, B., White, E. P., and Wilson, P. (2014). Best practices for scientific computing. PLoS Biology, 12(1), e1001745. | Software-engineering justification for tests, automation, and reproducible outputs. | Useful for the implementation and validation narrative. |
+| R4 | Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., VanderPlas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M., and Duchesnay, E. (2011). Scikit-learn: Machine learning in Python. Journal of Machine Learning Research, 12, 2825–2830. | Scientific Python dependency stack and nuisance-model implementation basis. | Cite if discussing implementation dependencies. |
+| R5 | Seabold, S., and Perktold, J. (2010). statsmodels: Econometric and statistical modeling with Python. Proceedings of the 9th Python in Science Conference, 57–61. | Statistical-modeling backend used throughout CausalLens. | Cite in computational details or acknowledgments. |
+
+---
+
 ## Software-Paper Precedents
 
 | Ref | Citation | Relevance | Notes |
@@ -172,6 +194,9 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 | SP1 | Bach et al. (2022) — see S3 above. | JMLR software-paper model: object-oriented wrapper of established methods is publishable. | |
 | SP2 | Calonico et al. (2015) — see S6 above. | The R Journal software-paper model for a single-design tool. | |
 | SP3 | Calonico et al. (2017) — see S7 above. | Stata Journal companion. | |
+| SP4 | Ho et al. (2011) — see S10 above. | JSS precedent for a focused causal-preprocessing package. | |
+| SP5 | Abadie et al. (2011) — see S11 above. | JSS precedent for a focused synthetic-control package. | |
+| SP6 | Cinelli et al. (2020) — see S12 above. | JOSS precedent for a focused sensitivity-analysis package. | |
 
 ---
 
@@ -181,6 +206,9 @@ References requiring verification or update before submission:
 
 - **S9 (bunching R package):** Currently cited as a working paper. Check whether a journal version has appeared.
 - **S5 (causallib):** arXiv preprint. Confirm no journal publication.
+- **S2 / S4 (EconML, causalml):** Treat as software-package references, not as peer-reviewed methods-paper substitutes.
+- **S1 / S5 (DoWhy, causallib):** Keep the preprints for software positioning, but anchor methods claims in separate methodological citations.
 - **SA3 (Cinelli & Hazlett):** Now implemented. Include in submission.
+- **SA4 (sensemakr):** Useful comparator for software-depth claims on OVB sensitivity, especially if the paper mentions contour plots or robustness-value tooling.
 - **P2, P3 (staggered DiD):** Staggered DiD now implemented. Include in submission.
 - **RD8 (CCF 2020 bandwidth):** MSE-optimal bandwidth not yet implemented; cite to acknowledge roadmap gap.

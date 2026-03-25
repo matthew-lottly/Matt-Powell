@@ -53,6 +53,10 @@ The R `bunching` package (Mavrokonstantis & Lockwood, 2020) implements the Chett
 
 rddensity (Cattaneo, Jansson & Ma, 2020) provides formal manipulation testing for RD designs using local polynomial density estimation, extending McCrary (2008). CausalLens implements a simpler kernel-weighted McCrary test as a built-in diagnostic on the RD estimator object, trading methodological depth for integration convenience.
 
+### MatchIt, Synth, and sensemakr (R / R+Stata)
+
+Focused software packages in the R ecosystem reinforce the same pattern. MatchIt (Ho, Imai, King & Stuart, 2011) is strong on matching-oriented preprocessing and balance review. Synth (Abadie, Diamond & Hainmueller, 2011) is a well-established synthetic-control implementation with a clear software-paper precedent. sensemakr (Cinelli, Ferwerda & Hazlett, 2020) packages omitted-variable-bias sensitivity analysis for regression settings. These are important comparators because they show that publishable causal software often succeeds by being deep, clear, and reproducible within one design family. CausalLens differs by prioritizing cross-design workflow integration over single-design depth.
+
 ### Summary Positioning Table
 
 | Feature | DoWhy | EconML | DoubleML | causalml | causallib | rdrobust | CausalLens |
@@ -229,6 +233,9 @@ The strongest publishable novelty claim for CausalLens is *architectural*: it un
 - **JOSS (Journal of Open Source Software):** Strong fit. JOSS values well-documented, tested, open-source scientific software with a clear statement of need. The cross-design integration and diagnostics-first API are a clear "statement of need" that existing packages do not address.
 - **JSS (Journal of Statistical Software):** Good fit if accompanied by a longer methods-and-software paper that documents each estimator, shows benchmark results, and includes a replication study.
 - **SoftwareX:** Good fit for a shorter paper emphasizing the software engineering and reproducibility aspects.
+- **Journal of Systems and Software:** Weak current fit without a major rewrite. The project would need to be reframed as a software-engineering or systems paper centered on architecture, maintainability, workflow design, quality assurance, and engineering evaluation rather than as a statistical-software validation paper.
+
+The practical implication is that the current draft and evidence stack are aligned to JSS or a software-paper venue, not to an Elsevier software-engineering venue.
 
 ## Practical Conclusion
 
