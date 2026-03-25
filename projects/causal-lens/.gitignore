@@ -23,5 +23,8 @@ manuscript*.md
 *.log
 *.synctex.gz
 
+# Replication script outputs (reproducible)
+replications/outputs/
+
 # Also exclude PUBLISHING plan (monorepo-specific)
 PUBLISHING.md

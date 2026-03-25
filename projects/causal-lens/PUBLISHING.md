@@ -33,7 +33,8 @@ This project is intended to live as a standalone Python package under `projects/
 - [x] MIT LICENSE present.
 - [x] CITATION.cff present and updated.
 - [x] Literature review documents the gap.
-- [ ] CI workflow (GitHub Actions) — not yet added.
+- [x] CI workflow (GitHub Actions) — added at `.github/workflows/tests.yml`.
+- [x] Replication scripts — `replications/` directory with Lalonde, NHEFS, simulation, and cross-design scripts.
 - [ ] Standalone public repo with 6-month history — planned.
 - [ ] JOSS paper markdown (`paper.md`) — not yet drafted.
 
@@ -49,7 +50,7 @@ This project is intended to live as a standalone Python package under `projects/
 
 **Current Status:**
 - [ ] Full manuscript — not started.
-- [ ] Replication bundle — partial (benchmarks exist but not packaged for JSS).
+- [ ] Replication bundle — scripts exist in `replications/`; need JSS-style packaging with expected outputs.
 - [ ] GPL licensing decision — MIT is GPL-compatible but confirm.
 
 ### 3. SoftwareX (Backup)

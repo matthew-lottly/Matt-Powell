@@ -430,17 +430,19 @@ class StaggeredDiD:
         df = frame.copy()
 
         # Identify cohorts and periods
-        all_periods = sorted(df[self.time_col].unique())
+        time_values = df[self.time_col]
         cohort_values = df[self.cohort_col].copy()
+        unit_values = df[self.unit_col]
+        all_periods = sorted(pd.Series(time_values).dropna().unique().tolist())
 
         # Mark never-treated: NaN, None, or cohort > max observed period
         max_period = max(all_periods)
         never_treated_mask = cohort_values.isna() | (cohort_values > max_period)
-        never_treated_units = df.loc[never_treated_mask, self.unit_col].unique()
+        never_treated_units = pd.Series(unit_values.loc[never_treated_mask]).dropna().unique()
 
         # Get treatment cohorts
         treated_mask = ~never_treated_mask
-        cohorts = sorted(df.loc[treated_mask, self.cohort_col].unique())
+        cohorts = sorted(pd.Series(cohort_values.loc[treated_mask]).dropna().unique().tolist())
 
         if len(cohorts) == 0:
             raise ValueError("No treatment cohorts found")
@@ -463,9 +465,9 @@ class StaggeredDiD:
                 continue
 
             # Cohort units
-            cohort_units = df.loc[
-                df[self.cohort_col] == g, self.unit_col
-            ].unique()
+            cohort_units = pd.Series(
+                unit_values.loc[df[self.cohort_col] == g]
+            ).dropna().unique()
             n_cohort = len(cohort_units)
             if n_cohort == 0:
                 continue
@@ -477,7 +479,7 @@ class StaggeredDiD:
                 # not-yet-treated: units whose cohort is strictly after max(post_periods)
                 # or never-treated
                 nyt_mask = never_treated_mask | (cohort_values > max(post_periods))
-                control_units = df.loc[nyt_mask, self.unit_col].unique()
+                control_units = pd.Series(unit_values.loc[nyt_mask]).dropna().unique()
 
             if len(control_units) == 0:
                 continue
@@ -555,6 +557,6 @@ class StaggeredDiD:
             group_effects={g: float(v) for g, v in group_atts.items()},
             group_weights={g: float(v) for g, v in group_weights.items()},
             n_groups=len(group_atts),
-            n_units=len(df[self.unit_col].unique()),
+            n_units=len(pd.Series(unit_values).dropna().unique()),
             n_periods=len(all_periods),
         )
