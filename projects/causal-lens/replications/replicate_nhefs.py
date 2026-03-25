@@ -62,9 +62,11 @@ def main() -> None:
     dr_est = DoublyRobustEstimator(
         "treatment", "outcome", NHEFS_COMPLETE_CONFOUNDERS, bootstrap_repeats=50)
     sens = dr_est.sensitivity_analysis(data)
-    print(f"  E-value:       {sens.e_value:.2f}")
-    print(f"  E-value (CI):  {sens.e_value_ci:.2f}")
-    print(f"  Bias to null:  {sens.bias_to_null:.2f}")
+    e_value_text = f"{sens.e_value:.2f}" if sens.e_value is not None else "n/a"
+    e_value_ci_text = f"{sens.e_value_ci:.2f}" if sens.e_value_ci is not None else "n/a"
+    print(f"  E-value:       {e_value_text}")
+    print(f"  E-value (CI):  {e_value_ci_text}")
+    print(f"  Bias to zero:  {sens.bias_to_zero_effect:.2f}")
 
     print(f"\nOutputs written to {OUTPUT_DIR}/")
 

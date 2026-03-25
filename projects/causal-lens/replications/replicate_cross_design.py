@@ -104,7 +104,10 @@ def main() -> None:
     did_est = DifferenceInDifferences("unit", "time", "treatment", "outcome", "post", cluster_col="unit")
     did_est.fit(did_df)
     pre_trends = did_est.parallel_trends_test(did_df, pre_periods=[0, 1])
-    d_did = diagnose_did(parallel_trends_p=pre_trends["p_value"], n_pre_periods=pre_trends["n_periods"])
+    d_did = diagnose_did(
+        parallel_trends_p=float(pre_trends["p_value"]),
+        n_pre_periods=int(pre_trends["n_periods"]),
+    )
 
     # IV: first-stage F
     iv_est = TwoStageLeastSquares("treatment", "outcome", ["instrument"])

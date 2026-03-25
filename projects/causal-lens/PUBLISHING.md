@@ -12,19 +12,21 @@ This project is intended to live as a standalone Python package under `projects/
 
 ## Journal Targets
 
-### 1. JOSS (Primary Target)
+### 1. JORS (Primary Verified Option)
 
-**Journal of Open Source Software** — short software-paper format (1–2 pages of prose plus auto-generated metadata).
+**Journal of Open Research Software** — concise software metapaper describing the software, where to find it, and why it is useful.
 
-**Pre-Submission Requirements:**
-- Public repository with at least 6 months of iterative development history visible in commits/issues/PRs.
-- Automated tests (CI via GitHub Actions).
-- Clear installation instructions and example usage.
-- `CITATION.cff` with correct version, abstract, and keywords.
-- Statement of need explaining what gap the software fills.
-- Community guidelines (CONTRIBUTING.md).
-- License file (MIT is acceptable).
-- AI usage disclosure if applicable.
+**Verified Submission Characteristics:**
+- Public software under an open license in a public repository or repository deposit.
+- Concise software paper using the journal template.
+- Persistent identifier and clear software availability information.
+- Concise manuscript rather than a full methods-statistics article.
+- APC applies unless waived.
+
+**Why it fits CausalLens:**
+- The package already has a strong software-architecture story, clear validation evidence, and public benchmark coverage.
+- The current contribution is better framed as reusable research software than as a new statistical method.
+- The manuscript can stay focused on implementation, validation, and reuse potential.
 
 **Current Status:**
 - [x] Tests exist and pass.
@@ -33,31 +35,38 @@ This project is intended to live as a standalone Python package under `projects/
 - [x] MIT LICENSE present.
 - [x] CITATION.cff present and updated.
 - [x] Literature review documents the gap.
-- [x] CI workflow (GitHub Actions) — added at `.github/workflows/tests.yml`.
-- [x] Replication scripts — `replications/` directory with Lalonde, NHEFS, simulation, and cross-design scripts.
-- [ ] Standalone public repo with 6-month history — planned.
-- [ ] JOSS paper markdown (`paper.md`) — not yet drafted.
+- [x] CI workflow (GitHub Actions) present.
+- [x] Replication scripts present under `replications/`.
+- [ ] Standalone public repo with stable release identity.
+- [ ] Manuscript draft aligned to JORS software-paper structure.
 
-### 2. JSS (Secondary Target)
+### 2. JSS (Stretch Option)
 
-**Journal of Statistical Software** — longer software-statistics article with replication materials.
+**Journal of Statistical Software** — longer software-statistics article with strong replication expectations.
 
-**Additional Requirements Beyond JOSS:**
-- Full manuscript (typically 20–40 pages) documenting each estimator with examples.
-- Replication bundle with scripts, data, and expected outputs.
-- Code published alongside the article must use GPL-2, GPL-3, or GPL-compatible license. Current MIT license is compatible but needs verification.
-- LaTeX manuscript following JSS style.
+**Verified Submission Characteristics:**
+- PDF manuscript in JSS style.
+- Source code for the software.
+- Replication materials for all manuscript results, preferably a standalone replication script.
+- GPL-2, GPL-3, or GPL-compatible software license for the published code path.
+- No author fees.
+
+**Why it is harder right now:**
+- CausalLens has the code breadth and replication direction, but not yet the full article depth JSS usually rewards.
+- The paper would need a more formal estimator-by-estimator exposition, replication bundle, and tighter article narrative.
 
 **Current Status:**
-- [ ] Full manuscript — not started.
-- [ ] Replication bundle — scripts exist in `replications/`; need JSS-style packaging with expected outputs.
-- [ ] GPL licensing decision — MIT is GPL-compatible but confirm.
+- [ ] Full JSS-style manuscript.
+- [ ] JSS-grade replication bundle with expected outputs and article-linked tables.
+- [ ] Explicit GPL-compatibility note for the publication path.
 
-### 3. SoftwareX (Backup)
+### 3. SoftwareX (Candidate Option)
 
-**SoftwareX** — shorter format emphasizing software engineering and reproducibility.
+**SoftwareX** remains a plausible fit because the package has a strong reproducibility and engineering story.
 
-**Status:** Not actively pursued. Viable fallback if JOSS review identifies scope concerns.
+**Current note:**
+- Direct author-guide retrieval was blocked during this session, so SoftwareX-specific checklist items should be verified manually before committing to that route.
+- The manuscript draft started here is still usable as a base for a SoftwareX submission.
 
 ## Novelty Thesis
 
@@ -67,7 +76,7 @@ This is a software-architecture and workflow claim, not a new-methods claim.
 
 ## Pre-Submission Blockers
 
-1. **CI workflow.** Add GitHub Actions running the test suite on push/PR.
-2. **Public development history.** Standalone repo must be public with visible iterative development for 6+ months before JOSS submission.
-3. **JOSS paper.md.** Draft the short paper with Statement of Need, Summary, and References.
-4. **Claim audit.** All markdown files must use integration/workflow language, not priority claims.
+1. **Standalone public repo.** The package should exist as its own public repository with a stable release identity and clean issue tracker.
+2. **Venue-specific manuscript formatting.** Pick the target venue before finalizing references, section headings, and front matter.
+3. **Replication packaging.** The current scripts are a good base, but the submission bundle still needs expected outputs and figure/table mapping into the manuscript.
+4. **Claim audit.** Keep all prose on the integration/workflow/software-validation axis rather than new-method claims.
