@@ -24,10 +24,13 @@ The current repository now uses three complementary evidence tracks:
 
 - Propensity score estimation with a scikit-learn logistic model with standardized covariates
 - Regression-adjustment treatment effects with statsmodels OLS
-- Nearest-neighbor propensity matching with optional calipers
+- Nearest-neighbor propensity matching with optional calipers and Abadie-Imbens analytic standard errors
 - Inverse probability weighting with stabilized weights and weight capping for ATE and ATT targets
 - Doubly robust estimation that combines outcome and propensity models with weight trimming
-- Analytic standard errors from OLS (regression), Hajek influence functions (IPW), and semiparametric influence functions (doubly robust)
+- Cross-fitted doubly robust estimation (DML/AIPW style) with 5-fold out-of-fold nuisance estimates to avoid overfitting bias
+- Flexible doubly robust estimation using gradient boosting outcome models for nonlinear confounding
+- T-learner and S-learner meta-learners for conditional average treatment effect (CATE) estimation with optional GBM
+- Analytic standard errors from OLS (regression), Hajek sandwich variance (IPW), Abadie-Imbens matched-pair variance (matching), and semiparametric influence functions (doubly robust)
 - Covariate-balance summaries using standardized mean differences and variance ratios
 - Kish effective sample size for weighted estimators to detect unstable weights
 - Common-support and overlap diagnostics for positivity review
@@ -107,20 +110,22 @@ from causal_lens import (
     generate_synthetic_observational_data,
     RegressionAdjustmentEstimator,
     DoublyRobustEstimator,
-    results_to_frame,
+    CrossFittedDREstimator,
 )
 
-data = generate_synthetic_observational_data(n=500, seed=42)
-confounders = ["x1", "x2"]
+data = generate_synthetic_observational_data(rows=600, seed=42)
+confounders = ["age", "severity", "baseline_score"]
 
-reg = RegressionAdjustmentEstimator()
-result_reg = reg.estimate(data, "treatment", "outcome", confounders)
+# Regression adjustment
+reg = RegressionAdjustmentEstimator("treatment", "outcome", confounders)
+result_reg = reg.fit(data)
 
-dr = DoublyRobustEstimator()
-result_dr = dr.estimate(data, "treatment", "outcome", confounders)
+# Doubly robust with cross-fitting
+dr = CrossFittedDREstimator("treatment", "outcome", confounders)
+result_dr = dr.fit(data)
 
-df = results_to_frame([result_reg, result_dr])
-print(df[["estimator", "effect", "se", "p_value"]].to_string(index=False))
+for r in [result_reg, result_dr]:
+    print(f"{r.method:35s}  effect={r.effect:.2f}  SE={r.se:.3f}  p={r.p_value:.4f}")
 ```
 
 ## Documentation
