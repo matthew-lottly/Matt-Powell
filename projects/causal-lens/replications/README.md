@@ -9,10 +9,10 @@ and then regenerate the manuscript-ready tables and figures under `outputs/paper
 
 | Script | Benchmark | Expected Runtime |
 |--------|-----------|-----------------|
-| `run_all.py` | Runs the full replication stack | <1 min without simulation; 3-20 min with simulation |
+| `run_all.py` | Runs the full replication stack | <1 min without simulation; ~5 min quick / ~45 min full |
 | `replicate_lalonde.py` | Dehejia & Wahba (1999) job-training ATT | ~2 min |
 | `replicate_nhefs.py` | Hernán & Robins (2020) NHEFS weight gain | ~1 min |
-| `replicate_simulation.py` | Monte Carlo bias/RMSE/coverage study | 3–20 min |
+| `replicate_simulation.py` | Monte Carlo bias/RMSE/coverage study | ~5 min quick / ~45 min full |
 | `replicate_cross_design.py` | Cross-design diagnostic comparison | <30 sec |
 
 ## Running

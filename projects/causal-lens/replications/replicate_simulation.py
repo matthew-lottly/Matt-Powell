@@ -5,8 +5,8 @@ Evaluates bias, RMSE, coverage, and SE calibration across five DGPs
 and multiple sample sizes.  True effect = 2.0.
 
 Usage:
-    python replications/replicate_simulation.py          # quick (≈ 3 min)
-    python replications/replicate_simulation.py --full   # full  (≈ 20 min)
+    python replications/replicate_simulation.py          # quick (≈ 5 min)
+    python replications/replicate_simulation.py --full   # full  (≈ 45 min)
 """
 from __future__ import annotations
 
@@ -32,13 +32,13 @@ def main() -> None:
         print("Running FULL simulation (200 reps × 5 DGPs × 3 sample sizes)...\n")
     else:
         config = SimulationConfig(
-            n_replications=50,
-            sample_sizes=(200, 500, 1000),
-            bootstrap_repeats=10,
+            n_replications=10,
+            sample_sizes=(200,),
+            bootstrap_repeats=2,
             verbose=True,
             progress_every=5,
         )
-        print("Running QUICK simulation (50 reps × 5 DGPs × 3 sample sizes)...\n")
+        print("Running QUICK simulation (10 reps × 5 DGPs × 1 sample size)...\n")
 
     raw = run_simulation(config)
     summary = summarize_simulation(raw)
