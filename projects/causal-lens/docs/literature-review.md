@@ -60,13 +60,16 @@ rddensity (Cattaneo, Jansson & Ma, 2020) provides formal manipulation testing fo
 | Observational ATE/ATT | via backends | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | Doubly robust / DML | via backends | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | DiD / Synthetic control | — | — | — | — | — | — | ✓ |
+| Staggered DiD | — | — | — | — | — | — | ✓ |
 | IV / 2SLS | — | ✓ | — | — | — | — | ✓ |
 | Sharp RD | — | — | — | — | — | ✓ | ✓ |
 | Fuzzy RD (Wald) | — | — | — | — | — | ✓ | ✓ |
 | Robust bias-corrected RD | — | — | — | — | — | ✓ | ✓ |
 | McCrary / manipulation test | — | — | — | — | — | — | ✓ |
 | Structural bunching elasticity | — | — | — | — | — | — | ✓ |
+| OVB sensitivity (Cinelli-Hazlett) | — | — | — | — | — | — | ✓ |
 | Built-in sensitivity analysis | refutations | — | — | — | — | — | ✓ |
+| Cross-design diagnostics | — | — | — | — | — | — | ✓ |
 | Cross-design Monte Carlo | — | — | — | — | — | — | ✓ |
 | Unified result objects | — | — | — | — | — | — | ✓ |
 
@@ -74,11 +77,13 @@ This table is the core evidence for the publishable claim: no single Python pack
 
 ## What CausalLens Can Reasonably Claim
 
-Against that backdrop, the repository can make three specific claims.
+Against that backdrop, the repository can make five specific claims.
 
-1. **Design-space breadth with unified diagnostics.** CausalLens integrates observational cross-sectional estimators, difference-in-differences, synthetic control, instrumental variables, sharp and fuzzy local-polynomial RD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity in one lightweight library with common result objects. No existing Python package covers this combination.
+1. **Design-space breadth with unified diagnostics.** CausalLens integrates observational cross-sectional estimators, difference-in-differences (including staggered adoption), synthetic control, instrumental variables, sharp and fuzzy local-polynomial RD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity in one lightweight library with common result objects. No existing Python package covers this combination.
 2. **Diagnostics-first API contract.** Every estimator returns result objects that include validity diagnostics (covariate balance, propensity overlap, first-stage F-statistics, manipulation tests, sensitivity bounds) as first-class fields rather than optional post-hoc computations.
-3. **Reviewable evidence stack.** The repository includes public benchmark datasets, reference-parity tests, cross-design Monte Carlo simulations covering all DGP families, and manuscript-oriented exports. Every quantitative claim in the software paper can be reproduced from the repository.
+3. **Modern sensitivity analysis.** The package provides E-values (VanderWeele & Ding 2017), Rosenbaum sensitivity bounds, and Cinelli & Hazlett (2020) omitted-variable bias analysis with robustness values and benchmark-calibrated partial-R² bounds, giving users multiple complementary lenses on unmeasured confounding.
+4. **Cross-design diagnostic comparison.** The `compare_designs()` API collects assumption evidence from observational, DiD, IV, RD, and bunching analyses into a single sorted summary, supporting the kind of multi-design triangulation increasingly expected in applied causal research.
+5. **Reviewable evidence stack.** The repository includes public benchmark datasets, reference-parity tests, cross-design Monte Carlo simulations covering all DGP families, and manuscript-oriented exports. Every quantitative claim in the software paper can be reproduced from the repository.
 
 These are software-architecture and workflow claims supported by the code. They are not claims of new econometrics.
 
@@ -196,15 +201,19 @@ These are software-architecture and workflow claims supported by the code. They 
 
 ### What is genuinely new
 
-The strongest publishable novelty claim for CausalLens is *architectural*: it unifies causal estimation across five identification strategies — observational adjustment, difference-in-differences, instrumental variables, regression discontinuity, and bunching — with a common diagnostic-carrying result object API. No existing Python package spans this design space with integrated diagnostics. Specifically:
+The strongest publishable novelty claim for CausalLens is *architectural*: it unifies causal estimation across six identification strategies — observational adjustment, difference-in-differences (including staggered adoption), instrumental variables, regression discontinuity, and bunching — with a common diagnostic-carrying result object API. No existing Python package spans this design space with integrated diagnostics. Specifically:
 
-1. **Cross-design diagnostic integration.** No existing Python package lets a user run an observational IPW estimate with E-value sensitivity, a fuzzy RD with McCrary manipulation test and robust bias-corrected inference, and a structural bunching elasticity estimate in one import. This is not a feature-list claim; it is a software-architecture claim about what diagnostics are accessible at each identification boundary.
+1. **Cross-design diagnostic integration.** No existing Python package lets a user run an observational IPW estimate with E-value sensitivity, a fuzzy RD with McCrary manipulation test and robust bias-corrected inference, and a structural bunching elasticity estimate in one import. The `compare_designs()` API collects assumption evidence from all identification strategies into a single sorted summary for side-by-side review.
 
 2. **Structural bunching in Python.** As of this writing, structural bunching elasticity estimation (Saez 2010 / Kleven 2016 formula with bootstrap CIs) is not available in any published Python package. The R `bunching` package provides this, but Python users must currently implement it manually. CausalLens fills this gap.
 
 3. **McCrary manipulation testing integrated into the RD estimator.** Rather than requiring a separate package or manual density computation, the `RegressionDiscontinuity` object exposes `mccrary_test()` as a method, returning a structured result. This is a diagnostics-first design choice that existing Python RD implementations do not make.
 
-4. **Cross-design Monte Carlo simulation.** The simulation framework covers DGPs for observational, nonlinear, sharp RD, fuzzy RD, and bunching settings in one harness, enabling unified coverage/bias reporting across identification strategies.
+4. **Cinelli & Hazlett (2020) omitted-variable bias sensitivity.** CausalLens implements the partial-R² OVB framework with robustness values, significance-level robustness values, and benchmark-calibrated bounds. This goes beyond E-values by quantifying how strong a confounder must be — relative to observed covariates — to explain away the treatment effect.
+
+5. **Staggered-adoption difference-in-differences.** Following Callaway & Sant’Anna (2021), CausalLens computes group-time ATTs for each adoption cohort using never-treated or not-yet-treated controls, then aggregates them into an overall ATT with size-weighted averaging.
+
+6. **Cross-design Monte Carlo simulation.** The simulation framework covers DGPs for observational, nonlinear, sharp RD, fuzzy RD, and bunching settings in one harness, enabling unified coverage/bias reporting across identification strategies.
 
 ### What is explicitly not claimed
 
@@ -212,6 +221,8 @@ The strongest publishable novelty claim for CausalLens is *architectural*: it un
 - CausalLens does not claim parity with EconML or DoubleML on ML-based nuisance estimation or heterogeneous treatment effects.
 - CausalLens does not claim parity with DoWhy on graph-based identification and refutation workflows.
 - CausalLens does not claim the structural bunching implementation matches the depth of the R `bunching` package on round-number corrections, diffuse bunching, or notch designs.
+- CausalLens does not claim parity with the `sensemakr` R package on OVB visualization (contour plots) or the full sensitivity statistics suite.
+- CausalLens does not claim parity with the `did` R package on doubly-robust group-time ATTs or bootstrapped simultaneous confidence bands for staggered DiD.
 
 ### Publication venue fit
 
@@ -223,10 +234,13 @@ The strongest publishable novelty claim for CausalLens is *architectural*: it un
 
 The package can now support manuscript claims about:
 
-1. a unified Python package integrating causal estimation across five identification strategies with built-in diagnostics — a combination not available in any existing Python package,
+1. a unified Python package integrating causal estimation across six identification strategies with built-in diagnostics — a combination not available in any existing Python package,
 2. a Python implementation of structural bunching elasticity with bootstrap inference, filling a gap that previously required R or manual implementation,
 3. robust bias-corrected RD inference with integrated McCrary manipulation testing,
-4. a reviewable evidence stack including public benchmarks, reference-parity tests, and cross-design Monte Carlo simulation, and
-5. a compact, diagnostics-first software workflow for applied causal-inference review.
+4. Cinelli & Hazlett (2020) omitted-variable bias sensitivity with robustness values and benchmark-calibrated bounds,
+5. staggered-adoption DiD with cohort-level group-time ATTs following Callaway & Sant’Anna (2021),
+6. cross-design diagnostic comparison via a unified API that collects assumption evidence across all identification strategies,
+7. a reviewable evidence stack including public benchmarks, reference-parity tests, and cross-design Monte Carlo simulation, and
+8. a compact, diagnostics-first software workflow for applied causal-inference review.
 
 The limitations section must acknowledge that individual estimator implementations are not as deep as dedicated single-design packages (rdrobust for RD, bunching for bunching, EconML for CATE), and that the package targets breadth of design integration rather than depth on any single method.

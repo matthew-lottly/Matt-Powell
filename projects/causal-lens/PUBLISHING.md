@@ -60,7 +60,7 @@ This project is intended to live as a standalone Python package under `projects/
 
 ## Novelty Thesis
 
-CausalLens is a unified, diagnostics-first Python package integrating causal estimation across five identification strategies — observational adjustment, difference-in-differences, instrumental variables, regression discontinuity, and bunching — with a common diagnostic-carrying result-object API. No existing Python package spans this design space with integrated diagnostics.
+CausalLens is a unified, diagnostics-first Python package integrating causal estimation across six identification strategies — observational adjustment, difference-in-differences (including staggered adoption), instrumental variables, regression discontinuity, and bunching — with a common diagnostic-carrying result-object API and Cinelli-Hazlett omitted-variable bias sensitivity analysis. No existing Python package spans this design space with integrated diagnostics.
 
 This is a software-architecture and workflow claim, not a new-methods claim.
 

@@ -18,18 +18,32 @@ from causal_lens.data import (
 )
 from causal_lens.results import (
     CausalEstimate,
+    DesignDiagnostic,
     DiagnosticSummary,
+    OVBBound,
+    OVBSummary,
     PlaceboResult,
     RosenbaumSensitivity,
     SensitivitySummary,
+    StaggeredDiDEstimate,
     SubgroupEstimate,
 )
 from causal_lens.reporting import benchmark_to_frame, export_benchmark_artifacts, export_dataset_artifacts, results_to_frame
 from causal_lens.synthetic import generate_synthetic_observational_data
-from causal_lens.panel import DifferenceInDifferences, SyntheticControl, DiDEstimate, SyntheticControlEstimate
+from causal_lens.panel import DifferenceInDifferences, StaggeredDiD, SyntheticControl, DiDEstimate, SyntheticControlEstimate
 from causal_lens.iv import TwoStageLeastSquares, IVEstimate
 from causal_lens.rdd import BunchingElasticity, BunchingEstimate, BunchingEstimator, McCraryResult, RDEstimate, RegressionDiscontinuity
 from causal_lens.simulation import SimulationConfig, run_simulation, summarize_simulation, run_quick_simulation, run_rdd_simulation, DGP_REGISTRY, RDD_DGP_REGISTRY
+
+from causal_lens.diagnostics import ovb_bounds
+from causal_lens.design_diagnostics import (
+    compare_designs,
+    diagnose_bunching,
+    diagnose_did,
+    diagnose_iv,
+    diagnose_observational,
+    diagnose_rd,
+)
 
 __all__ = [
     "CausalEstimate",
@@ -37,8 +51,15 @@ __all__ = [
     "BunchingElasticity",
     "BunchingEstimate",
     "BunchingEstimator",
+    "compare_designs",
     "CrossFittedDREstimator",
+    "DesignDiagnostic",
     "DGP_REGISTRY",
+    "diagnose_bunching",
+    "diagnose_did",
+    "diagnose_iv",
+    "diagnose_observational",
+    "diagnose_rd",
     "DiagnosticSummary",
     "DiDEstimate",
     "DifferenceInDifferences",
@@ -55,6 +76,9 @@ __all__ = [
     "load_nhefs_complete_benchmark",
     "McCraryResult",
     "NHEFS_COMPLETE_CONFOUNDERS",
+    "OVBBound",
+    "OVBSummary",
+    "ovb_bounds",
     "PlaceboResult",
     "PropensityMatcher",
     "RDD_DGP_REGISTRY",
@@ -70,6 +94,8 @@ __all__ = [
     "SensitivitySummary",
     "SimulationConfig",
     "SLearner",
+    "StaggeredDiD",
+    "StaggeredDiDEstimate",
     "SubgroupEstimate",
     "summarize_simulation",
     "SyntheticControl",

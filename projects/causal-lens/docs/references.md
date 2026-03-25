@@ -50,7 +50,7 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 |-----|----------|----------------|-------|
 | SA1 | VanderWeele, T. J., and Ding, P. (2017). Sensitivity analysis in observational research: introducing the E-value. Annals of Internal Medicine, 167(4), 268–274. | E-value implementation in CausalLens diagnostics. | |
 | SA2 | Rosenbaum, P. R. (2002). Observational Studies. 2nd ed. Springer. | Rosenbaum bounds for matched-pair sensitivity. | |
-| SA3 | Cinelli, C., and Hazlett, C. (2020). Making sense of sensitivity: extending omitted variable bias. Journal of the Royal Statistical Society Series B, 82(1), 39–67. | OVB framework. CausalLens does not currently implement Cinelli-Hazlett; listed as a future novelty strengthener. | |
+| SA3 | Cinelli, C., and Hazlett, C. (2020). Making sense of sensitivity: extending omitted variable bias. Journal of the Royal Statistical Society Series B, 82(1), 39–67. | OVB partial-R² framework implemented in CausalLens `ovb_bounds()` function with robustness values and benchmark-calibrated bounds. | |
 
 ---
 
@@ -59,8 +59,8 @@ Organized by method area. Each entry includes the citation, the CausalLens claim
 | Ref | Citation | Claim Supported | Notes |
 |-----|----------|----------------|-------|
 | P1 | Angrist, J. D., and Pischke, J.-S. (2009). Mostly Harmless Econometrics. Princeton University Press. | General DiD and IV identification framework. | |
-| P2 | Callaway, B., and Sant'Anna, P. H. C. (2021). Difference-in-differences with multiple time periods. Journal of Econometrics, 225(2), 200–230. | Staggered DiD. CausalLens does not yet implement staggered adoption; listed as future strengthener. | |
-| P3 | de Chaisemartin, C., and D'Haultfoeuille, X. (2020). Two-way fixed effects estimators with heterogeneous treatment effects. American Economic Review, 110(9), 2964–2996. | Heterogeneous-treatment-effect DiD diagnostics. Not yet implemented. | |
+| P2 | Callaway, B., and Sant'Anna, P. H. C. (2021). Difference-in-differences with multiple time periods. Journal of Econometrics, 225(2), 200–230. | Staggered DiD now implemented in CausalLens `StaggeredDiD` class with group-time ATT aggregation. | |
+| P3 | de Chaisemartin, C., and D'Haultfoeuille, X. (2020). Two-way fixed effects estimators with heterogeneous treatment effects. American Economic Review, 110(9), 2964–2996. | Heterogeneous-treatment-effect DiD diagnostics. Motivates the staggered implementation. | |
 
 ---
 
@@ -181,6 +181,6 @@ References requiring verification or update before submission:
 
 - **S9 (bunching R package):** Currently cited as a working paper. Check whether a journal version has appeared.
 - **S5 (causallib):** arXiv preprint. Confirm no journal publication.
-- **SA3 (Cinelli & Hazlett):** Method not yet implemented; include only if OVB sensitivity is added.
-- **P2, P3 (staggered DiD):** Methods not yet implemented; include only if staggered-adoption DiD is added.
+- **SA3 (Cinelli & Hazlett):** Now implemented. Include in submission.
+- **P2, P3 (staggered DiD):** Staggered DiD now implemented. Include in submission.
 - **RD8 (CCF 2020 bandwidth):** MSE-optimal bandwidth not yet implemented; cite to acknowledge roadmap gap.

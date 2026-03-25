@@ -102,3 +102,67 @@ class PlaceboResult:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class OVBBound:
+    """Omitted-variable bias bound following Cinelli & Hazlett (2020)."""
+    r2yz_dx: float
+    r2dz_x: float
+    adjusted_effect: float
+    adjusted_se: float | None
+    adjusted_ci_low: float | None
+    adjusted_ci_high: float | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class OVBSummary:
+    """Summary of omitted-variable bias analysis."""
+    treatment_effect: float
+    treatment_se: float
+    r2_y_treatment: float
+    r2_y_full: float
+    robustness_value: float
+    robustness_value_alpha: float | None
+    bounds: list[OVBBound]
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["bounds"] = [b.to_dict() for b in self.bounds]
+        return payload
+
+
+@dataclass(frozen=True)
+class StaggeredDiDEstimate:
+    """Result container for a staggered difference-in-differences estimate."""
+    method: str
+    att: float
+    se: float | None
+    ci_low: float | None
+    ci_high: float | None
+    group_effects: dict[Any, float]
+    group_weights: dict[Any, float]
+    n_groups: int
+    n_units: int
+    n_periods: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {k: getattr(self, k) for k in self.__dataclass_fields__}
+
+
+@dataclass(frozen=True)
+class DesignDiagnostic:
+    """Diagnostic summary for a single identification strategy."""
+    design: str
+    estimand: str
+    key_assumption: str
+    diagnostic_name: str
+    diagnostic_value: float
+    passes: bool
+    detail: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)

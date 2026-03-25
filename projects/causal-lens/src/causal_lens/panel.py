@@ -1,4 +1,4 @@
-"""Panel-data estimators: Difference-in-Differences and Synthetic Control.
+"""Panel-data estimators: Difference-in-Differences, Staggered DiD, and Synthetic Control.
 
 These estimators handle repeated-observation (panel) data where units are
 observed in both pre-treatment and post-treatment periods.
@@ -11,6 +11,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
+
+from causal_lens.results import StaggeredDiDEstimate
 
 
 @dataclass(frozen=True)
@@ -371,3 +373,188 @@ class SyntheticControl:
             except (ValueError, KeyError):
                 continue
         return effects if effects else None
+
+
+class StaggeredDiD:
+    """Staggered difference-in-differences estimator.
+
+    Implements a group-time ATT estimator following the logic of Callaway &
+    Sant'Anna (2021). Each cohort (group of units first treated at time *g*)
+    is compared against never-treated or not-yet-treated units using 2x2 DiD,
+    and the group-time ATTs are aggregated into an overall ATT.
+
+    Parameters
+    ----------
+    unit_col : str
+        Column identifying individual units.
+    time_col : str
+        Column identifying time periods.
+    outcome_col : str
+        Column with the outcome variable.
+    cohort_col : str
+        Column indicating the first period a unit is treated (the adoption
+        cohort). Never-treated units should have this set to ``np.inf``,
+        ``None``/``NaN``, or a value larger than any observed time period.
+    control : str
+        ``"never_treated"`` uses only never-treated units as controls.
+        ``"not_yet_treated"`` uses units not yet treated at each comparison
+        period.
+    """
+
+    def __init__(
+        self,
+        unit_col: str,
+        time_col: str,
+        outcome_col: str,
+        cohort_col: str,
+        control: str = "never_treated",
+    ) -> None:
+        self.unit_col = unit_col
+        self.time_col = time_col
+        self.outcome_col = outcome_col
+        self.cohort_col = cohort_col
+        if control not in ("never_treated", "not_yet_treated"):
+            raise ValueError("control must be 'never_treated' or 'not_yet_treated'")
+        self.control = control
+
+    def fit(self, frame: pd.DataFrame) -> StaggeredDiDEstimate:
+        """Estimate the overall ATT from staggered adoption.
+
+        For each cohort *g* and each post-treatment period *t >= g*, computes
+        a 2x2 DiD comparing cohort *g* against the control group using
+        period *g-1* as the pre-period. The overall ATT is a weighted
+        average of these group-time ATTs, weighted by cohort size.
+        """
+        import statsmodels.api as sm
+
+        df = frame.copy()
+
+        # Identify cohorts and periods
+        all_periods = sorted(df[self.time_col].unique())
+        cohort_values = df[self.cohort_col].copy()
+
+        # Mark never-treated: NaN, None, or cohort > max observed period
+        max_period = max(all_periods)
+        never_treated_mask = cohort_values.isna() | (cohort_values > max_period)
+        never_treated_units = df.loc[never_treated_mask, self.unit_col].unique()
+
+        # Get treatment cohorts
+        treated_mask = ~never_treated_mask
+        cohorts = sorted(df.loc[treated_mask, self.cohort_col].unique())
+
+        if len(cohorts) == 0:
+            raise ValueError("No treatment cohorts found")
+
+        group_atts: dict[Any, float] = {}
+        group_ses: dict[Any, float] = {}
+        group_sizes: dict[Any, int] = {}
+
+        for g in cohorts:
+            g_val = float(g) if not isinstance(g, (int, float)) else g
+            # Pre-period: the period just before adoption
+            pre_candidates = [p for p in all_periods if p < g_val]
+            if not pre_candidates:
+                continue
+            pre_period = max(pre_candidates)
+
+            # Post-periods for this cohort
+            post_periods = [p for p in all_periods if p >= g_val]
+            if not post_periods:
+                continue
+
+            # Cohort units
+            cohort_units = df.loc[
+                df[self.cohort_col] == g, self.unit_col
+            ].unique()
+            n_cohort = len(cohort_units)
+            if n_cohort == 0:
+                continue
+
+            # Control units
+            if self.control == "never_treated":
+                control_units = never_treated_units
+            else:
+                # not-yet-treated: units whose cohort is strictly after max(post_periods)
+                # or never-treated
+                nyt_mask = never_treated_mask | (cohort_values > max(post_periods))
+                control_units = df.loc[nyt_mask, self.unit_col].unique()
+
+            if len(control_units) == 0:
+                continue
+
+            # Compute group-time ATTs across post-periods and average them
+            gt_effects: list[float] = []
+            for t in post_periods:
+                # 2x2 comparison: cohort g at {pre_period, t} vs control at {pre_period, t}
+                relevant_units = set(cohort_units) | set(control_units)
+                subset = df[
+                    df[self.unit_col].isin(relevant_units)
+                    & df[self.time_col].isin([pre_period, t])
+                ].copy()
+
+                if subset.empty:
+                    continue
+
+                is_treat = subset[self.unit_col].isin(cohort_units).astype(int).to_numpy()
+                is_post = (subset[self.time_col] == t).astype(int).to_numpy()
+                interact = is_treat * is_post
+                y = subset[self.outcome_col].to_numpy(dtype=float)
+
+                x_mat = np.column_stack([
+                    np.ones(len(subset)),
+                    is_treat.astype(float),
+                    is_post.astype(float),
+                    interact.astype(float),
+                ])
+
+                try:
+                    model = sm.OLS(y, x_mat).fit()
+                    gt_effects.append(float(model.params[3]))
+                except Exception:
+                    continue
+
+            if gt_effects:
+                group_atts[g] = float(np.mean(gt_effects))
+                # Simple SE: std of group-time ATTs / sqrt(count)
+                if len(gt_effects) > 1:
+                    group_ses[g] = float(np.std(gt_effects, ddof=1) / np.sqrt(len(gt_effects)))
+                else:
+                    group_ses[g] = 0.0
+                group_sizes[g] = n_cohort
+
+        if not group_atts:
+            raise ValueError("No group-time ATTs could be computed")
+
+        # Aggregate: size-weighted average
+        total_weight = sum(group_sizes.values())
+        group_weights = {g: group_sizes[g] / total_weight for g in group_atts}
+
+        att = sum(group_atts[g] * group_weights[g] for g in group_atts)
+
+        # Aggregated SE via delta method (independent group-time estimates)
+        se_sq = sum(
+            (group_weights[g] ** 2) * (group_ses[g] ** 2)
+            for g in group_atts if g in group_ses
+        )
+        se = float(np.sqrt(se_sq)) if se_sq > 0 else None
+
+        if se is not None and se > 1e-12:
+            z = norm.ppf(0.975)
+            ci_low = att - z * se
+            ci_high = att + z * se
+        else:
+            ci_low = None
+            ci_high = None
+
+        return StaggeredDiDEstimate(
+            method="StaggeredDiD",
+            att=float(att),
+            se=se,
+            ci_low=float(ci_low) if ci_low is not None else None,
+            ci_high=float(ci_high) if ci_high is not None else None,
+            group_effects={g: float(v) for g, v in group_atts.items()},
+            group_weights={g: float(v) for g, v in group_weights.items()},
+            n_groups=len(group_atts),
+            n_units=len(df[self.unit_col].unique()),
+            n_periods=len(all_periods),
+        )

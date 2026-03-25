@@ -76,7 +76,9 @@ The project is not novel because it re-invents matching or weighting. Its differ
 2. diagnostics shipped by default rather than left to ad hoc user code
 3. explicit support for both real-style reproducible fixtures and synthetic known-effect validation
 4. a publication-oriented design where methods, assumptions, and checks are documented alongside code
-5. support for multiple identification strategies in one small package: observational adjustment, panel comparisons, IV, sharp and fuzzy RDD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity estimation
+5. support for multiple identification strategies in one small package: observational adjustment, panel comparisons (including staggered-adoption DiD), IV, sharp and fuzzy RDD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity estimation
+6. Cinelli & Hazlett (2020) omitted-variable bias sensitivity analysis with robustness values and benchmark-calibrated bounds
+7. cross-design diagnostic comparison that lets users view assumption evidence from multiple identification strategies side by side
 
 ## Quasi-Experimental Methods
 

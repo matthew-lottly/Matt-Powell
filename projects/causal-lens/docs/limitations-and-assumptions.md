@@ -22,7 +22,8 @@ This document is written in a style that can later be adapted directly into a ma
 8. The fuzzy RD uses a local Wald ratio with delta-method standard errors. It does not implement the full local-IV procedure available in rdrobust.
 9. The McCrary manipulation test uses a kernel-weighted binomial approach. It does not implement the formal local-polynomial density estimator of Cattaneo, Jansson, and Ma (2020).
 10. The structural bunching elasticity implements the Saez (2010) / Kleven (2016) formula for kink-point designs. It does not yet cover notch designs, round-number bunching corrections, or diffuse bunching.
-11. The package does not yet cover staggered-adoption DiD estimators or continuous-treatment designs.
+11. The package now supports staggered-adoption DiD following Callaway & Sant'Anna (2021) logic with never-treated and not-yet-treated control groups; it does not yet implement doubly-robust group-time ATTs or bootstrapped simultaneous confidence bands.
+12. The omitted-variable bias analysis follows Cinelli & Hazlett (2020) partial-R² formulation. It does not implement the contour-plot visualization or the formal sensitivity-statistics package features beyond robustness values and benchmark bounds.
 
 ## Why these limits are acceptable for the current paper
 

@@ -68,6 +68,9 @@ The current repository now uses four complementary evidence tracks:
 - McCrary (2008) density manipulation test integrated as a method on the RD estimator for running-variable sorting detection
 - Descriptive bunching estimator that measures excess mass around a threshold by comparing observed and smooth counterfactual histogram mass
 - Structural bunching elasticity estimation following Saez (2010) and Kleven (2016), recovering compensated elasticities from kink-point designs with bootstrap confidence intervals
+- Staggered-adoption difference-in-differences estimator following Callaway & Sant'Anna (2021) logic, with cohort-level group-time ATTs, never-treated and not-yet-treated control groups, and size-weighted aggregation
+- Cinelli & Hazlett (2020) omitted-variable bias sensitivity analysis: robustness values, benchmark-calibrated partial-R² bounds, and adjusted effect estimates under hypothetical confounding
+- Cross-design diagnostic comparison that collects assumption evidence from observational, DiD, IV, RD, and bunching designs into a unified summary for side-by-side review
 - Monte Carlo simulation framework with five observational DGPs plus cross-design DGPs for sharp RD, fuzzy RD, and bunching, evaluating bias, RMSE, coverage, and SE calibration ratio
 - IPW standard errors corrected for propensity-score estimation uncertainty via the Lunceford & Davidian (2004) stacked estimating equations adjustment
 
@@ -107,8 +110,9 @@ It also writes paper-oriented artifacts under `outputs/charts/` and `outputs/tab
 - add article figures, benchmark tables, and formal estimator-comparison writeups for DiD, synthetic control, and IV
 - add MSE-optimal bandwidth selection for RD (Calonico, Cattaneo & Farrell 2020 approach)
 - expand simulation study to additional sample sizes and publish summary tables
-- add staggered-adoption DiD estimators
+- add doubly-robust group-time ATTs and bootstrapped simultaneous confidence bands for staggered DiD
 - add notch-design bunching estimation
+- add contour-plot visualization for OVB sensitivity analysis
 
 Cross-sectional estimators, panel-data methods, IV, sharp and fuzzy RDD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity are now in place.
 
