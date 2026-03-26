@@ -1,5 +1,6 @@
 {
   "python.analysis.extraPaths": [
+    "./projects/conformal-heterogeneous-gnn/src",
     "./projects/monitoring-anomaly-detection/src",
     "./standalone-checkouts/monitoring-anomaly-detection/src",
     "./projects/environmental-time-series-lab/src",
@@ -22,6 +23,7 @@
     "./projects/raster-monitoring-pipeline/src",
     "./standalone-checkouts/raster-monitoring-pipeline/src"
   ],
+  "python.defaultInterpreterPath": "d:/GitHub/.venv/Scripts/python.exe",
   "python.analysis.exclude": [
     "**/node_modules",
     "**/__pycache__",
