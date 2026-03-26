@@ -55,27 +55,77 @@ def run_baseline_sweep() -> list[dict]:
             ("chmp_median_floor", True, 0.3, "median", 0.1),
         ]
 
-        for method, prop, lam, agg, floor in variants:
-            cfg = _cfg(seed, alpha=0.1, lam=lam, prop=prop)
-            if agg is not None:
-                cfg.neighbor_agg = agg
-                cfg.trimmed_frac = 0.0
-                cfg.floor_sigma = floor
+        # build per-seed config, data, and train once
+        cfg_base = _cfg(seed, alpha=0.1, lam=0.0, prop=True)
+        graph = generate_synthetic_infrastructure(
+            n_power=cfg_base.n_power, n_water=cfg_base.n_water, n_telecom=cfg_base.n_telecom,
+            feature_dim=cfg_base.feature_dim, coupling_prob=cfg_base.coupling_prob,
+            coupling_radius=cfg_base.coupling_radius, seed=cfg_base.seed,
+        )
 
-            r = run_experiment(cfg, verbose=False)
+        # local imports to avoid top-level changes
+        from hetero_conformal.experiment import train_model, evaluate
+        from hetero_conformal.model import HeteroGNN
+        from hetero_conformal.conformal import PropagationAwareCalibrator, HeteroConformalCalibrator
+        from hetero_conformal.metrics import (
+            rmse_per_type, marginal_coverage, type_conditional_coverage,
+            prediction_set_efficiency, mean_interval_width, calibration_error,
+        )
+
+        in_dims = {nt: f.shape[1] for nt, f in graph.node_features.items()}
+        edge_types = list(graph.edge_index.keys())
+        model = HeteroGNN(
+            in_dims=in_dims,
+            hidden_dim=cfg_base.hidden_dim,
+            num_layers=cfg_base.num_layers,
+            edge_types=edge_types,
+            dropout=cfg_base.dropout,
+        ).to(cfg_base.device)
+
+        model, _, _ = train_model(model, graph, cfg_base)
+        predictions = evaluate(model, graph, cfg_base)
+
+        cal_masks = {ntype: graph.node_masks[ntype]["cal"] for ntype in graph.node_masks}
+        test_masks = {ntype: graph.node_masks[ntype]["test"] for ntype in graph.node_masks}
+        train_masks = {ntype: graph.node_masks[ntype]["train"] for ntype in graph.node_masks}
+
+        for method, prop, lam, agg, floor in variants:
+            if prop and lam > 0:
+                calibrator = PropagationAwareCalibrator(alpha=cfg_base.alpha, neighborhood_weight=lam)
+                calibrator.neighbor_agg = getattr(cfg_base, "neighbor_agg", "mean") if agg is None else agg
+                calibrator.trimmed_frac = getattr(cfg_base, "trimmed_frac", 0.0)
+                calibrator.floor_sigma = getattr(cfg_base, "floor_sigma", 0.0) if floor is None else floor
+                _ = calibrator.calibrate_with_propagation(
+                    predictions, graph.node_labels, cal_masks, train_masks,
+                    graph.edge_index, graph.num_nodes,
+                )
+            else:
+                calibrator = HeteroConformalCalibrator(alpha=cfg_base.alpha)
+                _ = calibrator.calibrate(predictions, graph.node_labels, cal_masks)
+
+            conf_result = calibrator.predict(predictions, test_masks)
+
+            # compute metrics
+            rmse = rmse_per_type(predictions, graph.node_labels, test_masks)
+            m_cov = marginal_coverage(conf_result, graph.node_labels, test_masks)
+            t_cov = type_conditional_coverage(conf_result, graph.node_labels, test_masks)
+            widths = prediction_set_efficiency(conf_result)
+            m_width = mean_interval_width(conf_result)
+            ece = calibration_error(conf_result, graph.node_labels, test_masks)
+
             row = {
                 "seed": seed,
                 "method": method,
-                "marginal_cov": r.marginal_cov,
-                "mean_width": r.mean_width,
-                "ece": r.ece,
+                "marginal_cov": m_cov,
+                "mean_width": m_width,
+                "ece": ece,
             }
             for nt in NODE_TYPES:
-                row[f"cov_{nt}"] = r.type_cov.get(nt, float("nan"))
-                row[f"width_{nt}"] = r.interval_widths.get(nt, float("nan"))
-                row[f"rmse_{nt}"] = r.rmse.get(nt, float("nan"))
+                row[f"cov_{nt}"] = t_cov.get(nt, float("nan"))
+                row[f"width_{nt}"] = widths.get(nt, float("nan"))
+                row[f"rmse_{nt}"] = rmse.get(nt, float("nan"))
             rows.append(row)
-            print(f"  seed={seed} {method}: cov={r.marginal_cov:.4f} width={r.mean_width:.4f}")
+            print(f"  seed={seed} {method}: cov={m_cov:.4f} width={m_width:.4f}")
     return rows
 
 
@@ -83,21 +133,78 @@ def run_baseline_sweep() -> list[dict]:
 
 def run_lambda_sweep() -> list[dict]:
     rows: list[dict] = []
+    # Train once per seed, then re-run only the calibrator for each lambda
     for seed in SEEDS:
+        # build per-seed config and data
+        cfg_base = _cfg(seed, alpha=0.1, lam=0.0, prop=True)
+        graph = generate_synthetic_infrastructure(
+            n_power=cfg_base.n_power, n_water=cfg_base.n_water, n_telecom=cfg_base.n_telecom,
+            feature_dim=cfg_base.feature_dim, coupling_prob=cfg_base.coupling_prob,
+            coupling_radius=cfg_base.coupling_radius, seed=cfg_base.seed,
+        )
+
+        # local imports to avoid top-level changes
+        from hetero_conformal.experiment import train_model, evaluate
+        from hetero_conformal.model import HeteroGNN
+        from hetero_conformal.conformal import PropagationAwareCalibrator, HeteroConformalCalibrator
+        from hetero_conformal.metrics import (
+            rmse_per_type, marginal_coverage, type_conditional_coverage,
+            prediction_set_efficiency, mean_interval_width, calibration_error,
+        )
+
+        # build and train model once
+        in_dims = {nt: f.shape[1] for nt, f in graph.node_features.items()}
+        edge_types = list(graph.edge_index.keys())
+        model = HeteroGNN(
+            in_dims=in_dims,
+            hidden_dim=cfg_base.hidden_dim,
+            num_layers=cfg_base.num_layers,
+            edge_types=edge_types,
+            dropout=cfg_base.dropout,
+        ).to(cfg_base.device)
+
+        model, _, _ = train_model(model, graph, cfg_base)
+        predictions = evaluate(model, graph, cfg_base)
+
+        cal_masks = {ntype: graph.node_masks[ntype]["cal"] for ntype in graph.node_masks}
+        test_masks = {ntype: graph.node_masks[ntype]["test"] for ntype in graph.node_masks}
+        train_masks = {ntype: graph.node_masks[ntype]["train"] for ntype in graph.node_masks}
+
         for lam in LAMBDAS:
-            prop = lam > 0
-            cfg = _cfg(seed, alpha=0.1, lam=lam, prop=prop)
-            r = run_experiment(cfg, verbose=False)
+            if lam > 0:
+                calibrator = PropagationAwareCalibrator(alpha=cfg_base.alpha, neighborhood_weight=lam)
+                calibrator.neighbor_agg = getattr(cfg_base, "neighbor_agg", "mean")
+                calibrator.trimmed_frac = getattr(cfg_base, "trimmed_frac", 0.0)
+                calibrator.floor_sigma = getattr(cfg_base, "floor_sigma", 0.0)
+                _ = calibrator.calibrate_with_propagation(
+                    predictions, graph.node_labels, cal_masks, train_masks,
+                    graph.edge_index, graph.num_nodes,
+                )
+            else:
+                calibrator = HeteroConformalCalibrator(alpha=cfg_base.alpha)
+                _ = calibrator.calibrate(predictions, graph.node_labels, cal_masks)
+
+            conf_result = calibrator.predict(predictions, test_masks)
+
+            # compute metrics
+            rmse = rmse_per_type(predictions, graph.node_labels, test_masks)
+            m_cov = marginal_coverage(conf_result, graph.node_labels, test_masks)
+            t_cov = type_conditional_coverage(conf_result, graph.node_labels, test_masks)
+            widths = prediction_set_efficiency(conf_result)
+            m_width = mean_interval_width(conf_result)
+            ece = calibration_error(conf_result, graph.node_labels, test_masks)
+
             row = {
                 "seed": seed, "lambda": lam,
-                "marginal_cov": r.marginal_cov,
-                "mean_width": r.mean_width,
-                "ece": r.ece,
+                "marginal_cov": m_cov,
+                "mean_width": m_width,
+                "ece": ece,
             }
             for nt in NODE_TYPES:
-                row[f"cov_{nt}"] = r.type_cov.get(nt, float("nan"))
-                row[f"width_{nt}"] = r.interval_widths.get(nt, float("nan"))
+                row[f"cov_{nt}"] = t_cov.get(nt, float("nan"))
+                row[f"width_{nt}"] = widths.get(nt, float("nan"))
             rows.append(row)
+
     return rows
 
 
@@ -106,18 +213,68 @@ def run_lambda_sweep() -> list[dict]:
 def run_alpha_sweep() -> list[dict]:
     rows: list[dict] = []
     for seed in SEEDS:
+        # train once per seed, then recalibrate for each alpha
+        cfg_base = _cfg(seed, alpha=0.1, lam=0.3, prop=True)
+        graph = generate_synthetic_infrastructure(
+            n_power=cfg_base.n_power, n_water=cfg_base.n_water, n_telecom=cfg_base.n_telecom,
+            feature_dim=cfg_base.feature_dim, coupling_prob=cfg_base.coupling_prob,
+            coupling_radius=cfg_base.coupling_radius, seed=cfg_base.seed,
+        )
+
+        from hetero_conformal.experiment import train_model, evaluate
+        from hetero_conformal.model import HeteroGNN
+        from hetero_conformal.conformal import PropagationAwareCalibrator
+        from hetero_conformal.metrics import (
+            rmse_per_type, marginal_coverage, type_conditional_coverage,
+            prediction_set_efficiency, mean_interval_width, calibration_error,
+        )
+
+        in_dims = {nt: f.shape[1] for nt, f in graph.node_features.items()}
+        edge_types = list(graph.edge_index.keys())
+        model = HeteroGNN(
+            in_dims=in_dims,
+            hidden_dim=cfg_base.hidden_dim,
+            num_layers=cfg_base.num_layers,
+            edge_types=edge_types,
+            dropout=cfg_base.dropout,
+        ).to(cfg_base.device)
+
+        model, _, _ = train_model(model, graph, cfg_base)
+        predictions = evaluate(model, graph, cfg_base)
+
+        cal_masks = {ntype: graph.node_masks[ntype]["cal"] for ntype in graph.node_masks}
+        test_masks = {ntype: graph.node_masks[ntype]["test"] for ntype in graph.node_masks}
+        train_masks = {ntype: graph.node_masks[ntype]["train"] for ntype in graph.node_masks}
+
         for alpha in ALPHAS:
-            cfg = _cfg(seed, alpha=alpha, lam=0.3, prop=True)
-            r = run_experiment(cfg, verbose=False)
+            calibrator = PropagationAwareCalibrator(alpha=alpha, neighborhood_weight=0.3)
+            calibrator.neighbor_agg = getattr(cfg_base, "neighbor_agg", "mean")
+            calibrator.trimmed_frac = getattr(cfg_base, "trimmed_frac", 0.0)
+            calibrator.floor_sigma = getattr(cfg_base, "floor_sigma", 0.0)
+            _ = calibrator.calibrate_with_propagation(
+                predictions, graph.node_labels, cal_masks, train_masks,
+                graph.edge_index, graph.num_nodes,
+            )
+
+            conf_result = calibrator.predict(predictions, test_masks)
+
+            # compute metrics
+            rmse = rmse_per_type(predictions, graph.node_labels, test_masks)
+            m_cov = marginal_coverage(conf_result, graph.node_labels, test_masks)
+            t_cov = type_conditional_coverage(conf_result, graph.node_labels, test_masks)
+            widths = prediction_set_efficiency(conf_result)
+            m_width = mean_interval_width(conf_result)
+            ece = calibration_error(conf_result, graph.node_labels, test_masks)
+
             row = {
                 "seed": seed, "alpha": alpha,
-                "marginal_cov": r.marginal_cov,
-                "mean_width": r.mean_width,
-                "ece": r.ece,
+                "marginal_cov": m_cov,
+                "mean_width": m_width,
+                "ece": ece,
             }
             for nt in NODE_TYPES:
-                row[f"cov_{nt}"] = r.type_cov.get(nt, float("nan"))
-                row[f"width_{nt}"] = r.interval_widths.get(nt, float("nan"))
+                row[f"cov_{nt}"] = t_cov.get(nt, float("nan"))
+                row[f"width_{nt}"] = widths.get(nt, float("nan"))
             rows.append(row)
     return rows
 
