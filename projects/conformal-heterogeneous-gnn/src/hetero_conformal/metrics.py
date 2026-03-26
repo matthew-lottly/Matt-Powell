@@ -140,3 +140,51 @@ def rmse_per_type(
             continue
         rmses[ntype] = float(np.sqrt(np.mean((pred - true) ** 2)))
     return rmses
+
+
+def per_type_ece(
+    result: ConformalResult,
+    labels: Dict[str, np.ndarray],
+    test_masks: Optional[Dict[str, np.ndarray]] = None,
+    n_bins: int = 10,
+) -> Dict[str, float]:
+    """Compute ECE per node type by binning interval widths and measuring
+    coverage deviation from the target (1 - alpha).
+    """
+    out: Dict[str, float] = {}
+    target = 1.0 - result.alpha
+
+    for ntype in result.lower:
+        if test_masks is not None and ntype in test_masks:
+            true = labels[ntype][test_masks[ntype]]
+            widths = result.upper[ntype] - result.lower[ntype]
+            covered = (true >= result.lower[ntype]) & (true <= result.upper[ntype])
+        else:
+            true = labels[ntype]
+            widths = result.upper[ntype] - result.lower[ntype]
+            covered = (true >= result.lower[ntype]) & (true <= result.upper[ntype])
+
+        if len(widths) == 0:
+            out[ntype] = 0.0
+            continue
+
+        # Use percentile bins similar to global ECE for stability
+        bin_edges = np.percentile(widths, np.linspace(0, 100, n_bins + 1))
+        ece = 0.0
+        total = len(widths)
+
+        for i in range(n_bins):
+            lo, hi = bin_edges[i], bin_edges[i + 1]
+            if i == n_bins - 1:
+                mask = (widths >= lo) & (widths <= hi)
+            else:
+                mask = (widths >= lo) & (widths < hi)
+            if np.sum(mask) == 0:
+                continue
+            bin_coverage = np.mean(covered[mask].astype(float))
+            bin_weight = np.sum(mask) / total
+            ece += bin_weight * abs(bin_coverage - target)
+
+        out[ntype] = float(ece)
+
+    return out

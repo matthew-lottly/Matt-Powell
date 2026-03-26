@@ -191,6 +191,12 @@ class PropagationAwareCalibrator(HeteroConformalCalibrator):
         super().__init__(alpha)
         self.neighborhood_weight = neighborhood_weight
         self._sigma: Dict[str, np.ndarray] = {}
+        # Aggregation method for neighbor difficulty: 'mean', 'median', or 'trimmed'
+        self.neighbor_agg: str = "mean"
+        # Fraction to trim from each tail when using trimmed mean (0.0-0.5)
+        self.trimmed_frac: float = 0.0
+        # Minimum floor for sigma values (helps avoid extremely small denominators)
+        self.floor_sigma: float = 0.0
 
     def calibrate_with_propagation(
         self,
@@ -228,29 +234,67 @@ class PropagationAwareCalibrator(HeteroConformalCalibrator):
             frozen[train_masks[ntype]] = residuals[train_masks[ntype]]
             train_residuals[ntype] = frozen
 
-        # Build per-node frozen neighbor average (using only training residuals)
+        # Build per-node frozen neighbor aggregation (using only training residuals)
         frozen_neighbor_avg: Dict[str, np.ndarray] = {}
         for ntype in predictions:
             n = num_nodes[ntype]
-            neighbor_sum = np.zeros(n, dtype=np.float64)
-            neighbor_count = np.zeros(n, dtype=np.float64)
 
-            for (src_type, rel, dst_type), ei in edge_index.items():
-                if dst_type != ntype or ei.shape[1] == 0:
-                    continue
-                src_idx, dst_idx = ei[0], ei[1]
-                for e in range(ei.shape[1]):
-                    s, d = int(src_idx[e]), int(dst_idx[e])
-                    if train_masks[src_type][s]:
-                        neighbor_sum[d] += train_residuals[src_type][s]
-                        neighbor_count[d] += 1
+            if self.neighbor_agg == "mean":
+                neighbor_sum = np.zeros(n, dtype=np.float64)
+                neighbor_count = np.zeros(n, dtype=np.float64)
+                for (src_type, rel, dst_type), ei in edge_index.items():
+                    if dst_type != ntype or ei.shape[1] == 0:
+                        continue
+                    src_idx, dst_idx = ei[0], ei[1]
+                    for e in range(ei.shape[1]):
+                        s, d = int(src_idx[e]), int(dst_idx[e])
+                        if train_masks[src_type][s]:
+                            neighbor_sum[d] += train_residuals[src_type][s]
+                            neighbor_count[d] += 1
+                safe_count = np.maximum(neighbor_count, 1.0)
+                frozen_neighbor_avg[ntype] = (neighbor_sum / safe_count).astype(np.float32)
+            else:
+                # For 'median' or 'trimmed' aggregation, collect neighbor residual lists
+                neighbor_lists: list[list[float]] = [[] for _ in range(n)]
+                for (src_type, rel, dst_type), ei in edge_index.items():
+                    if dst_type != ntype or ei.shape[1] == 0:
+                        continue
+                    src_idx, dst_idx = ei[0], ei[1]
+                    for e in range(ei.shape[1]):
+                        s, d = int(src_idx[e]), int(dst_idx[e])
+                        if train_masks[src_type][s]:
+                            neighbor_lists[d].append(float(train_residuals[src_type][s]))
 
-            safe_count = np.maximum(neighbor_count, 1.0)
-            frozen_neighbor_avg[ntype] = (neighbor_sum / safe_count).astype(np.float32)
+                agg = np.zeros(n, dtype=np.float32)
+                for i in range(n):
+                    vals = neighbor_lists[i]
+                    if not vals:
+                        agg[i] = 0.0
+                        continue
+                    arr = np.array(vals, dtype=np.float64)
+                    if self.neighbor_agg == "median":
+                        agg[i] = float(np.median(arr))
+                    else:
+                        # trimmed mean
+                        frac = float(max(0.0, min(0.5, getattr(self, "trimmed_frac", 0.0))))
+                        if frac <= 0.0:
+                            agg[i] = float(np.mean(arr))
+                        else:
+                            k = int(len(arr) * frac)
+                            if k * 2 >= len(arr):
+                                agg[i] = float(np.mean(arr))
+                            else:
+                                arr_sorted = np.sort(arr)
+                                trimmed = arr_sorted[k: len(arr) - k]
+                                agg[i] = float(np.mean(trimmed))
+                frozen_neighbor_avg[ntype] = agg.astype(np.float32)
 
         # Compute per-node difficulty σ_i = 1 + λ * frozen_avg_i
         for ntype in predictions:
-            self._sigma[ntype] = 1.0 + self.neighborhood_weight * frozen_neighbor_avg[ntype]
+            sig = 1.0 + self.neighborhood_weight * frozen_neighbor_avg[ntype]
+            if getattr(self, "floor_sigma", 0.0) and float(self.floor_sigma) > 0.0:
+                sig = np.maximum(sig, float(self.floor_sigma))
+            self._sigma[ntype] = sig
 
         # Compute normalized nonconformity scores on calibration nodes
         for ntype in predictions:

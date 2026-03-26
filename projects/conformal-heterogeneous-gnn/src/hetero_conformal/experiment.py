@@ -56,6 +56,10 @@ class ExperimentConfig:
     alpha: float = 0.1
     use_propagation_aware: bool = True
     neighborhood_weight: float = 0.3
+    # Propagation-aware calibrator options
+    neighbor_agg: str = "mean"  # 'mean' | 'median' | 'trimmed'
+    trimmed_frac: float = 0.0
+    floor_sigma: float = 0.0
 
     # Device
     device: str = "cpu"
@@ -143,18 +147,10 @@ def train_model(
         loss_val = loss.item()
         losses.append(loss_val)
 
-        # Early stopping on calibration loss
-        with torch.no_grad():
-            cal_loss = 0.0
-            for ntype in preds:
-                mask = graph.node_masks[ntype]["cal"]
-                mask_t = torch.tensor(mask, device=device)
-                if mask_t.sum() == 0:
-                    continue
-                cal_loss += criterion(preds[ntype][mask_t], labels[ntype][mask_t]).item()
-
-        if cal_loss < best_loss:
-            best_loss = cal_loss
+        # Early stopping on TRAINING loss (not calibration loss)
+        # to preserve exchangeability of calibration scores
+        if loss_val < best_loss:
+            best_loss = loss_val
             best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             best_epoch = epoch
             patience_counter = 0
@@ -184,7 +180,7 @@ def evaluate(
     return {ntype: p.cpu().numpy() for ntype, p in preds.items()}
 
 
-def run_experiment(config: Optional[ExperimentConfig] = None) -> ExperimentResult:
+def run_experiment(config: Optional[ExperimentConfig] = None, verbose: bool = True) -> ExperimentResult:
     """Run a full experiment: generate data, train, calibrate, evaluate.
 
     Parameters
@@ -199,6 +195,10 @@ def run_experiment(config: Optional[ExperimentConfig] = None) -> ExperimentResul
     if config is None:
         config = ExperimentConfig()
 
+    # Seed everything for reproducibility
+    torch.manual_seed(config.seed)
+    np.random.seed(config.seed)
+
     # 1. Generate synthetic infrastructure graph
     graph = generate_synthetic_infrastructure(
         n_power=config.n_power,
@@ -209,7 +209,8 @@ def run_experiment(config: Optional[ExperimentConfig] = None) -> ExperimentResul
         coupling_radius=config.coupling_radius,
         seed=config.seed,
     )
-    print(graph.summary())
+    if verbose:
+        print(graph.summary())
 
     # 2. Build and train model
     in_dims = {ntype: f.shape[1] for ntype, f in graph.node_features.items()}
@@ -226,7 +227,8 @@ def run_experiment(config: Optional[ExperimentConfig] = None) -> ExperimentResul
     t0 = time.time()
     model, losses, best_epoch = train_model(model, graph, config)
     train_time = time.time() - t0
-    print(f"Training complete: {best_epoch + 1} epochs, {train_time:.1f}s")
+    if verbose:
+        print(f"Training complete: {best_epoch + 1} epochs, {train_time:.1f}s")
 
     # 3. Get predictions
     predictions = evaluate(model, graph, config)
@@ -241,6 +243,10 @@ def run_experiment(config: Optional[ExperimentConfig] = None) -> ExperimentResul
             alpha=config.alpha,
             neighborhood_weight=config.neighborhood_weight,
         )
+        # set optional aggregation and sigma floor parameters
+        calibrator.neighbor_agg = getattr(config, "neighbor_agg", "mean")
+        calibrator.trimmed_frac = getattr(config, "trimmed_frac", 0.0)
+        calibrator.floor_sigma = getattr(config, "floor_sigma", 0.0)
         quantiles = calibrator.calibrate_with_propagation(
             predictions, graph.node_labels, cal_masks, train_masks,
             graph.edge_index, graph.num_nodes,
@@ -260,12 +266,13 @@ def run_experiment(config: Optional[ExperimentConfig] = None) -> ExperimentResul
     m_width = mean_interval_width(conf_result)
     ece = calibration_error(conf_result, graph.node_labels, test_masks)
 
-    print(f"\n--- Results (alpha={config.alpha}) ---")
-    print(f"Marginal coverage: {m_cov:.4f} (target: {1 - config.alpha:.2f})")
-    for ntype, cov in t_cov.items():
-        print(f"  {ntype} coverage: {cov:.4f}, width: {widths[ntype]:.4f}, RMSE: {rmse[ntype]:.4f}")
-    print(f"Mean interval width: {m_width:.4f}")
-    print(f"ECE: {ece:.4f}")
+    if verbose:
+        print(f"\n--- Results (alpha={config.alpha}) ---")
+        print(f"Marginal coverage: {m_cov:.4f} (target: {1 - config.alpha:.2f})")
+        for ntype, cov in t_cov.items():
+            print(f"  {ntype} coverage: {cov:.4f}, width: {widths[ntype]:.4f}, RMSE: {rmse[ntype]:.4f}")
+        print(f"Mean interval width: {m_width:.4f}")
+        print(f"ECE: {ece:.4f}")
 
     return ExperimentResult(
         config=config,
