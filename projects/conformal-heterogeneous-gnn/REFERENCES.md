@@ -1,6 +1,6 @@
 # STRATA — References for Paper Submission
 
-> Compiled reference list for the STRATA paper. 35 references organized by topic.
+> Compiled reference list for the STRATA paper. 66 references organized by topic.
 > BibTeX keys use `author_year_keyword` convention.
 
 ---
@@ -151,3 +151,140 @@
 
 35. **Cressie, N. A. C. (1993).** *Statistics for Spatial Data (Revised Edition).* Wiley.
     - Ordinary kriging and spatial interpolation theory. Underpins STRATA's conformal kriging surface in `geo_integration.py`.
+
+---
+
+## 12. Quantile Regression
+
+36. **Koenker, R. & Bassett, G. (1978).** Regression quantiles. *Econometrica*, 46(1), 33–50.
+    - Foundational paper introducing quantile regression. Underpins the quantile loss function used in CQR and STRATA's interval construction.
+
+37. **Koenker, R. (2005).** *Quantile Regression.* Cambridge University Press.
+    - Comprehensive treatment of quantile regression theory, asymptotics, and inference. Reference for the statistical foundations behind STRATA's CQR-based calibrators.
+
+38. **Meinshausen, N. (2006).** Quantile regression forests. *Journal of Machine Learning Research*, 7, 983–999.
+    - Extends random forests to estimate full conditional quantile functions. Demonstrates non-parametric quantile estimation relevant to ensemble-based interval prediction.
+
+---
+
+## 13. Heterogeneous GNNs — Advanced Architectures
+
+39. **Hu, Z., Dong, Y., Wang, K., & Sun, Y. (2020).** Heterogeneous graph transformer. *The Web Conference (WWW)*, 2704–2710.
+    - HGT: type-dependent mutual attention with relative temporal encoding for heterogeneous graphs. Advances beyond HAN with per-edge-type parameterized attention heads.
+
+40. **Zhang, C., Song, D., Huang, C., Swami, A., & Chawla, N. V. (2019).** Heterogeneous graph neural network. *ACM SIGKDD Conference on Knowledge Discovery and Data Mining (KDD)*, 793–803.
+    - HetGNN: heterogeneous content encoding with type-based neighbor sampling. Introduces grouped aggregation strategies for multi-typed node features.
+
+41. **Yun, S., Jeong, M., Kim, R., Kang, J., & Kim, H. J. (2019).** Graph transformer networks. *Advances in Neural Information Processing Systems (NeurIPS)*, 32, 11983–11993.
+    - GTN: learns to generate new graph structures (meta-paths) automatically from heterogeneous graphs via soft adjacency matrix composition.
+
+---
+
+## 14. Online & Adaptive Conformal Prediction
+
+42. **Gibbs, I. & Candès, E. J. (2021).** Adaptive conformal inference under distribution shift. *Advances in Neural Information Processing Systems (NeurIPS)*, 34.
+    - Online update rule for conformal thresholds under temporal distribution shift. Provides adaptive coverage guarantees without exchangeability, relevant to streaming infrastructure monitoring.
+
+43. **Tibshirani, R. J., Foygel Barber, R., Candès, E. J., & Ramdas, A. (2019).** Conformal prediction under covariate shift. *Advances in Neural Information Processing Systems (NeurIPS)*, 32, 2530–2540.
+    - Weighted conformal prediction using likelihood ratios to correct for covariate shift. Directly relevant to non-exchangeable graph nodes with heterogeneous feature distributions.
+
+44. **Chernozhukov, V., Wüthrich, K., & Zhu, Y. (2021).** Distributional conformal prediction. *Proceedings of the National Academy of Sciences*, 118(48), e2107794118.
+    - Extends conformal prediction to estimate full conditional distributions. Provides distribution-free guarantees on conditional coverage at any quantile level.
+
+---
+
+## 15. Graph Signal Processing
+
+45. **Shuman, D. I., Narang, S. K., Frossard, P., Ortega, A., & Vandergheynst, P. (2013).** The emerging field of signal processing on graphs. *IEEE Signal Processing Magazine*, 30(3), 83–98.
+    - Survey establishing graph signal processing foundations: graph Fourier transform, spectral filtering, and sampling on graphs. Theoretical basis for spectral GCN methods.
+
+46. **Bruna, J., Zaremba, W., Szlam, A., & LeCun, Y. (2014).** Spectral networks and locally connected networks on graphs. *International Conference on Learning Representations (ICLR)*.
+    - First deep learning model using spectral graph convolutions. Introduces graph-domain convolution via the graph Laplacian eigenbasis.
+
+47. **Defferrard, M., Bresson, X., & Vandergheynst, P. (2016).** Convolutional neural networks on graphs with fast localized spectral filtering. *Advances in Neural Information Processing Systems (NeurIPS)*, 29, 3844–3852.
+    - ChebNet: Chebyshev polynomial approximation to spectral graph convolutions, enabling localized filters without eigen-decomposition. Direct precursor to GCN (Kipf & Welling 2017).
+
+---
+
+## 16. Infrastructure Cascading Failures & Network Resilience
+
+48. **Gao, J., Buldyrev, S. V., Stanley, H. E., & Havlin, S. (2012).** Networks formed from interdependent networks. *Nature Physics*, 8, 40–48.
+    - Extends interdependent network percolation theory (Buldyrev et al. 2010) to networks-of-networks topology. Relevant to STRATA's multi-utility infrastructure graph modeling.
+
+49. **Watts, D. J. (2002).** A simple model of global cascades on random networks. *Proceedings of the National Academy of Sciences*, 99(9), 5766–5771.
+    - Analytical model of cascade propagation on random graphs with heterogeneous thresholds. Provides theoretical grounding for failure spread across infrastructure node types.
+
+50. **Kivelä, M., Arenas, A., Barthelemy, M., Gleeson, J. P., Moreno, Y., & Porter, M. A. (2014).** Multilayer networks. *Journal of Complex Networks*, 2(3), 203–271.
+    - Comprehensive review of multilayer/multiplex network theory. Formalizes inter-layer coupling relevant to STRATA's heterogeneous infrastructure topology.
+
+51. **Albert, R., Albert, I., & Nakarado, G. L. (2004).** Structural vulnerability of the North American power grid. *Physical Review E*, 69(2), 025103.
+    - Graph-theoretic analysis of power grid vulnerability to cascading failures. Demonstrates scale-free properties and targeted attack vulnerabilities in real infrastructure networks.
+
+---
+
+## 17. Distribution Shift & Covariate Shift
+
+52. **Shimodaira, H. (2000).** Improving predictive inference under covariate shift by weighting the log-likelihood function. *Journal of Statistical Planning and Inference*, 90(2), 227–244.
+    - Foundational importance weighting framework for covariate shift correction. Motivates reweighting strategies for non-exchangeable graph-structured data in STRATA.
+
+53. **Sugiyama, M., Krauledat, M., & Müller, K.-R. (2007).** Covariate shift adaptation by importance weighted cross validation. *Journal of Machine Learning Research*, 8, 985–1005.
+    - Practical density ratio estimation for covariate shift adaptation. Connects to STRATA's challenge of per-node-type distribution differences across train/calibration/test splits.
+
+54. **Quiñonero-Candela, J., Sugiyama, M., Schwaighofer, A., & Lawrence, N. D. (2009).** *Dataset Shift in Machine Learning.* MIT Press.
+    - Edited volume systematizing types of dataset shift (covariate, prior probability, concept shift). Provides taxonomy relevant to non-exchangeability sources in heterogeneous graph prediction.
+
+---
+
+## 18. Ensemble Methods & Predictive Uncertainty
+
+55. **Ovadia, Y., Fertig, E., Ren, J., Nado, Z., Sculley, D., Nowozin, S., Dillon, J., Lakshminarayanan, B., & Snoek, J. (2019).** Can you trust your model's uncertainty? Evaluating predictive uncertainty under dataset shift. *Advances in Neural Information Processing Systems (NeurIPS)*, 32.
+    - Large-scale empirical evaluation of uncertainty methods (ensembles, MC Dropout, variational) under distribution shift. Demonstrates deep ensembles' robustness advantage, supporting STRATA's `EnsembleHeteroGNN` design.
+
+56. **Wilson, A. G. & Izmailov, P. (2020).** Bayesian deep learning and a probabilistic perspective of generalization. *Advances in Neural Information Processing Systems (NeurIPS)*, 33.
+    - Argues deep ensembles provide implicit Bayesian model averaging. Connects ensemble diversity to posterior approximation quality, relevant to STRATA's variance-based uncertainty decomposition.
+
+57. **Blundell, C., Cornebise, J., Kavukcuoglu, K., & Wierstra, D. (2015).** Weight uncertainty in neural networks. *International Conference on Machine Learning (ICML)*, PMLR 37, 1613–1622.
+    - Bayes by Backprop: variational inference over network weights for epistemic uncertainty. Alternative to ensembles for Bayesian uncertainty estimation in neural network regressors.
+
+---
+
+## 19. Real-World Infrastructure Test Cases
+
+58. **Birchfield, A. B., Xu, T., Gegner, K. M., Saha, K. S., & Overbye, T. J. (2017).** Grid structural characteristics as validation criteria for synthetic networks. *IEEE Transactions on Power Systems*, 32(4), 3258–3265.
+    - ACTIVSg synthetic grid test cases (200/500/2000-bus) with realistic topology and parameters. Provides validated infrastructure benchmark for STRATA's real-world evaluation.
+
+59. **Zimmerman, R. D., Murillo-Sánchez, C. E., & Thomas, R. J. (2011).** MATPOWER: Steady-state operations, planning, and analysis tools for power systems research and education. *IEEE Transactions on Power Systems*, 26(1), 12–19.
+    - Open-source power system simulation platform with standard IEEE test cases. Provides infrastructure modeling environment for generating realistic node features and edge connectivity.
+
+---
+
+## 20. Fairness & Equity in Infrastructure Risk
+
+60. **Cutter, S. L., Boruff, B. J., & Shirley, W. L. (2003).** Social vulnerability to environmental hazards. *Social Science Quarterly*, 84(2), 242–261.
+    - Social Vulnerability Index (SoVI) framework for mapping populations with differential hazard exposure. Motivates equitable uncertainty quantification across infrastructure-dependent communities.
+
+61. **Hardt, M., Price, E., & Srebro, N. (2016).** Equality of opportunity in supervised learning. *Advances in Neural Information Processing Systems (NeurIPS)*, 29, 3323–3331.
+    - Formal framework for equalized odds and equal opportunity in prediction systems. Relevant to ensuring STRATA's per-type coverage guarantees do not systematically disadvantage certain infrastructure service areas.
+
+62. **Mehrabi, N., Morstatter, F., Saxena, N., Lerman, K., & Galstyan, A. (2021).** A survey on bias and fairness in machine learning. *ACM Computing Surveys*, 54(6), 1–35.
+    - Comprehensive survey of fairness definitions, bias sources, and mitigation strategies. Provides vocabulary and framework for evaluating distributional equity in STRATA's interval predictions.
+
+---
+
+## 21. GNN Expressiveness & Oversmoothing
+
+63. **Xu, K., Hu, W., Leskovec, J., & Jegelka, S. (2019).** How powerful are graph neural networks? *International Conference on Learning Representations (ICLR)*.
+    - GIN: proves most GNNs are at most as powerful as the Weisfeiler-Leman graph isomorphism test. Establishes theoretical expressiveness limits relevant to STRATA's heterogeneous message-passing design.
+
+64. **Li, Q., Han, Z., & Wu, X.-M. (2018).** Deeper insights into graph convolutional networks for semi-supervised learning. *AAAI Conference on Artificial Intelligence*, 32, 3538–3545.
+    - Analyzes oversmoothing in deep GCNs: as layers increase, node representations converge. Informs STRATA's choice of GNN depth and residual connection architecture.
+
+---
+
+## 22. Calibration & Conditional Coverage Limits
+
+65. **Kuleshov, V., Fenner, N., & Ermon, S. (2018).** Accurate uncertainties for deep learning using calibrated regression. *International Conference on Machine Learning (ICML)*, PMLR 80, 2796–2804.
+    - Post-hoc recalibration of neural network regression intervals using isotonic regression. Complementary approach to conformal calibration for improving prediction interval reliability.
+
+66. **Foygel Barber, R., Candès, E. J., Ramdas, A., & Tibshirani, R. J. (2021).** The limits of distribution-free conditional predictive inference. *Information and Inference: A Journal of the IMA*, 10(2), 455–482.
+    - Proves impossibility of exact conditional coverage without distributional assumptions. Establishes theoretical motivation for STRATA's approximate type-conditional coverage via Mondrian splits.

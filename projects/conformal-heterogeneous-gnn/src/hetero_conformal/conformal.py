@@ -289,11 +289,15 @@ class PropagationAwareCalibrator(HeteroConformalCalibrator):
                                 agg[i] = float(np.mean(trimmed))
                 frozen_neighbor_avg[ntype] = agg.astype(np.float32)
 
-        # Compute per-node difficulty σ_i = 1 + λ * frozen_avg_i
+        # Compute per-node difficulty σ_i = 1 + λ * max(frozen_avg_i, floor)
+        # The floor applies to the neighbor contribution, ensuring nodes with
+        # few or no training-set neighbors still get a minimum difficulty bump.
         for ntype in predictions:
-            sig = 1.0 + self.neighborhood_weight * frozen_neighbor_avg[ntype]
-            if getattr(self, "floor_sigma", 0.0) and float(self.floor_sigma) > 0.0:
-                sig = np.maximum(sig, float(self.floor_sigma))
+            avg = frozen_neighbor_avg[ntype]
+            floor = float(getattr(self, "floor_sigma", 0.0) or 0.0)
+            if floor > 0.0:
+                avg = np.maximum(avg, floor)
+            sig = 1.0 + self.neighborhood_weight * avg
             self._sigma[ntype] = sig
 
         # Compute normalized nonconformity scores on calibration nodes

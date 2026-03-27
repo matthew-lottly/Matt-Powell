@@ -180,13 +180,16 @@ def evaluate(
     return {ntype: p.cpu().numpy() for ntype, p in preds.items()}
 
 
-def run_experiment(config: Optional[ExperimentConfig] = None, verbose: bool = True) -> ExperimentResult:
+def run_experiment(config: Optional[ExperimentConfig] = None, verbose: bool = True, graph: Optional[HeteroInfraGraph] = None) -> ExperimentResult:
     """Run a full experiment: generate data, train, calibrate, evaluate.
 
     Parameters
     ----------
     config : ExperimentConfig, optional
         Experiment configuration. Uses defaults if not provided.
+    graph : HeteroInfraGraph, optional
+        Pre-built graph (e.g. from ``load_activsg200``).  When supplied the
+        synthetic generator is skipped.
 
     Returns
     -------
@@ -199,16 +202,17 @@ def run_experiment(config: Optional[ExperimentConfig] = None, verbose: bool = Tr
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
 
-    # 1. Generate synthetic infrastructure graph
-    graph = generate_synthetic_infrastructure(
-        n_power=config.n_power,
-        n_water=config.n_water,
-        n_telecom=config.n_telecom,
-        feature_dim=config.feature_dim,
-        coupling_prob=config.coupling_prob,
-        coupling_radius=config.coupling_radius,
-        seed=config.seed,
-    )
+    # 1. Use supplied graph or generate synthetic infrastructure graph
+    if graph is None:
+        graph = generate_synthetic_infrastructure(
+            n_power=config.n_power,
+            n_water=config.n_water,
+            n_telecom=config.n_telecom,
+            feature_dim=config.feature_dim,
+            coupling_prob=config.coupling_prob,
+            coupling_radius=config.coupling_radius,
+            seed=config.seed,
+        )
     if verbose:
         print(graph.summary())
 

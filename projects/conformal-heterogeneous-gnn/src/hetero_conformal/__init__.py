@@ -1,6 +1,7 @@
 """STRATA: Structured Type-Aware Risk Assessment Through Adaptive Calibration."""
 
 from hetero_conformal.graph import HeteroInfraGraph, generate_synthetic_infrastructure
+from hetero_conformal.real_data import load_activsg200
 from hetero_conformal.model import HeteroGNN
 from hetero_conformal.conformal import HeteroConformalCalibrator, PropagationAwareCalibrator, ConformalResult
 from hetero_conformal.metrics import (
@@ -37,6 +38,7 @@ __all__ = [
     # Core data structures
     "HeteroInfraGraph",
     "generate_synthetic_infrastructure",
+    "load_activsg200",
     "HeteroGNN",
     "ConformalResult",
     # Calibrators
