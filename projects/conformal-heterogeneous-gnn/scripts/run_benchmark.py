@@ -3,6 +3,8 @@
 Usage:
     cd projects/conformal-heterogeneous-gnn
     python scripts/run_benchmark.py
+
+Part of the STRATA project.
 """
 
 from __future__ import annotations
@@ -40,6 +42,63 @@ def _cfg(seed: int, alpha: float = 0.1, lam: float = 0.3, prop: bool = True) -> 
         use_propagation_aware=prop,
         epochs=200, patience=20,
     )
+
+
+def _build_row(
+    seed: int,
+    method: str,
+    result,
+    predictions: dict,
+    graph,
+    test_masks: dict,
+) -> dict:
+    """Build a standardised metrics row for any calibrator variant."""
+    from hetero_conformal.metrics import (
+        rmse_per_type, marginal_coverage, type_conditional_coverage,
+        prediction_set_efficiency, mean_interval_width, calibration_error,
+    )
+    m_cov = marginal_coverage(result, graph.node_labels, test_masks)
+    t_cov = type_conditional_coverage(result, graph.node_labels, test_masks)
+    widths = prediction_set_efficiency(result)
+    m_width = mean_interval_width(result)
+    ece = calibration_error(result, graph.node_labels, test_masks)
+    rmse = rmse_per_type(predictions, graph.node_labels, test_masks)
+    row: dict = {"seed": seed, "method": method, "marginal_cov": m_cov,
+                 "mean_width": m_width, "ece": ece}
+    for nt in NODE_TYPES:
+        row[f"cov_{nt}"] = t_cov.get(nt, float("nan"))
+        row[f"width_{nt}"] = widths.get(nt, float("nan"))
+        row[f"rmse_{nt}"] = rmse.get(nt, float("nan"))
+    return row
+
+
+def _train_model_for_seed(seed: int, alpha: float = 0.1):
+    """Train a single model for a seed and return (model, graph, predictions, masks)."""
+    import torch
+    from hetero_conformal.experiment import train_model, evaluate
+    from hetero_conformal.model import HeteroGNN
+
+    cfg = _cfg(seed, alpha=alpha, lam=0.0, prop=True)
+    torch.manual_seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    graph = generate_synthetic_infrastructure(
+        n_power=cfg.n_power, n_water=cfg.n_water, n_telecom=cfg.n_telecom,
+        feature_dim=cfg.feature_dim, coupling_prob=cfg.coupling_prob,
+        coupling_radius=cfg.coupling_radius, seed=cfg.seed,
+    )
+    in_dims = {nt: f.shape[1] for nt, f in graph.node_features.items()}
+    edge_types = list(graph.edge_index.keys())
+    model = HeteroGNN(
+        in_dims=in_dims, hidden_dim=cfg.hidden_dim,
+        num_layers=cfg.num_layers, edge_types=edge_types,
+        dropout=cfg.dropout,
+    ).to(cfg.device)
+    model, _, _ = train_model(model, graph, cfg)
+    predictions = evaluate(model, graph, cfg)
+    cal_masks = {nt: graph.node_masks[nt]["cal"] for nt in graph.node_masks}
+    test_masks = {nt: graph.node_masks[nt]["test"] for nt in graph.node_masks}
+    train_masks = {nt: graph.node_masks[nt]["train"] for nt in graph.node_masks}
+    return model, graph, cfg, predictions, cal_masks, test_masks, train_masks
 
 
 # ── 1. Baseline comparison (10 seeds) ───────────────────────────────────────
@@ -277,6 +336,235 @@ def run_alpha_sweep() -> list[dict]:
                 row[f"width_{nt}"] = widths.get(nt, float("nan"))
             rows.append(row)
     return rows
+
+
+# ── 4. Advanced calibrator comparison ───────────────────────────────────────
+
+def run_advanced_sweep() -> list[dict]:
+    """Run novel calibrator variants: meta-calibrator, learnable λ,
+    attention-based, and CQR across all seeds.
+    """
+    import torch
+    import torch.nn.functional as F
+    from hetero_conformal.meta_calibrator import MetaCalibrator
+    from hetero_conformal.advanced_calibrators import (
+        LearnableLambdaCalibrator,
+        AttentionCalibrator,
+        CQRCalibrator,
+    )
+    from hetero_conformal.metrics import (
+        marginal_coverage, type_conditional_coverage,
+        prediction_set_efficiency, mean_interval_width, calibration_error,
+    )
+
+    rows: list[dict] = []
+    for seed in SEEDS:
+        model, graph, cfg, predictions, cal_masks, test_masks, train_masks = \
+            _train_model_for_seed(seed)
+
+        # ─── MetaCalibrator (learned σ_i) ───
+        try:
+            meta_cal = MetaCalibrator(alpha=cfg.alpha)
+            meta_cal.calibrate(
+                graph.node_features, predictions, graph.node_labels,
+                cal_masks, train_masks, graph.edge_index, graph.num_nodes,
+            )
+            result = meta_cal.predict(predictions, test_masks)
+            rows.append(_build_row(seed, "meta_learned", result, predictions, graph, test_masks))
+            print(f"  seed={seed} meta_learned: cov={marginal_coverage(result, graph.node_labels, test_masks):.4f}")
+        except Exception as e:
+            print(f"  WARN: meta_learned seed={seed} failed: {e}")
+
+        # ─── Learnable λ (per-type optimized) ───
+        try:
+            ll_cal = LearnableLambdaCalibrator(alpha=cfg.alpha)
+            ll_cal.calibrate(
+                predictions, graph.node_labels, cal_masks, train_masks,
+                graph.edge_index, graph.num_nodes,
+            )
+            result = ll_cal.predict(predictions, test_masks)
+            rows.append(_build_row(seed, "chmp_learned_lambda", result, predictions, graph, test_masks))
+            print(f"  seed={seed} chmp_learned_lambda: cov={marginal_coverage(result, graph.node_labels, test_masks):.4f}")
+        except Exception as e:
+            print(f"  WARN: chmp_learned_lambda seed={seed} failed: {e}")
+
+        # ─── Attention-based neighbor difficulty ───
+        try:
+            attn_cal = AttentionCalibrator(alpha=cfg.alpha, attn_epochs=50)
+            attn_cal.calibrate(
+                graph.node_features, predictions, graph.node_labels,
+                cal_masks, train_masks, graph.edge_index, graph.num_nodes,
+            )
+            result = attn_cal.predict(predictions, test_masks)
+            rows.append(_build_row(seed, "chmp_attention", result, predictions, graph, test_masks))
+            print(f"  seed={seed} chmp_attention: cov={marginal_coverage(result, graph.node_labels, test_masks):.4f}")
+        except Exception as e:
+            print(f"  WARN: chmp_attention seed={seed} failed: {e}")
+
+        # ─── CQR + propagation ───
+        try:
+            model.eval()
+            x_t = {nt: torch.tensor(graph.node_features[nt], dtype=torch.float32)
+                   for nt in graph.node_features}
+            ei_t = {et: torch.tensor(ei, dtype=torch.long)
+                    for et, ei in graph.edge_index.items()}
+            with torch.no_grad():
+                h: dict = {}
+                for nt in x_t:
+                    h[nt] = F.relu(model.input_proj[nt](x_t[nt]))
+                for layer in model.mp_layers:
+                    h_new = layer(h, ei_t, graph.num_nodes)
+                    for nt in h:
+                        h_new[nt] = F.relu(h_new[nt]) + h[nt]
+                    h = h_new
+
+            cqr_cal = CQRCalibrator(alpha=cfg.alpha, quantile_epochs=50)
+            cqr_cal.train_quantile_heads(h, graph.node_labels, train_masks, cfg.hidden_dim)
+            cqr_cal.calibrate(
+                predictions, graph.node_labels, cal_masks, train_masks,
+                graph.edge_index, graph.num_nodes,
+            )
+            result = cqr_cal.predict(predictions, test_masks)
+            rows.append(_build_row(seed, "cqr_propagation", result, predictions, graph, test_masks))
+            print(f"  seed={seed} cqr_propagation: cov={marginal_coverage(result, graph.node_labels, test_masks):.4f}")
+        except Exception as e:
+            print(f"  WARN: cqr_propagation seed={seed} failed: {e}")
+
+    return rows
+
+
+# ── 5. Ensemble comparison ──────────────────────────────────────────────────
+
+def run_ensemble_sweep() -> list[dict]:
+    """Run ensemble-based conformal prediction across seeds."""
+    from hetero_conformal.ensemble import EnsembleHeteroGNN, EnsembleCalibrator
+    from hetero_conformal.metrics import marginal_coverage
+
+    rows: list[dict] = []
+    for seed in SEEDS:
+        try:
+            cfg = _cfg(seed, alpha=0.1, lam=0.3, prop=True)
+            graph = generate_synthetic_infrastructure(
+                n_power=cfg.n_power, n_water=cfg.n_water, n_telecom=cfg.n_telecom,
+                feature_dim=cfg.feature_dim, coupling_prob=cfg.coupling_prob,
+                coupling_radius=cfg.coupling_radius, seed=cfg.seed,
+            )
+            cal_masks = {nt: graph.node_masks[nt]["cal"] for nt in graph.node_masks}
+            test_masks = {nt: graph.node_masks[nt]["test"] for nt in graph.node_masks}
+
+            ensemble = EnsembleHeteroGNN(n_members=3)
+            ensemble.build_and_train(graph, cfg, base_seed=seed)
+            mean_preds, var_preds = ensemble.predict(graph)
+
+            ens_cal = EnsembleCalibrator(alpha=cfg.alpha)
+            ens_cal.calibrate(mean_preds, var_preds, graph.node_labels, cal_masks)
+            result = ens_cal.predict(mean_preds, test_masks)
+
+            rows.append(_build_row(seed, "ensemble_cp", result, mean_preds, graph, test_masks))
+            print(f"  seed={seed} ensemble_cp: cov={marginal_coverage(result, graph.node_labels, test_masks):.4f}")
+        except Exception as e:
+            print(f"  WARN: ensemble_cp seed={seed} failed: {e}")
+    return rows
+
+
+# ── 6. Diagnostics ──────────────────────────────────────────────────────────
+
+def run_diagnostics(seed: int = 0) -> dict:
+    """Run full diagnostic analysis for a single seed."""
+    import torch
+    from hetero_conformal.conformal import PropagationAwareCalibrator
+    from hetero_conformal.diagnostics import (
+        full_diagnostic_report,
+        nonexchangeability_test,
+        spatial_autocorrelation_test,
+    )
+    from hetero_conformal.experiment import train_model, evaluate
+    from hetero_conformal.model import HeteroGNN
+
+    model, graph, cfg, predictions, cal_masks, test_masks, train_masks = \
+        _train_model_for_seed(seed)
+
+    # Calibrate with CHMP
+    calibrator = PropagationAwareCalibrator(alpha=cfg.alpha, neighborhood_weight=0.3)
+    calibrator.neighbor_agg = "mean"
+    calibrator.calibrate_with_propagation(
+        predictions, graph.node_labels, cal_masks, train_masks,
+        graph.edge_index, graph.num_nodes,
+    )
+    result = calibrator.predict(predictions, test_masks)
+
+    # Sigma values (from calibrator internals)
+    sigma = {}
+    for nt in test_masks:
+        if hasattr(calibrator, "_sigma") and nt in calibrator._sigma:
+            sigma[nt] = calibrator._sigma[nt]
+        else:
+            sigma[nt] = np.ones(graph.num_nodes[nt], dtype=np.float32)
+
+    report = full_diagnostic_report(
+        result, graph.node_labels, test_masks,
+        sigma=sigma, edge_index=graph.edge_index,
+        num_nodes=graph.num_nodes,
+    )
+
+    # Non-exchangeability tests on calibration scores
+    report["nonexchangeability"] = {}
+    for nt in cal_masks:
+        cal_resid = np.abs(graph.node_labels[nt][cal_masks[nt]] - predictions[nt][cal_masks[nt]])
+        sig_cal = sigma[nt][cal_masks[nt]] if sigma[nt].shape[0] > np.sum(cal_masks[nt]) else np.ones(np.sum(cal_masks[nt]))
+        scores = cal_resid / sig_cal
+        report["nonexchangeability"][nt] = nonexchangeability_test(scores)
+
+    # Spatial autocorrelation
+    report["spatial_autocorrelation"] = {}
+    for nt in test_masks:
+        pos = graph.node_positions[nt][test_masks[nt]]
+        true = graph.node_labels[nt][test_masks[nt]]
+        covered = ((true >= result.lower[nt]) & (true <= result.upper[nt])).astype(float)
+        if len(covered) >= 10:
+            report["spatial_autocorrelation"][nt] = spatial_autocorrelation_test(covered, pos)
+
+    return report
+
+
+def run_statistical_tests(baseline_rows: list[dict], advanced_rows: list[dict]) -> dict:
+    """Paired Wilcoxon tests between baseline (mondrian_cp) and each method."""
+    from hetero_conformal.diagnostics import paired_wilcoxon_test, multi_method_friedman_test
+
+    all_rows = baseline_rows + advanced_rows
+    methods = sorted({r["method"] for r in all_rows})
+
+    # Collect per-seed coverage for each method
+    method_cov: dict[str, list[float]] = {}
+    method_ece: dict[str, list[float]] = {}
+    method_width: dict[str, list[float]] = {}
+    for m in methods:
+        method_cov[m] = [r["marginal_cov"] for r in all_rows if r["method"] == m]
+        method_ece[m] = [r["ece"] for r in all_rows if r["method"] == m]
+        method_width[m] = [r["mean_width"] for r in all_rows if r["method"] == m]
+
+    results: dict = {"pairwise_coverage": {}, "pairwise_ece": {}, "pairwise_width": {}}
+    ref = "mondrian_cp"
+    if ref in method_cov:
+        for m in methods:
+            if m == ref or len(method_cov[m]) != len(method_cov[ref]):
+                continue
+            results["pairwise_coverage"][f"{ref}_vs_{m}"] = paired_wilcoxon_test(
+                method_cov[ref], method_cov[m]
+            )
+            results["pairwise_ece"][f"{ref}_vs_{m}"] = paired_wilcoxon_test(
+                method_ece[ref], method_ece[m]
+            )
+            results["pairwise_width"][f"{ref}_vs_{m}"] = paired_wilcoxon_test(
+                method_width[ref], method_width[m]
+            )
+
+    # Friedman test across all methods
+    if len(methods) >= 3:
+        results["friedman_coverage"] = multi_method_friedman_test(method_cov)
+        results["friedman_ece"] = multi_method_friedman_test(method_ece)
+
+    return results
 
 
 # ── CSV helpers ──────────────────────────────────────────────────────────────
@@ -586,11 +874,11 @@ def plot_per_type_width_map(seed: int = 0):
 
 def main():
     print("=" * 60)
-    print("CHMP Benchmark Suite")
+    print("STRATA Benchmark Suite (Full)")
     print("=" * 60)
 
     # 1. Baseline comparison
-    print(f"\n[1/6] Baseline comparison ({SEED_COUNT} seeds)…")
+    print(f"\n[1/9] Baseline comparison ({SEED_COUNT} seeds)…")
     baseline_rows = run_baseline_sweep()
     _write_csv(OUT_DIR / "baseline_comparison.csv", baseline_rows)
     build_summary_table(baseline_rows, "method", OUT_DIR / "baseline_table.md")
@@ -598,30 +886,72 @@ def main():
     plot_coverage_by_type(baseline_rows)
 
     # 2. Lambda sensitivity
-    print(f"\n[2/6] Lambda sensitivity ({SEED_COUNT} seeds × {len(LAMBDAS)} lambdas)…")
+    print(f"\n[2/9] Lambda sensitivity ({SEED_COUNT} seeds × {len(LAMBDAS)} lambdas)…")
     lambda_rows = run_lambda_sweep()
     _write_csv(OUT_DIR / "lambda_sensitivity.csv", lambda_rows)
     build_summary_table(lambda_rows, "lambda", OUT_DIR / "lambda_table.md")
     plot_lambda_sensitivity(lambda_rows)
 
     # 3. Alpha calibration
-    print(f"\n[3/6] Alpha sweep ({SEED_COUNT} seeds × {len(ALPHAS)} alphas)…")
+    print(f"\n[3/9] Alpha sweep ({SEED_COUNT} seeds × {len(ALPHAS)} alphas)…")
     alpha_rows = run_alpha_sweep()
     _write_csv(OUT_DIR / "alpha_sweep.csv", alpha_rows)
     build_summary_table(alpha_rows, "alpha", OUT_DIR / "alpha_table.md")
     plot_alpha_calibration(alpha_rows)
 
-    # 4. Spatial maps
-    print("\n[4/6] Spatial risk / coverage / width map (seed 0)…")
-    plot_spatial_map(seed=0)
+    # 4. Advanced calibrators
+    print(f"\n[4/9] Advanced calibrators ({SEED_COUNT} seeds)…")
+    advanced_rows = run_advanced_sweep()
+    _write_csv(OUT_DIR / "advanced_comparison.csv", advanced_rows)
+    build_summary_table(advanced_rows, "method", OUT_DIR / "advanced_table.md")
 
-    print("\n[5/6] Per-type width maps (seed 0)…")
+    # 5. Ensemble comparison
+    print(f"\n[5/9] Ensemble comparison ({SEED_COUNT} seeds)…")
+    ensemble_rows = run_ensemble_sweep()
+    _write_csv(OUT_DIR / "ensemble_comparison.csv", ensemble_rows)
+
+    # 6. Full method comparison table
+    print("\n[6/9] Full method comparison table…")
+    all_method_rows = baseline_rows + advanced_rows + ensemble_rows
+    _write_csv(OUT_DIR / "full_comparison.csv", all_method_rows)
+    build_summary_table(all_method_rows, "method", OUT_DIR / "full_comparison_table.md")
+
+    # 7. Statistical tests
+    print("\n[7/9] Statistical tests (Wilcoxon, Friedman)…")
+    stat_results = run_statistical_tests(baseline_rows, advanced_rows + ensemble_rows)
+    with open(OUT_DIR / "statistical_tests.json", "w") as f:
+        json.dump(stat_results, f, indent=2, default=str)
+    print(f"  wrote {OUT_DIR / 'statistical_tests.json'}")
+
+    # 8. Spatial maps
+    print("\n[8/9] Spatial maps (seed 0)…")
+    plot_spatial_map(seed=0)
     plot_per_type_width_map(seed=0)
 
-    # 6. Summary JSON
-    print("\n[6/6] Writing final summary…")
+    # 9. Diagnostics
+    print("\n[9/9] Diagnostics (seed 0)…")
+    diag_report = run_diagnostics(seed=0)
+    # Serialise report (convert numpy arrays for JSON)
+    def _serialise(obj: object) -> object:
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if hasattr(obj, 'item') and hasattr(obj, 'dtype'):
+            return obj.item()  # type: ignore[union-attr]
+        if isinstance(obj, dict):
+            return {k: _serialise(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_serialise(v) for v in obj]
+        return obj
+    with open(OUT_DIR / "diagnostics.json", "w") as f:
+        json.dump(_serialise(diag_report), f, indent=2)
+    print(f"  wrote {OUT_DIR / 'diagnostics.json'}")
+
+    # Write summary JSON
+    print("\nWriting final summary…")
     summary = {
         "baseline": _aggregate(baseline_rows, "method"),
+        "advanced": _aggregate(advanced_rows, "method") if advanced_rows else {},
+        "ensemble": _aggregate(ensemble_rows, "method") if ensemble_rows else {},
         "lambda": _aggregate_num(lambda_rows, "lambda"),
         "alpha": _aggregate_num(alpha_rows, "alpha"),
     }

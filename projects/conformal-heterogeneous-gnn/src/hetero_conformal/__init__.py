@@ -1,16 +1,71 @@
-"""Conformalized Message Passing on Heterogeneous Infrastructure Graphs."""
+"""STRATA: Structured Type-Aware Risk Assessment Through Adaptive Calibration."""
 
 from hetero_conformal.graph import HeteroInfraGraph, generate_synthetic_infrastructure
 from hetero_conformal.model import HeteroGNN
-from hetero_conformal.conformal import HeteroConformalCalibrator
-from hetero_conformal.metrics import marginal_coverage, type_conditional_coverage, prediction_set_efficiency
+from hetero_conformal.conformal import HeteroConformalCalibrator, PropagationAwareCalibrator, ConformalResult
+from hetero_conformal.metrics import (
+    marginal_coverage,
+    type_conditional_coverage,
+    prediction_set_efficiency,
+    mean_interval_width,
+    calibration_error,
+    rmse_per_type,
+    per_type_ece,
+)
+from hetero_conformal.meta_calibrator import MetaCalibrator
+from hetero_conformal.advanced_calibrators import (
+    LearnableLambdaCalibrator,
+    AttentionCalibrator,
+    CQRCalibrator,
+)
+from hetero_conformal.ensemble import EnsembleHeteroGNN, EnsembleCalibrator
+from hetero_conformal.diagnostics import (
+    sigma_vs_hitrate,
+    conditional_coverage_by_width_decile,
+    conditional_coverage_by_degree,
+    bootstrap_ci,
+    bootstrap_width_ci,
+    paired_wilcoxon_test,
+    paired_t_test,
+    multi_method_friedman_test,
+    nonexchangeability_test,
+    spatial_autocorrelation_test,
+    full_diagnostic_report,
+)
 
 __all__ = [
+    # Core data structures
     "HeteroInfraGraph",
     "generate_synthetic_infrastructure",
     "HeteroGNN",
+    "ConformalResult",
+    # Calibrators
     "HeteroConformalCalibrator",
+    "PropagationAwareCalibrator",
+    "MetaCalibrator",
+    "LearnableLambdaCalibrator",
+    "AttentionCalibrator",
+    "CQRCalibrator",
+    "EnsembleHeteroGNN",
+    "EnsembleCalibrator",
+    # Metrics
     "marginal_coverage",
     "type_conditional_coverage",
     "prediction_set_efficiency",
+    "mean_interval_width",
+    "calibration_error",
+    "rmse_per_type",
+    "per_type_ece",
+    # Diagnostics
+    "sigma_vs_hitrate",
+    "conditional_coverage_by_width_decile",
+    "conditional_coverage_by_degree",
+    "bootstrap_ci",
+    "bootstrap_width_ci",
+    "paired_wilcoxon_test",
+    "paired_t_test",
+    "multi_method_friedman_test",
+    "nonexchangeability_test",
+    "spatial_autocorrelation_test",
+    "full_diagnostic_report",
 ]

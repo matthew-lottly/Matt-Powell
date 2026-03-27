@@ -1,17 +1,21 @@
-# Conformalized Message Passing on Heterogeneous Infrastructure Graphs
+# STRATA
 
-**Coverage Guarantees for Interdependent Utility Networks**
+**Structured Type-Aware Risk Assessment Through Adaptive Calibration on Heterogeneous Infrastructure Graphs**
 
 ## Abstract
 
-This project introduces *Conformalized Heterogeneous Message Passing* (CHMP), a framework that combines heterogeneous graph neural networks with split conformal prediction to produce uncertainty-quantified risk predictions across coupled infrastructure systems (power, water, telecom). Unlike existing conformal prediction methods for graphs—which assume homogeneous node/edge types—CHMP provides Mondrian-style per-type coverage guarantees on heterogeneous graphs, and introduces a propagation-aware calibration scheme that accounts for multi-hop error propagation across utility boundaries.
+STRATA introduces *Conformalized Heterogeneous Message Passing* (CHMP), a framework that combines heterogeneous graph neural networks with split conformal prediction to produce uncertainty-quantified risk predictions across coupled infrastructure systems (power, water, telecom). Unlike existing conformal prediction methods for graphs—which assume homogeneous node/edge types—CHMP provides Mondrian-style per-type coverage guarantees on heterogeneous graphs, and introduces a suite of propagation-aware calibration schemes that account for multi-hop error propagation across utility boundaries.
 
 ## Key Contributions
 
 1. **Heterogeneous conformal calibration**: Mondrian grouping by infrastructure type yields per-type coverage guarantees (Theorem 1).
 2. **Propagation-aware nonconformity scores**: Neighborhood-aggregated residuals account for how message passing propagates errors across coupled layers, producing tighter intervals while maintaining coverage.
-3. **Synthetic benchmark**: A configurable generator for coupled power/water/telecom networks with realistic topologies (tree, grid-mesh, star-hub) and cascading failure simulation.
-4. **Geoprompt integration**: Spatial data preparation, `spatial_weights_matrix`, `network_build`, conformal kriging surfaces, and hotspot detection via the [`geoprompt`](https://pypi.org/project/geoprompt/) package.
+3. **Meta-calibrator**: A learned per-node σ_i via MLP trained with heteroscedastic Gaussian NLL, achieving data-driven calibration factors that adapt to local graph structure.
+4. **Advanced calibrator variants**: Learnable per-type λ, attention-weighted neighbor difficulty aggregation, and conformalized quantile regression (CQR) with propagation.
+5. **Ensemble uncertainty decomposition**: Epistemic uncertainty via prediction variance across an ensemble of GNN model members.
+6. **Comprehensive diagnostics**: Bootstrap confidence intervals, Wilcoxon/Friedman significance tests, non-exchangeability detection (runs test), Moran's I spatial autocorrelation, and conditional coverage analysis.
+7. **Synthetic benchmark**: A configurable generator for coupled power/water/telecom networks with realistic topologies (tree, grid-mesh, star-hub) and cascading failure simulation.
+8. **Geoprompt integration**: Spatial data preparation, `spatial_weights_matrix`, `network_build`, conformal kriging surfaces, and hotspot detection via the [`geoprompt`](https://pypi.org/project/geoprompt/) package.
 
 ## Installation
 
@@ -25,12 +29,20 @@ Requires Python 3.10+ and PyTorch 2.0+.
 
 ```
 src/hetero_conformal/
-├── graph.py           # HeteroInfraGraph, synthetic infrastructure generator
-├── model.py           # HeteroGNN with typed message passing layers
-├── conformal.py       # Split conformal calibration + propagation-aware variant
-├── metrics.py         # Coverage, efficiency, calibration error metrics
-├── geo_integration.py # Geoprompt hooks: spatial layouts, kriging, hotspots
-└── experiment.py      # Train/calibrate/test pipeline and ablation runner
+├── graph.py               # HeteroInfraGraph, synthetic infrastructure generator
+├── model.py               # HeteroGNN with typed message passing layers
+├── conformal.py           # Split conformal calibration + propagation-aware variant
+├── meta_calibrator.py     # MetaCalibrator: learned per-node σ_i via MLP
+├── advanced_calibrators.py# Learnable λ, attention, CQR calibrators
+├── ensemble.py            # Ensemble GNN + variance-based calibration
+├── metrics.py             # Coverage, efficiency, calibration error metrics
+├── diagnostics.py         # Bootstrap CIs, statistical tests, non-exchangeability
+├── geo_integration.py     # Geoprompt hooks: spatial layouts, kriging, hotspots
+└── experiment.py          # Train/calibrate/test pipeline and ablation runner
+
+scripts/
+├── run_benchmark.py       # Full 9-step benchmark suite
+└── plot_paper_figures.py  # Publication-ready figures (PDF/SVG)
 
 tests/
 ├── test_graph.py
@@ -136,9 +148,9 @@ $$C_i = [\hat{y}_i - \hat{q}\,\sigma_i,\; \hat{y}_i + \hat{q}\,\sigma_i]$$
 ## Citation
 
 ```bibtex
-@article{powell2025chmp,
-  title={Conformalized Message Passing on Heterogeneous Infrastructure Graphs:
-         Coverage Guarantees for Interdependent Utility Networks},
+@article{powell2025strata,
+  title={STRATA: Structured Type-Aware Risk Assessment Through Adaptive
+         Calibration on Heterogeneous Infrastructure Graphs},
   author={Powell, Matthew A.},
   year={2025}
 }

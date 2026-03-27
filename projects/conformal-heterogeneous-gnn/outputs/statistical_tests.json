@@ -1,0 +1,136 @@
+{
+  "pairwise_coverage": {
+    "mondrian_cp_vs_chmp_attention": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_learned_lambda": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_mean": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_median": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_median_floor": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_cqr_propagation": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_ensemble_cp": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_meta_learned": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    }
+  },
+  "pairwise_ece": {
+    "mondrian_cp_vs_chmp_attention": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_learned_lambda": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_mean": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_median": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_median_floor": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_cqr_propagation": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_ensemble_cp": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_meta_learned": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    }
+  },
+  "pairwise_width": {
+    "mondrian_cp_vs_chmp_attention": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_learned_lambda": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_mean": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_median": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_chmp_median_floor": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_cqr_propagation": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_ensemble_cp": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    },
+    "mondrian_cp_vs_meta_learned": {
+      "statistic": NaN,
+      "p_value": 1.0,
+      "significant_0.05": false
+    }
+  },
+  "friedman_coverage": {
+    "statistic": NaN,
+    "p_value": 1.0
+  },
+  "friedman_ece": {
+    "statistic": NaN,
+    "p_value": 1.0
+  }
+}
