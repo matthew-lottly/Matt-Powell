@@ -1,0 +1,13 @@
+Data provenance and licensing for STRATA submission
+
+ACTIVSg200 (200-bus synthetic Illinois grid)
+- Source: MATPOWER repository (case_ACTIVSg200.m)
+- URL: https://raw.githubusercontent.com/MATPOWER/matpower/master/data/case_ACTIVSg200.m
+- License: MATPOWER data files are distributed under CC-BY-4.0 (check original file headers). Cite: Birchfield et al., IEEE Transactions on Power Systems, 2017.
+
+MATPOWER (software)
+- Zimmerman, R. D., Murillo-Sánchez, C. E., & Thomas, R. J. (2011). MATPOWER: Steady-state operations, planning, and analysis tools for power systems research and education. IEEE Transactions on Power Systems, 26(1), 12–19.
+
+Notes:
+- We include a local cached copy at `data/case_ACTIVSg200.m` (gitignored). For submission, include instructions to re-download and a checksum if needed.
+- Any synthetic layers derived from the power grid (water, telecom) are constructed algorithmically; include the generator script and a brief description in the supplementary archive.

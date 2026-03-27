@@ -35,8 +35,7 @@ outputs/*.png
 outputs/*.md
 
 # Paper drafts (in progress)
-paper/
-REFERENCES.md
+# (tracked for submission)
 
 # Data (large files)
 data/*.csv
