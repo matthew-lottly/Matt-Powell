@@ -56,3 +56,10 @@ jobs:
         with:
           name: manuscript_draft_pdf
           path: projects/strata/paper/submission_jmlr/manuscript_draft.pdf
+
+      - name: Upload LaTeX log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript_draft_log
+          path: projects/strata/paper/submission_jmlr/manuscript_draft.log
