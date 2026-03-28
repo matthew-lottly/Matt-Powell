@@ -1,3 +1,13 @@
+param()
+if (-not (Get-Command pandoc -ErrorAction SilentlyContinue)) {
+    Write-Host "pandoc not found; skipping conversion"
+    exit 0
+}
+$md = Join-Path -Path (Resolve-Path ../..) -ChildPath 'strata-paper.md'
+$out = 'manuscript_draft.tex'
+Write-Host "Converting $md -> $out"
+pandoc -s $md -o $out --wrap=none
+Write-Host "Wrote $out"
 <#
 .SYNOPSIS
   Convert the Markdown draft to LaTeX and PDF using Pandoc and pdflatex on Windows PowerShell.
