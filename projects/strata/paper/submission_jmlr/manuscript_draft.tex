@@ -1,6 +1,10 @@
 % STRATA: JMLR Manuscript
 \documentclass[twoside,11pt]{article}
 
+% Ensure local jmlr style is found in the jmlr-style-file directory
+\makeatletter
+\def\input@path{{./jmlr-style-file/}}
+\makeatother
 \usepackage[preprint]{jmlr2e}
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage{graphicx}
@@ -37,6 +41,42 @@ Quantifying uncertainty in node-level risk predictions across coupled infrastruc
 \begin{keywords}
 conformal prediction, graph neural networks, heterogeneous graphs, uncertainty quantification, calibration
 \end{keywords}
+
+% Figures inserted from supplementary bundle
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png}
+\caption{Method comparison — marginal coverage (20 seeds).}
+\label{fig:method_marg_cov}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{supplementary_bundle/outputs/figures/method_comparison_mean_width.png}
+\caption{Method comparison — mean interval width (20 seeds).}
+\label{fig:method_mean_width}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{supplementary_bundle/outputs/figures/method_comparison_ece.png}
+\caption{Method comparison — ECE (20 seeds).}
+\label{fig:method_ece}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\textwidth]{supplementary_bundle/outputs/figures/activsg200_site_map.png}
+\caption{ACTIVSg200 spatial site map.}
+\label{fig:activsg200_map}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\textwidth]{supplementary_bundle/outputs/per_type_width_map.png}
+\caption{Per-type interval width map.}
+\label{fig:per_type_width}
+\end{figure}
 
 % ─────────────────────────────────────────────────────────────
 \section{Introduction}
