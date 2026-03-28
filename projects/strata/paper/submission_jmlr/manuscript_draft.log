@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.25)  28 MAR 2026 01:19
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.25)  28 MAR 2026 01:37
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -23,7 +23,7 @@ File: size11.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
 \belowcaptionskip=\skip50
 \bibindent=\dimen148
 )
-(jmlr2e.sty
+(jmlr-style-file/jmlr2e.sty
 Document Style `jmlr'.
 (C:\Users\mapow\AppData\Local\Programs\MiKTeX\tex/latex/graphics\epsfig.sty
 Package: epsfig 2024/01/14 v1.7b (e)psfig emulation (SPQR)
@@ -361,24 +361,24 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 ) (manuscript_draft.aux)
 \openout1 = `manuscript_draft.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
 
 (C:\Users\mapow\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mk
 ii
@@ -405,70 +405,147 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 fg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring OFF on input line 19.
+Package hyperref Info: Link coloring OFF on input line 23.
  (manuscript_draft.out) (manuscript_draft.out)
 \@outlinefile=\write3
 \openout3 = `manuscript_draft.out'.
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 34.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 38.
 
 
 (C:\Users\mapow\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 34.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 38.
 
 
 (C:\Users\mapow\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-Overfull \hbox (6.99641pt too wide) in paragraph at lines 45--57
+<supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png, id=11
+5, 433.62pt x 289.08pt>
+File: supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png G
+raphic file (type png)
+<use supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png>
+Package pdftex.def Info: supplementary_bundle/outputs/figures/method_comparison
+_marginal_cov.png  used on input line 48.
+(pdftex.def)             Requested size: 346.89731pt x 231.27754pt.
+<supplementary_bundle/outputs/figures/method_comparison_mean_width.png, id=117,
+ 433.62pt x 289.08pt>
+File: supplementary_bundle/outputs/figures/method_comparison_mean_width.png Gra
+phic file (type png)
+<use supplementary_bundle/outputs/figures/method_comparison_mean_width.png>
+Package pdftex.def Info: supplementary_bundle/outputs/figures/method_comparison
+_mean_width.png  used on input line 55.
+(pdftex.def)             Requested size: 346.89731pt x 231.27754pt.
+<supplementary_bundle/outputs/figures/method_comparison_ece.png, id=118, 433.62
+pt x 289.08pt>
+File: supplementary_bundle/outputs/figures/method_comparison_ece.png Graphic fi
+le (type png)
+<use supplementary_bundle/outputs/figures/method_comparison_ece.png>
+Package pdftex.def Info: supplementary_bundle/outputs/figures/method_comparison
+_ece.png  used on input line 62.
+(pdftex.def)             Requested size: 346.89731pt x 231.27754pt.
+<supplementary_bundle/outputs/figures/activsg200_site_map.png, id=119, 433.62pt
+ x 433.62pt>
+File: supplementary_bundle/outputs/figures/activsg200_site_map.png Graphic file
+ (type png)
+<use supplementary_bundle/outputs/figures/activsg200_site_map.png>
+Package pdftex.def Info: supplementary_bundle/outputs/figures/activsg200_site_m
+ap.png  used on input line 69.
+(pdftex.def)             Requested size: 325.215pt x 325.22743pt.
+<supplementary_bundle/outputs/per_type_width_map.png, id=120, 1156.32pt x 361.3
+5pt>
+File: supplementary_bundle/outputs/per_type_width_map.png Graphic file (type pn
+g)
+<use supplementary_bundle/outputs/per_type_width_map.png>
+Package pdftex.def Info: supplementary_bundle/outputs/per_type_width_map.png  u
+sed on input line 76.
+(pdftex.def)             Requested size: 325.215pt x 101.62944pt.
+
+Overfull \hbox (6.99641pt too wide) in paragraph at lines 85--97
 \OT1/cmr/m/n/10.95 Critical in-fras-truc-ture systems---electric power, wa-ter 
 dis-tri-bu-tion, and telecommunications---
  []
 
 [1
 
-{C:/Users/mapow/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}] [2]
-Underfull \vbox (badness 1502) has occurred while \output is active []
+{C:/Users/mapow/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
+Underfull \vbox (badness 5548) has occurred while \output is active []
 
- [3]
-Underfull \hbox (badness 10000) in paragraph at lines 247--255
+ [2
+pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) ha
+s been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.106 \textbf{Graph neural networks}
+                                     (GNNs) \citep{kipf2017semi,gilmer2017ne...
+
+pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) ha
+s been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.106 \textbf{Graph neural networks}
+                                     (GNNs) \citep{kipf2017semi,gilmer2017ne...
+ <./supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png> <.
+/supplementary_bundle/outputs/figures/method_comparison_mean_width.png>]
+[3
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) ha
+s been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.139 \item \textbf
+                   {Spatial diagnostics} including Moran's I autocorrelation...
+ <./supplementary_bundle/outputs/figures/method_comparison_ece.png>]
+Underfull \vbox (badness 5050) has occurred while \output is active []
+
+ [4
+pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) ha
+s been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.159 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) ha
+s been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.159 
+       <./supplementary_bundle/outputs/figures/activsg200_site_map.png> <./supp
+lementary_bundle/outputs/per_type_width_map.png>]
+Underfull \vbox (badness 2512) has occurred while \output is active []
+
+ [5]
+Underfull \hbox (badness 10000) in paragraph at lines 287--295
 
  []
 
-[4] [5]
-Underfull \vbox (badness 6978) has occurred while \output is active []
-
- [6
+[6] [7] [8
 pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.400 \subsection
-                 {Statistical Significance}
+l.416 
+      
 pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.400 \subsection
-                 {Statistical Significance}] [7
+l.416 
+      ] [9
 pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.461 
-      ] [8]
-Overfull \hbox (15.31116pt too wide) in paragraph at lines 536--537
+l.478 
+      ] [10]
+Overfull \hbox (15.31116pt too wide) in paragraph at lines 576--577
 \OT1/cmr/m/n/10.95 sup-ple-men-tary re-pro-ducibil-ity bun-dle are pro-vided at
  []$\OT1/cmtt/m/n/10.95 https : / / github . com / matthew-[]lottly /
  []
 
-(manuscript_draft.bbl
-Underfull \vbox (badness 2435) has occurred while \output is active []
+(manuscript_draft.bbl [11] [12]) [13] [14]
 
- [9]
-[10]) [11] [12] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (manuscript_draft.aux)
  ***********
@@ -479,13 +556,13 @@ Package rerunfilecheck Info: File `manuscript_draft.out' has not changed.
 (rerunfilecheck)             Checksum: 95DB3888D4EE2004E90CC6AAF36B570C;5067.
  ) 
 Here is how much of TeX's memory you used:
- 10911 strings out of 467871
- 168214 string characters out of 5418376
- 584262 words of memory out of 5000000
- 39542 multiletter control sequences out of 15000+600000
+ 10964 strings out of 467871
+ 171060 string characters out of 5418376
+ 586606 words of memory out of 5000000
+ 39586 multiletter control sequences out of 15000+600000
  639223 words of font info for 83 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 90i,10n,93p,1942b,592s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 90i,10n,96p,1942b,590s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\mapow\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm
 1095.pk> <C:\Users\mapow\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi60
 0\tcrm0800.pk><C:/Users/mapow/AppData/Local/Programs/MiKTeX/fonts/type1/public/
@@ -510,9 +587,9 @@ apow/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt10.pfb><C
 :/Users/mapow/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt
 8.pfb><C:/Users/mapow/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts
 /symbols/msbm10.pfb>
-Output written on manuscript_draft.pdf (12 pages, 326250 bytes).
+Output written on manuscript_draft.pdf (14 pages, 606282 bytes).
 PDF statistics:
- 453 PDF objects out of 1000 (max. 8388607)
- 97 named destinations out of 1000 (max. 500000)
- 225 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 479 PDF objects out of 1000 (max. 8388607)
+ 104 named destinations out of 1000 (max. 500000)
+ 250 words of extra memory for PDF output out of 10000 (max. 10000000)
 

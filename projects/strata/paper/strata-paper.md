@@ -21,23 +21,23 @@ The figures used for this manuscript are available in the submission bundle. The
 
 - Figure 1 — Method comparison (marginal coverage):
 
-	![Method marginal coverage](submission_jmlr/supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png)
+	![Method marginal coverage](./submission_jmlr/supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png)
 
 - Figure 2 — Method comparison (mean interval width):
 
-	![Mean interval width](submission_jmlr/supplementary_bundle/outputs/figures/method_comparison_mean_width.png)
+	![Mean interval width](./submission_jmlr/supplementary_bundle/outputs/figures/method_comparison_mean_width.png)
 
 - Figure 3 — Method comparison (ECE):
 
-	![ECE comparison](submission_jmlr/supplementary_bundle/outputs/figures/method_comparison_ece.png)
+	![ECE comparison](./submission_jmlr/supplementary_bundle/outputs/figures/method_comparison_ece.png)
 
 - Figure 4 — Spatial site map (ACTIVSg200):
 
-	![Spatial map](submission_jmlr/supplementary_bundle/outputs/figures/activsg200_site_map.png)
+	![Spatial map](./submission_jmlr/supplementary_bundle/outputs/figures/activsg200_site_map.png)
 
 - Figure 5 — Per-type interval width map:
 
-	![Per-type width map](submission_jmlr/supplementary_bundle/outputs/per_type_width_map.png)
+	![Per-type width map](./submission_jmlr/supplementary_bundle/outputs/per_type_width_map.png)
 
 See `submission_jmlr/manuscript_draft.pdf` for the formatted submission. 
 
