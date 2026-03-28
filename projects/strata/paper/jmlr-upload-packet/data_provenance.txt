@@ -1,0 +1,33 @@
+Data provenance and licensing for STRATA submission
+
+ACTIVSg200 (200-bus synthetic Illinois grid)
+- Source: MATPOWER repository (case_ACTIVSg200.m)
+- URL: https://raw.githubusercontent.com/MATPOWER/matpower/master/data/case_ACTIVSg200.m
+- License: MATPOWER is distributed under the 3-clause BSD license. ACTIVSg200
+  power-grid data files are released under CC-BY-4.0.
+- Citation: Birchfield, A.B., Xu, T., Gegner, K.M., Shetye, K.S., Overbye, T.J.,
+  "Grid Structural Characteristics as Validation Criteria for Synthetic Networks,"
+  IEEE Transactions on Power Systems, 32(4), 3258-3265, 2017.
+  doi:10.1109/TPWRS.2016.2616385
+
+IEEE 118-bus test case
+- Source: MATPOWER repository (case118.m)
+- URL: https://raw.githubusercontent.com/MATPOWER/matpower/master/data/case118.m
+- License: MATPOWER 3-clause BSD license. The IEEE 118-bus case is a public
+  benchmark originally developed by the IEEE Power and Energy Society.
+- Citation: Zimmerman, R.D., Murillo-Sanchez, C.E., Thomas, R.J.,
+  "MATPOWER: Steady-State Operations, Planning, and Analysis Tools for Power
+  Systems Research and Education," IEEE Transactions on Power Systems, 26(1),
+  12-19, 2011. doi:10.1109/TPWRS.2010.2051168
+
+MATPOWER (software)
+- Repository: https://github.com/MATPOWER/matpower
+- License: 3-clause BSD
+- Zimmerman et al. (2011), as cited above.
+
+Notes:
+- Local cached copies reside at data/case_ACTIVSg200.m and data/case_118.m.
+- Water and telecom layers are derived algorithmically from power-bus demand
+  centres. The generation logic is in src/hetero_conformal/real_data.py and
+  src/hetero_conformal/graph.py.
+- No personally identifiable information is present in any dataset.
