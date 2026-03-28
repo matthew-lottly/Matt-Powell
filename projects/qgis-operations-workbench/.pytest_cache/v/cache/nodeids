@@ -1,0 +1,7 @@
+[
+  "tests/test_workbench.py::test_build_workbench_pack",
+  "tests/test_workbench.py::test_export_geopackage",
+  "tests/test_workbench.py::test_export_workbench_pack",
+  "tests/test_workbench.py::test_load_inspection_routes",
+  "tests/test_workbench.py::test_load_station_features"
+]

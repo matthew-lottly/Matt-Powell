@@ -1,0 +1,217 @@
+\begin{thebibliography}{32}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Angelopoulos and Bates(2023)]{angelopoulos2023conformal}
+Anastasios~N Angelopoulos and Stephen Bates.
+\newblock Conformal prediction: A gentle introduction.
+\newblock \emph{Foundations and Trends in Machine Learning}, 16\penalty0
+  (4):\penalty0 494--591, 2023.
+
+\bibitem[Barber et~al.(2023)Barber, Cand{\`e}s, Ramdas, and
+  Tibshirani]{barber2023conformal}
+Rina~Foygel Barber, Emmanuel~J Cand{\`e}s, Aaditya Ramdas, and Ryan~J
+  Tibshirani.
+\newblock Conformal prediction beyond exchangeability.
+\newblock \emph{Annals of Statistics}, 51\penalty0 (2):\penalty0 816--845,
+  2023.
+
+\bibitem[Birchfield et~al.(2017)Birchfield, Xu, Gegner, Shetye, and
+  Overbye]{birchfield2017grid}
+Adam~B Birchfield, Ti~Xu, Kathleen~M Gegner, Komal~S Shetye, and Thomas~J
+  Overbye.
+\newblock Grid structural characteristics as validation criteria for synthetic
+  power grids.
+\newblock \emph{IEEE Transactions on Power Systems}, 32\penalty0 (4), 2017.
+
+\bibitem[Buldyrev et~al.(2010)Buldyrev, Parshani, Paul, Stanley, and
+  Havlin]{buldyrev2010catastrophic}
+Sergey~V Buldyrev, Roni Parshani, Gerald Paul, H~Eugene Stanley, and Shlomo
+  Havlin.
+\newblock Catastrophic cascade of failures in interdependent networks.
+\newblock \emph{Nature}, 464:\penalty0 1025--1028, 2010.
+
+\bibitem[Clarkson(2023)]{clarkson2023distribution}
+Jase Clarkson.
+\newblock Distribution-free prediction sets for node classification.
+\newblock In \emph{International Conference on Artificial Intelligence and
+  Statistics}, volume 206 of \emph{PMLR}, 2023.
+
+\bibitem[Cressie(1993)]{cressie1993statistics}
+Noel~AC Cressie.
+\newblock \emph{Statistics for Spatial Data}.
+\newblock Wiley, revised edition, 1993.
+
+\bibitem[Friedman(1937)]{friedman1937use}
+Milton Friedman.
+\newblock The use of ranks to avoid the assumption of normality implicit in the
+  analysis of variance.
+\newblock \emph{Journal of the American Statistical Association}, 32\penalty0
+  (200):\penalty0 675--701, 1937.
+
+\bibitem[Getis and Ord(1992)]{getis1992analysis}
+Arthur Getis and J~Keith Ord.
+\newblock The analysis of spatial association by use of distance statistics.
+\newblock \emph{Geographical Analysis}, 24\penalty0 (3):\penalty0 189--206,
+  1992.
+
+\bibitem[Gibbs and Cand{\`e}s(2021)]{gibbs2021adaptive}
+Isaac Gibbs and Emmanuel~J Cand{\`e}s.
+\newblock Adaptive conformal inference under distribution shift.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~34, 2021.
+
+\bibitem[Gilmer et~al.(2017)Gilmer, Schoenholz, Riley, Vinyals, and
+  Dahl]{gilmer2017neural}
+Justin Gilmer, Samuel~S Schoenholz, Patrick~F Riley, Oriol Vinyals, and
+  George~E Dahl.
+\newblock Neural message passing for quantum chemistry.
+\newblock In \emph{International Conference on Machine Learning}, volume~70 of
+  \emph{PMLR}, 2017.
+
+\bibitem[Guo et~al.(2017)Guo, Pleiss, Sun, and Weinberger]{guo2017calibration}
+Chuan Guo, Geoff Pleiss, Yu~Sun, and Kilian~Q Weinberger.
+\newblock On calibration of modern neural networks.
+\newblock In \emph{International Conference on Machine Learning}, volume~70 of
+  \emph{PMLR}, 2017.
+
+\bibitem[Hamilton et~al.(2017)Hamilton, Ying, and
+  Leskovec]{hamilton2017inductive}
+William~L Hamilton, Rex Ying, and Jure Leskovec.
+\newblock Inductive representation learning on large graphs.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~30, 2017.
+
+\bibitem[Hu et~al.(2020)Hu, Dong, Wang, and Sun]{hu2020heterogeneous}
+Ziniu Hu, Yuxiao Dong, Kuansan Wang, and Yizhou Sun.
+\newblock Heterogeneous graph transformer.
+\newblock In \emph{The World Wide Web Conference}, pages 2704--2710, 2020.
+
+\bibitem[Huang et~al.(2024)Huang, Jin, Candes, and
+  Leskovec]{huang2024uncertainty}
+Kexin Huang, Ying Jin, Emmanuel Candes, and Jure Leskovec.
+\newblock Uncertainty quantification over graph with conformalized graph neural
+  networks.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~36, 2024.
+
+\bibitem[Kendall and Gal(2017)]{kendall2017uncertainties}
+Alex Kendall and Yarin Gal.
+\newblock What uncertainties do we need in {B}ayesian deep learning for
+  computer vision?
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~30, 2017.
+
+\bibitem[Kipf and Welling(2017)]{kipf2017semi}
+Thomas~N Kipf and Max Welling.
+\newblock Semi-supervised classification with graph convolutional networks.
+\newblock In \emph{International Conference on Learning Representations}, 2017.
+
+\bibitem[Koenker and Bassett(1978)]{koenker1978regression}
+Roger Koenker and Gilbert Bassett.
+\newblock Regression quantiles.
+\newblock \emph{Econometrica}, 46\penalty0 (1):\penalty0 33--50, 1978.
+
+\bibitem[Lakshminarayanan et~al.(2017)Lakshminarayanan, Pritzel, and
+  Blundell]{lakshminarayanan2017simple}
+Balaji Lakshminarayanan, Alexander Pritzel, and Charles Blundell.
+\newblock Simple and scalable predictive uncertainty estimation using deep
+  ensembles.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~30, 2017.
+
+\bibitem[Lei et~al.(2018)Lei, G'Sell, Rinaldo, Tibshirani, and
+  Wasserman]{lei2018distribution}
+Jing Lei, Max G'Sell, Alessandro Rinaldo, Ryan~J Tibshirani, and Larry
+  Wasserman.
+\newblock Distribution-free predictive inference for regression.
+\newblock \emph{Journal of the American Statistical Association}, 113\penalty0
+  (523):\penalty0 1094--1111, 2018.
+
+\bibitem[Moran(1950)]{moran1950notes}
+Patrick~AP Moran.
+\newblock Notes on continuous stochastic phenomena.
+\newblock \emph{Biometrika}, 37:\penalty0 17--23, 1950.
+
+\bibitem[Ouyang(2014)]{ouyang2014review}
+Min Ouyang.
+\newblock Review on modeling and simulation of interdependent critical
+  infrastructure systems.
+\newblock \emph{Reliability Engineering \& System Safety}, 121:\penalty0
+  43--60, 2014.
+
+\bibitem[Papadopoulos et~al.(2002)Papadopoulos, Proedrou, Vovk, and
+  Gammerman]{papadopoulos2002inductive}
+Harris Papadopoulos, Kostas Proedrou, Volodya Vovk, and Alex Gammerman.
+\newblock Inductive confidence machines for regression.
+\newblock In \emph{European Conference on Machine Learning}, pages 345--356.
+  Springer, 2002.
+
+\bibitem[Rinaldi et~al.(2001)Rinaldi, Peerenboom, and
+  Kelly]{rinaldi2001identifying}
+Steven~M Rinaldi, James~P Peerenboom, and Terrence~K Kelly.
+\newblock Identifying, understanding, and analyzing critical infrastructure
+  interdependencies.
+\newblock \emph{IEEE Control Systems Magazine}, 21\penalty0 (6):\penalty0
+  11--25, 2001.
+
+\bibitem[Romano et~al.(2019)Romano, Patterson, and
+  Cand{\`e}s]{romano2019conformalized}
+Yaniv Romano, Evan Patterson, and Emmanuel~J Cand{\`e}s.
+\newblock Conformalized quantile regression.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~32, pages 3543--3553, 2019.
+
+\bibitem[Schlichtkrull et~al.(2018)Schlichtkrull, Kipf, Bloem, van~den Berg,
+  Titov, and Welling]{schlichtkrull2018modeling}
+Michael Schlichtkrull, Thomas~N Kipf, Peter Bloem, Rianne van~den Berg, Ivan
+  Titov, and Max Welling.
+\newblock Modeling relational data with graph convolutional networks.
+\newblock In \emph{European Semantic Web Conference}. Springer, 2018.
+
+\bibitem[Shafer and Vovk(2008)]{shafer2008tutorial}
+Glenn Shafer and Vladimir Vovk.
+\newblock A tutorial on conformal prediction.
+\newblock \emph{Journal of Machine Learning Research}, 9:\penalty0 371--421,
+  2008.
+
+\bibitem[Song et~al.(2024)Song, Cao, and Chen]{song2024snaps}
+Jianqing Song, Jianguo Cao, and Rui Chen.
+\newblock Similarity-navigated conformal prediction for graph neural networks.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~37, 2024.
+
+\bibitem[Vovk(2012)]{vovk2012conditional}
+Vladimir Vovk.
+\newblock Conditional validity of inductive conformal predictors.
+\newblock In \emph{Asian Conference on Machine Learning}, volume~25 of
+  \emph{PMLR}, pages 475--490, 2012.
+
+\bibitem[Vovk et~al.(2005)Vovk, Gammerman, and Shafer]{vovk2005algorithmic}
+Vladimir Vovk, Alex Gammerman, and Glenn Shafer.
+\newblock \emph{Algorithmic Learning in a Random World}.
+\newblock Springer, 2005.
+
+\bibitem[Wang et~al.(2019)Wang, Ji, Shi, Wang, Ye, Cui, and
+  Yu]{wang2019heterogeneous}
+Xiao Wang, Houye Ji, Chuan Shi, Bai Wang, Yanfang Ye, Peng Cui, and Philip~S
+  Yu.
+\newblock Heterogeneous graph attention network.
+\newblock In \emph{The World Wide Web Conference}, pages 2022--2032, 2019.
+
+\bibitem[Wilcoxon(1945)]{wilcoxon1945individual}
+Frank Wilcoxon.
+\newblock Individual comparisons by ranking methods.
+\newblock \emph{Biometrics Bulletin}, 1\penalty0 (6):\penalty0 80--83, 1945.
+
+\bibitem[Zargarbashi et~al.(2023)Zargarbashi, Antonelli, and
+  Bojchevski]{zargarbashi2023conformal}
+Soroush~H Zargarbashi, Simone Antonelli, and Aleksandar Bojchevski.
+\newblock Conformal prediction sets for graph neural networks.
+\newblock In \emph{International Conference on Machine Learning}, volume 202 of
+  \emph{PMLR}, 2023.
+
+\end{thebibliography}

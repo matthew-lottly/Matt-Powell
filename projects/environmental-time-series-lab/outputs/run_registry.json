@@ -1,0 +1,32 @@
+{
+  "runs": [
+    {
+      "runLabel": "temporal-diagnostics-review",
+      "generatedAt": "2026-03-19T18:41:46.646364+00:00",
+      "reportName": "Environmental Time Series Lab",
+      "reportFile": "time_series_report.json",
+      "seriesCount": 3,
+      "averageSelectedReviewMae": 0.41,
+      "averageSeasonalRange": 0.57,
+      "baselineWins": {
+        "drift": 1,
+        "last_value": 1,
+        "trailing_mean_3": 1
+      }
+    },
+    {
+      "runLabel": "temporal-diagnostics-review",
+      "generatedAt": "2026-03-19T19:49:20.367958+00:00",
+      "reportName": "Environmental Time Series Lab",
+      "reportFile": "time_series_report.json",
+      "seriesCount": 3,
+      "averageSelectedReviewMae": 0.41,
+      "averageSeasonalRange": 0.57,
+      "baselineWins": {
+        "drift": 1,
+        "last_value": 1,
+        "trailing_mean_3": 1
+      }
+    }
+  ]
+}

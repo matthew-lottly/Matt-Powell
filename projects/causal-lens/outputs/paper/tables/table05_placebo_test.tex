@@ -1,0 +1,17 @@
+\begin{table}[t!]
+\centering
+\footnotesize
+\caption{Placebo/falsification test results (Lalonde, outcome = re74).}
+\label{tab:paper-placebo-test}
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{llll}
+\hline
+Method & Effect & 95\\% CI & Passes \\
+\hline
+Regression adjustment & -1,103.417 & [-1,724.9, -372.8] & No \\
+Propensity matching & -988.567 & [-1,849.0, 1,248.1] & Yes \\
+IPW & -2,734.406 & [-3,770.7, -2,217.7] & No \\
+Doubly robust & -2,530.463 & [-3,698.6, -1,661.4] & No \\
+\hline
+\end{tabular}
+\end{table}

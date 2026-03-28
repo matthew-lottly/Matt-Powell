@@ -194,10 +194,10 @@ type-conditional guarantee:
 STRATA's GNN backbone extends the R-GCN framework \citep{schlichtkrull2018modeling}
 with residual connections. Each \texttt{HeteroMessagePassingLayer} $\ell$ computes:
 \begin{equation}
-\mathbf{h}_i^{(\ell)} = \text{ReLU}\!\left(\mathbf{W}_{\text{self}}
+\mathbf{h}_i^{(\ell)} = \text{ReLU}\!\bigl(\mathbf{W}_{\text{self}}
 \mathbf{h}_i^{(\ell-1)} + \sum_{r \in \mathcal{R}}
 \frac{1}{|\mathcal{N}_r(i)|} \sum_{j \in \mathcal{N}_r(i)}
-\mathbf{W}_r \mathbf{h}_j^{(\ell-1)}\right) + \mathbf{h}_i^{(\ell-1)}
+\mathbf{W}_r \mathbf{h}_j^{(\ell-1)}\bigr) + \mathbf{h}_i^{(\ell-1)}
 \end{equation}
 where $\mathcal{R}$ is the set of edge types and $\mathbf{W}_r$ are
 per-relation weight matrices. Per-type output heads project final
@@ -239,8 +239,8 @@ $i \in \mathcal{D}_{\text{cal}} \cup \{n+1\}$. Let $\hat{q}$ be the
 $\lceil(1-\alpha)(|\mathcal{D}_{\text{cal}}|+1)\rceil /
 |\mathcal{D}_{\text{cal}}|$ quantile. Then:
 \begin{equation}
-\Pr\!\left(Y_{n+1} \in [\hat{f}(X_{n+1}) - \hat{q} \cdot \sigma_{n+1},
-\; \hat{f}(X_{n+1}) + \hat{q} \cdot \sigma_{n+1}]\right) \geq 1 - \alpha
+\Pr\!\bigr(Y_{n+1} \in [\hat{f}(X_{n+1}) - \hat{q} \cdot \sigma_{n+1},
+\; \hat{f}(X_{n+1}) + \hat{q} \cdot \sigma_{n+1}]\bigr) \geq 1 - \alpha
 \end{equation}
 \end{theorem}
 

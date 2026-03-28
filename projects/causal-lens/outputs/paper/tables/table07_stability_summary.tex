@@ -1,0 +1,25 @@
+\begin{table}[t!]
+\centering
+\footnotesize
+\caption{Bootstrap stability summary across datasets and estimators.}
+\label{tab:paper-stability-summary}
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{llllll}
+\hline
+Dataset & Method & Mean effect & SD effect & CV & Mean |SMD| after \\
+\hline
+Lalonde & Doubly robust & 1,709.503 & 0.000 & 0.000 & 0.098 \\
+Lalonde & IPW & 1,463.947 & 0.000 & 0.000 & 0.096 \\
+Lalonde & Propensity matching & 1,429.146 & 0.000 & 0.000 & 0.061 \\
+Lalonde & Regression adjustment & 1,480.661 & 0.000 & 0.000 & 0.410 \\
+NHEFS & Doubly robust & 3.294 & 0.000 & 0.000 & 0.013 \\
+NHEFS & IPW & 3.263 & 0.000 & 0.000 & 0.013 \\
+NHEFS & Propensity matching & 3.212 & 0.000 & 0.000 & 0.030 \\
+NHEFS & Regression adjustment & 3.334 & 0.000 & 0.000 & 0.152 \\
+Synthetic & Doubly robust & 1.935 & 0.000 & 0.000 & 0.016 \\
+Synthetic & IPW & 1.927 & 0.000 & 0.000 & 0.016 \\
+Synthetic & Propensity matching & 1.707 & 0.000 & 0.000 & 0.051 \\
+Synthetic & Regression adjustment & 1.985 & 0.000 & 0.000 & 0.410 \\
+\hline
+\end{tabular}
+\end{table}

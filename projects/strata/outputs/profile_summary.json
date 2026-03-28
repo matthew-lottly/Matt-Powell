@@ -1,0 +1,8 @@
+{
+  "elapsed_seconds": 2.977543900022283,
+  "marginal_coverage": 0.8666666666666667,
+  "mean_width": 1.7533644437789917,
+  "ece": 0.18888888888888886,
+  "profile_file": "D:\\GitHub\\projects\\strata\\outputs\\profile_run.prof",
+  "top_functions_file": "D:\\GitHub\\projects\\strata\\outputs\\profile_top_functions.txt"
+}

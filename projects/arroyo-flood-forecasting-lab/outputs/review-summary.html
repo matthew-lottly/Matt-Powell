@@ -1,0 +1,130 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Arroyo Flood Forecasting Lab Review Summary</title>
+      <style>
+        :root {
+          color-scheme: light;
+          --bg: #eef1ea;
+          --panel: #f9f7ef;
+          --ink: #173330;
+          --accent: #1e6f5c;
+          --muted: #5d6d7e;
+          --warn: #b04a2d;
+          --edge: #d8d3c2;
+        }
+        body { margin: 0; font-family: Georgia, serif; background: linear-gradient(180deg, #f4f2ea 0%, var(--bg) 100%); color: var(--ink); }
+        main { max-width: 1240px; margin: 0 auto; padding: 32px 24px 64px; }
+        .hero { background: #183a37; color: #f8f6ee; border-radius: 24px; padding: 28px 32px; box-shadow: 0 16px 40px rgba(24, 58, 55, 0.16); }
+        .hero h1 { margin: 0 0 12px; font-size: 2.2rem; }
+        .hero p { margin: 0; max-width: 900px; line-height: 1.5; font-family: Arial, sans-serif; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-top: 22px; }
+        .stat { background: rgba(255,255,255,0.08); padding: 14px 16px; border-radius: 16px; }
+        .stat strong { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 22px; }
+        .panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 22px; padding: 22px; box-shadow: 0 10px 22px rgba(29, 40, 38, 0.06); }
+        .panel.full { grid-column: 1 / -1; }
+        .panel h2 { margin-top: 0; margin-bottom: 12px; }
+        .meta { color: var(--muted); font-family: Arial, sans-serif; font-size: 0.94rem; }
+        .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+        .chart-grid.single { grid-template-columns: 1fr; }
+        figure { margin: 0; }
+        img { width: 100%; border-radius: 14px; border: 1px solid var(--edge); background: white; }
+        figcaption { margin-top: 8px; color: var(--muted); font-family: Arial, sans-serif; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid var(--edge); text-align: left; }
+        th { color: var(--muted); font-size: 0.86rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        code { font-family: Consolas, monospace; }
+      </style>
+    </head>
+    <body>
+      <main>
+        <section class="hero">
+          <h1>Arroyo Flood Forecasting Lab</h1>
+          <p>This public South Texas gauge is used as a reproducible analog for an Arroyo-style forecasting workflow.</p>
+          <div class="stats">
+            <div class="stat"><strong>08211500</strong>Primary site code</div>
+            <div class="stat"><strong>raw</strong>Winning signal branch</div>
+            <div class="stat"><strong>3</strong>Selected AR order</div>
+            <div class="stat"><strong>0.0075</strong>Raw PMSE</div>
+            <div class="stat"><strong>0.0081</strong>Denoised PMSE</div>
+            <div class="stat"><strong>3.72</strong>Review threshold (ft)</div>
+          </div>
+        </section>
+
+        <section class="grid">
+          <section class="panel">
+            <h2>Primary Source</h2>
+            <p><strong>Nueces Rv at Calallen, TX</strong> (08211500)</p>
+            <p class="meta">USGS NWIS Instantaneous Values</p>
+            <p class="meta">https://waterservices.usgs.gov/nwis/iv/?sites=08211500&amp;parameterCd=00065&amp;siteStatus=all&amp;format=json&amp;period=P7D</p>
+          </section>
+          <section class="panel">
+            <h2>Interpretation</h2>
+            <p>Raw-versus-denoised comparison is driven by holdout PMSE rather than by assuming wavelet preprocessing always wins.</p>
+            <p>Monte Carlo scenario bands translate residual uncertainty into a reviewer-friendly risk view instead of a single deterministic trace.</p>
+          </section>
+          <section class="panel full">
+            <h2>Chart Pack</h2>
+            <div class="chart-grid"><figure><img src="charts/hydrograph-overview.png" alt="hydrograph-overview"><figcaption>Hydrograph Overview</figcaption></figure>
+<figure><img src="charts/lag-diagnostics.png" alt="lag-diagnostics"><figcaption>Lag Diagnostics</figcaption></figure>
+<figure><img src="charts/pmse-by-order.png" alt="pmse-by-order"><figcaption>Pmse By Order</figcaption></figure>
+<figure><img src="charts/holdout-forecast-comparison.png" alt="holdout-forecast-comparison"><figcaption>Holdout Forecast Comparison</figcaption></figure>
+<figure><img src="charts/threshold-exceedance-probability.png" alt="threshold-exceedance-probability"><figcaption>Threshold Exceedance Probability</figcaption></figure></div>
+          </section>
+          
+        <section class="panel full">
+          <h2>Cross-Site Comparison</h2>
+          <p>Noisiest site: <strong>08211520</strong>. Largest denoising benefit: <strong>08211520</strong>.</p>
+          <p>The noisiest site also shows the largest wavelet benefit in this sample.</p>
+          <div class="chart-grid single">
+            <figure><img src="charts/wavelet-benefit-comparison.png" alt="Cross-site wavelet benefit chart"></figure>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Site</th>
+                <th>Code</th>
+                <th>Volatility</th>
+                <th>Raw PMSE</th>
+                <th>Denoised PMSE</th>
+                <th>Benefit</th>
+                <th>Winner</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td>Nueces Rv at Calallen, TX</td>
+              <td>08211500</td>
+              <td>0.0159</td>
+              <td>0.0075</td>
+              <td>0.0081</td>
+              <td>-0.0006</td>
+              <td>raw</td>
+            </tr>
+            
+
+            <tr>
+              <td>Oso Ck at Corpus Christi, TX</td>
+              <td>08211520</td>
+              <td>0.0432</td>
+              <td>0.0005</td>
+              <td>0.0001</td>
+              <td>0.0004</td>
+              <td>denoised</td>
+            </tr>
+            
+            </tbody>
+          </table>
+          <p class="meta">Comparison report: multi_site_comparison.json</p>
+        </section>
+        
+        </section>
+      </main>
+    </body>
+    </html>
+    

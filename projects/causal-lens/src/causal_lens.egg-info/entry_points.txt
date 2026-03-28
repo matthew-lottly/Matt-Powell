@@ -1,0 +1,2 @@
+[console_scripts]
+causal-lens = causal_lens.cli:main

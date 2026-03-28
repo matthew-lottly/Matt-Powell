@@ -1,0 +1,107 @@
+{
+  "pipelineName": "Raster Monitoring Pipeline",
+  "baselineRaster": "baseline_heat_index",
+  "latestRaster": "latest_heat_index",
+  "summary": {
+    "cellCount": 16,
+    "averageDelta": 2.31,
+    "hotspotCount": 3,
+    "maxLatestValue": 23
+  },
+  "topChanges": [
+    {
+      "row": 2,
+      "column": 3,
+      "baseline": 16,
+      "latest": 22,
+      "delta": 6
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "baseline": 18,
+      "latest": 23,
+      "delta": 5
+    },
+    {
+      "row": 3,
+      "column": 3,
+      "baseline": 13,
+      "latest": 17,
+      "delta": 4
+    },
+    {
+      "row": 0,
+      "column": 3,
+      "baseline": 15,
+      "latest": 18,
+      "delta": 3
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "baseline": 14,
+      "latest": 17,
+      "delta": 3
+    }
+  ],
+  "tileManifest": [
+    {
+      "tileId": "tile-northwest",
+      "rows": [
+        0,
+        1
+      ],
+      "columns": [
+        0,
+        1
+      ]
+    },
+    {
+      "tileId": "tile-northeast",
+      "rows": [
+        0,
+        1
+      ],
+      "columns": [
+        2,
+        3
+      ]
+    },
+    {
+      "tileId": "tile-southwest",
+      "rows": [
+        2,
+        3
+      ],
+      "columns": [
+        0,
+        1
+      ]
+    },
+    {
+      "tileId": "tile-southeast",
+      "rows": [
+        2,
+        3
+      ],
+      "columns": [
+        2,
+        3
+      ]
+    }
+  ],
+  "notes": [
+    "Designed as a public-safe raster change-detection pipeline.",
+    "The sample grids can later be replaced by GeoTIFF-backed workflows through rasterio or GDAL.",
+    "The output report is intended as a handoff artifact for downstream visualization or alerting layers."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "name": "delta_heatmap_review",
+        "chart": "charts/delta-heatmap-review.png"
+      }
+    ]
+  }
+}

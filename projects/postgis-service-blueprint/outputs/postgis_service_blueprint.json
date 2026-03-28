@@ -1,0 +1,112 @@
+{
+  "serviceName": "PostGIS Service Blueprint",
+  "summary": {
+    "featureCount": 3,
+    "layers": {
+      "maintenance_zones": 1,
+      "monitoring_sites": 2
+    },
+    "regions": {
+      "Central": 1,
+      "East": 1,
+      "West": 1
+    },
+    "statuses": {
+      "active": 2,
+      "review": 1
+    },
+    "bounds": {
+      "minLongitude": -121.4944,
+      "minLatitude": 38.5816,
+      "maxLongitude": -104.9903,
+      "maxLatitude": 44.0582
+    }
+  },
+  "collections": [
+    {
+      "id": "maintenance_zones",
+      "title": "Maintenance Zones",
+      "featureCount": 1,
+      "categories": [
+        "infrastructure"
+      ],
+      "regions": [
+        "East"
+      ],
+      "queryPatterns": [
+        "bbox filter",
+        "status filter",
+        "region filter",
+        "updated-since filter"
+      ]
+    },
+    {
+      "id": "monitoring_sites",
+      "title": "Monitoring Sites",
+      "featureCount": 2,
+      "categories": [
+        "air_quality",
+        "wildfire"
+      ],
+      "regions": [
+        "Central",
+        "West"
+      ],
+      "queryPatterns": [
+        "bbox filter",
+        "status filter",
+        "region filter",
+        "updated-since filter"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "path": "/collections",
+      "purpose": "List published spatial collections with summary metadata."
+    },
+    {
+      "path": "/collections/{collectionId}",
+      "purpose": "Return metadata and query capabilities for a single collection."
+    },
+    {
+      "path": "/collections/{collectionId}/items",
+      "purpose": "Serve filtered features with bbox, region, and status query parameters."
+    },
+    {
+      "path": "/collections/maintenance_zones/items?bbox={minLon,minLat,maxLon,maxLat}",
+      "purpose": "Fetch filtered items for the Maintenance Zones collection."
+    },
+    {
+      "path": "/collections/monitoring_sites/items?bbox={minLon,minLat,maxLon,maxLat}",
+      "purpose": "Fetch filtered items for the Monitoring Sites collection."
+    }
+  ],
+  "publicationPlan": {
+    "database": "PostgreSQL + PostGIS",
+    "deliveryOptions": [
+      "FastAPI",
+      "PostgREST",
+      "OGC API Features gateway"
+    ],
+    "indexes": [
+      "GIST(geom)",
+      "btree(status)",
+      "btree(region)"
+    ]
+  },
+  "notes": [
+    "The checked-in data is sample content for a public-safe spatial service blueprint.",
+    "SQL assets in the repo show how source tables, views, and publication-ready collections can be organized.",
+    "The exported blueprint JSON is intended as a handoff artifact for API or SQL-first service implementation.",
+    "A generated seed SQL file can load the same sample collections into a local PostGIS container."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "name": "published_service_footprint",
+        "chart": "charts/published-service-footprint.png"
+      }
+    ]
+  }
+}

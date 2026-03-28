@@ -1,0 +1,71 @@
+{
+  "reportName": "Gulf Coast Inundation Lab Validation Summary",
+  "experiment": {
+    "runLabel": "gauge-validation-review",
+    "generatedAt": "2026-03-19T20:09:24.518861+00:00",
+    "inputFile": "gauge_validation_sample.csv",
+    "registryFile": "run_registry.json",
+    "adequateThreshold": 0.6
+  },
+  "summary": {
+    "gaugeCount": 3,
+    "observationCount": 18,
+    "adequateGaugeCount": 2,
+    "veryStrongGaugeCount": 2,
+    "meanRSquared": 0.6724,
+    "strongestGaugeId": "07374000",
+    "weakestGaugeId": "02375500"
+  },
+  "gauges": [
+    {
+      "gaugeId": "07374000",
+      "gaugeName": "Mississippi River at Baton Rouge, LA",
+      "observationCount": 6,
+      "stageRangeFt": 14.8,
+      "inundationRangePct": 37.6,
+      "rSquared": 0.9943,
+      "slope": 2.5581,
+      "intercept": -43.7019,
+      "category": "very_strong"
+    },
+    {
+      "gaugeId": "08030500",
+      "gaugeName": "Sabine Rv nr Ruliff, TX",
+      "observationCount": 6,
+      "stageRangeFt": 2.4,
+      "inundationRangePct": 10.8,
+      "rSquared": 0.929,
+      "slope": 4.3442,
+      "intercept": -10.7088,
+      "category": "very_strong"
+    },
+    {
+      "gaugeId": "02375500",
+      "gaugeName": "ESCAMBIA RIVER NEAR CENTURY, FL",
+      "observationCount": 6,
+      "stageRangeFt": 1.4,
+      "inundationRangePct": 2.1,
+      "rSquared": 0.0938,
+      "slope": -0.4639,
+      "intercept": 18.4849,
+      "category": "poor"
+    }
+  ],
+  "notes": [
+    "This report summarizes merged gauge-stage and percent-inundated observations after Earth Engine export.",
+    "An R^2 value above 0.6 is treated as adequate validation in line with the study framing.",
+    "Low-support or weakly correlated gauges should be reviewed alongside observation counts and local scene coverage."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "name": "gauge_validation_ranking",
+        "chart": "charts/gauge-validation-ranking.png"
+      },
+      {
+        "name": "gauge_validation_footprint",
+        "chart": "charts/gauge-validation-footprint.png"
+      }
+    ]
+  }
+}

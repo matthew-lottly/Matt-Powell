@@ -1,0 +1,4 @@
+Dataset,Effect range,Best mean |SMD| after,All overlap checks
+Lalonde benchmark,"[1,429.1, 1,709.5]",0.060820366670448454,True
+NHEFS benchmark,"[3.212, 3.334]",0.012853630864701768,True
+Synthetic validation,"[1.707, 1.985]",0.015746443799608996,True

@@ -1,0 +1,596 @@
+{
+  "reportName": "Arroyo Flood Forecasting Lab",
+  "experiment": {
+    "runLabel": "wavelet-ar-review",
+    "generatedAt": "2026-03-19T19:32:09.738601+00:00",
+    "registryFile": "run_registry.json",
+    "forecastHorizon": 12,
+    "candidateOrderCount": 6,
+    "simulationCount": 250,
+    "waveletName": "db4",
+    "waveletLevel": 2,
+    "threshold": 0.0173,
+    "parameterName": "Gage height, ft"
+  },
+  "summary": {
+    "seriesName": "South Texas hourly stage series for Arroyo-style flood forecasting review",
+    "sourceSiteName": "Nueces Rv at Calallen, TX",
+    "sourceSiteCode": "08211500",
+    "dataSource": "USGS NWIS Instantaneous Values",
+    "observationCount": 168,
+    "calibrationCount": 156,
+    "holdoutCount": 12,
+    "selectedSeries": "raw",
+    "selectedOrder": 3,
+    "rawPmse": 0.0075,
+    "denoisedPmse": 0.0081,
+    "pmseImprovement": -0.0006,
+    "pmseImprovementPercent": -8.0,
+    "peakStageFt": 3.76,
+    "meanStageFt": 3.484,
+    "reviewThresholdFt": 3.72,
+    "thresholdExceedanceCount": 19
+  },
+  "sourceContext": {
+    "siteName": "Nueces Rv at Calallen, TX",
+    "siteCode": "08211500",
+    "dataSource": "USGS NWIS Instantaneous Values",
+    "sourceUrl": "https://waterservices.usgs.gov/nwis/iv/?sites=08211500&parameterCd=00065&siteStatus=all&format=json&period=P7D",
+    "latitude": 27.883077,
+    "longitude": -97.625273,
+    "publicModelingNote": "This public South Texas gauge is used as a reproducible analog for an Arroyo-style forecasting workflow."
+  },
+  "hydrographProfile": {
+    "startTimestamp": "2026-03-12T17:30:00Z",
+    "endTimestamp": "2026-03-19T16:30:00Z",
+    "holdoutWindow": [
+      "2026-03-19T05:30:00Z",
+      "2026-03-19T06:30:00Z",
+      "2026-03-19T07:30:00Z",
+      "2026-03-19T08:30:00Z",
+      "2026-03-19T09:30:00Z",
+      "2026-03-19T10:30:00Z",
+      "2026-03-19T11:30:00Z",
+      "2026-03-19T12:30:00Z",
+      "2026-03-19T13:30:00Z",
+      "2026-03-19T14:30:00Z",
+      "2026-03-19T15:30:00Z",
+      "2026-03-19T16:30:00Z"
+    ],
+    "rawStageTail": [
+      3.02,
+      3.0,
+      3.03,
+      3.06,
+      3.09,
+      3.12,
+      3.07,
+      3.05,
+      3.03,
+      3.02,
+      3.0,
+      2.98
+    ],
+    "denoisedStageTail": [
+      3.026,
+      3.017,
+      3.026,
+      3.055,
+      3.08,
+      3.104,
+      3.085,
+      3.059,
+      3.032,
+      3.013,
+      2.994,
+      2.981
+    ]
+  },
+  "lagDiagnostics": {
+    "raw": {
+      "acf": [
+        0.9732,
+        0.9458,
+        0.9177,
+        0.8899,
+        0.8636,
+        0.8383
+      ],
+      "pacf": [
+        0.9732,
+        -0.0249,
+        -0.0272,
+        -0.0087,
+        0.0137,
+        0.0041
+      ],
+      "dominantAcfLags": [
+        {
+          "lag": 1,
+          "value": 0.9732
+        },
+        {
+          "lag": 2,
+          "value": 0.9458
+        },
+        {
+          "lag": 3,
+          "value": 0.9177
+        }
+      ],
+      "dominantPacfLags": [
+        {
+          "lag": 1,
+          "value": 0.9732
+        },
+        {
+          "lag": 3,
+          "value": -0.0272
+        },
+        {
+          "lag": 2,
+          "value": -0.0249
+        }
+      ]
+    },
+    "denoised": {
+      "acf": [
+        0.9748,
+        0.9475,
+        0.9196,
+        0.8919,
+        0.8656,
+        0.8412
+      ],
+      "pacf": [
+        0.9748,
+        -0.055,
+        -0.0244,
+        -0.0096,
+        0.0134,
+        0.0219
+      ],
+      "dominantAcfLags": [
+        {
+          "lag": 1,
+          "value": 0.9748
+        },
+        {
+          "lag": 2,
+          "value": 0.9475
+        },
+        {
+          "lag": 3,
+          "value": 0.9196
+        }
+      ],
+      "dominantPacfLags": [
+        {
+          "lag": 1,
+          "value": 0.9748
+        },
+        {
+          "lag": 2,
+          "value": -0.055
+        },
+        {
+          "lag": 3,
+          "value": -0.0244
+        }
+      ]
+    }
+  },
+  "candidateModels": {
+    "raw": {
+      "bestOrder": 3,
+      "bestPmse": 0.0075,
+      "candidates": [
+        {
+          "order": 3,
+          "pmse": 0.0075,
+          "fitPercent": 99.34,
+          "residualStd": 0.0136,
+          "forecast": [
+            3.025,
+            3.014,
+            3.003,
+            2.992,
+            2.982,
+            2.971,
+            2.961,
+            2.95,
+            2.94,
+            2.929,
+            2.918,
+            2.907
+          ],
+          "coefficients": [
+            1.229,
+            0.02,
+            -0.2434
+          ],
+          "intercept": -0.022
+        },
+        {
+          "order": 4,
+          "pmse": 0.008,
+          "fitPercent": 99.35,
+          "residualStd": 0.0134,
+          "forecast": [
+            3.024,
+            3.015,
+            3.003,
+            2.993,
+            2.981,
+            2.97,
+            2.958,
+            2.947,
+            2.935,
+            2.923,
+            2.91,
+            2.898
+          ],
+          "coefficients": [
+            1.2675,
+            0.0184,
+            -0.4471,
+            0.1692
+          ],
+          "intercept": -0.0313
+        },
+        {
+          "order": 2,
+          "pmse": 0.0082,
+          "fitPercent": 99.31,
+          "residualStd": 0.0139,
+          "forecast": [
+            3.029,
+            3.018,
+            3.006,
+            2.994,
+            2.982,
+            2.97,
+            2.958,
+            2.945,
+            2.933,
+            2.92,
+            2.907,
+            2.894
+          ],
+          "coefficients": [
+            1.2949,
+            -0.2848
+          ],
+          "intercept": -0.0388
+        },
+        {
+          "order": 6,
+          "pmse": 0.0084,
+          "fitPercent": 99.34,
+          "residualStd": 0.0135,
+          "forecast": [
+            3.024,
+            3.014,
+            3.002,
+            2.991,
+            2.979,
+            2.967,
+            2.956,
+            2.944,
+            2.932,
+            2.921,
+            2.908,
+            2.896
+          ],
+          "coefficients": [
+            1.2716,
+            0.0221,
+            -0.4794,
+            0.1907,
+            0.0683,
+            -0.0661
+          ],
+          "intercept": -0.0282
+        },
+        {
+          "order": 5,
+          "pmse": 0.0085,
+          "fitPercent": 99.35,
+          "residualStd": 0.0134,
+          "forecast": [
+            3.024,
+            3.014,
+            3.002,
+            2.991,
+            2.979,
+            2.968,
+            2.955,
+            2.943,
+            2.931,
+            2.918,
+            2.906,
+            2.893
+          ],
+          "coefficients": [
+            1.2708,
+            0.0133,
+            -0.4521,
+            0.1885,
+            -0.0119
+          ],
+          "intercept": -0.0331
+        },
+        {
+          "order": 1,
+          "pmse": 0.0101,
+          "fitPercent": 99.26,
+          "residualStd": 0.0145,
+          "forecast": [
+            3.027,
+            3.015,
+            3.002,
+            2.989,
+            2.975,
+            2.962,
+            2.948,
+            2.934,
+            2.919,
+            2.905,
+            2.89,
+            2.875
+          ],
+          "coefficients": [
+            1.0164
+          ],
+          "intercept": -0.0624
+        }
+      ]
+    },
+    "denoised": {
+      "bestOrder": 2,
+      "bestPmse": 0.0081,
+      "candidates": [
+        {
+          "order": 2,
+          "pmse": 0.0081,
+          "fitPercent": 99.86,
+          "residualStd": 0.0063,
+          "forecast": [
+            3.023,
+            3.009,
+            2.996,
+            2.984,
+            2.973,
+            2.963,
+            2.953,
+            2.943,
+            2.934,
+            2.925,
+            2.916,
+            2.908
+          ],
+          "coefficients": [
+            1.818,
+            -0.8172
+          ],
+          "intercept": -0.0039
+        },
+        {
+          "order": 5,
+          "pmse": 0.009,
+          "fitPercent": 99.89,
+          "residualStd": 0.0056,
+          "forecast": [
+            3.023,
+            3.01,
+            2.998,
+            2.986,
+            2.974,
+            2.963,
+            2.951,
+            2.939,
+            2.926,
+            2.913,
+            2.9,
+            2.887
+          ],
+          "coefficients": [
+            2.2581,
+            -1.9878,
+            1.1104,
+            -0.5428,
+            0.1659
+          ],
+          "intercept": -0.0147
+        },
+        {
+          "order": 4,
+          "pmse": 0.0092,
+          "fitPercent": 99.88,
+          "residualStd": 0.0057,
+          "forecast": [
+            3.022,
+            3.008,
+            2.995,
+            2.983,
+            2.971,
+            2.96,
+            2.948,
+            2.936,
+            2.925,
+            2.913,
+            2.901,
+            2.889
+          ],
+          "coefficients": [
+            2.23,
+            -1.8581,
+            0.8105,
+            -0.1797
+          ],
+          "intercept": -0.0104
+        },
+        {
+          "order": 6,
+          "pmse": 0.0098,
+          "fitPercent": 99.89,
+          "residualStd": 0.0056,
+          "forecast": [
+            3.023,
+            3.009,
+            2.995,
+            2.983,
+            2.97,
+            2.958,
+            2.946,
+            2.933,
+            2.921,
+            2.908,
+            2.895,
+            2.882
+          ],
+          "coefficients": [
+            2.2736,
+            -2.0393,
+            1.2178,
+            -0.738,
+            0.3907,
+            -0.1015
+          ],
+          "intercept": -0.0126
+        },
+        {
+          "order": 3,
+          "pmse": 0.01,
+          "fitPercent": 99.88,
+          "residualStd": 0.0058,
+          "forecast": [
+            3.022,
+            3.008,
+            2.994,
+            2.982,
+            2.97,
+            2.958,
+            2.945,
+            2.933,
+            2.92,
+            2.907,
+            2.893,
+            2.88
+          ],
+          "coefficients": [
+            2.1558,
+            -1.5823,
+            0.4305
+          ],
+          "intercept": -0.0155
+        },
+        {
+          "order": 1,
+          "pmse": 0.0119,
+          "fitPercent": 99.61,
+          "residualStd": 0.0105,
+          "forecast": [
+            3.025,
+            3.011,
+            2.997,
+            2.982,
+            2.968,
+            2.953,
+            2.937,
+            2.922,
+            2.906,
+            2.89,
+            2.874,
+            2.857
+          ],
+          "coefficients": [
+            1.0187
+          ],
+          "intercept": -0.0704
+        }
+      ]
+    }
+  },
+  "monteCarlo": {
+    "simulationCount": 250,
+    "medianForecast": [
+      3.025,
+      3.013,
+      3.0,
+      2.993,
+      2.981,
+      2.97,
+      2.957,
+      2.946,
+      2.934,
+      2.925,
+      2.916,
+      2.903
+    ],
+    "p10Forecast": [
+      3.007,
+      2.986,
+      2.962,
+      2.942,
+      2.921,
+      2.908,
+      2.889,
+      2.87,
+      2.851,
+      2.83,
+      2.81,
+      2.787
+    ],
+    "p90Forecast": [
+      3.041,
+      3.037,
+      3.033,
+      3.033,
+      3.033,
+      3.033,
+      3.033,
+      3.031,
+      3.019,
+      3.014,
+      3.008,
+      3.008
+    ],
+    "reviewThresholdExceedanceProbability": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "maximumSimulatedStage": 3.128
+  },
+  "notes": [
+    "This lab recreates the structure of a flood-forecasting case study with a real public USGS stage series from South Texas.",
+    "The denoised branch preserves the original method story by comparing wavelet-preprocessed input against the raw signal.",
+    "The review threshold is a reproducible percentile-based benchmark for scenario discussion, not an asserted official flood stage for Arroyo Colorado.",
+    "Monte Carlo output is driven by residual uncertainty from the selected autoregressive fit rather than a single deterministic trace."
+  ],
+  "artifacts": {
+    "reportFile": "arroyo_flood_forecast_report.json",
+    "chartDirectory": "charts",
+    "chartFiles": [
+      "charts/hydrograph-overview.png",
+      "charts/lag-diagnostics.png",
+      "charts/pmse-by-order.png",
+      "charts/holdout-forecast-comparison.png",
+      "charts/threshold-exceedance-probability.png"
+    ],
+    "comparisonReportFile": "multi_site_comparison.json",
+    "comparisonChartFile": "charts/wavelet-benefit-comparison.png",
+    "summaryPage": "review-summary.html",
+    "comparisonSummaryPage": "cross-site-comparison.html"
+  }
+}

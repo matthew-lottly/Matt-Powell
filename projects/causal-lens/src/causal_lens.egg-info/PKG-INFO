@@ -1,0 +1,216 @@
+Metadata-Version: 2.4
+Name: causal-lens
+Version: 0.5.0
+Summary: Causal inference toolkit for observational data and treatment-effect diagnostics.
+Author-email: Matthew Powell <mattpowell.gis@gmail.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/matthew-lottly/causal-lens
+Project-URL: Repository, https://github.com/matthew-lottly/causal-lens
+Project-URL: Issues, https://github.com/matthew-lottly/causal-lens/issues
+Keywords: causal inference,statistics,econometrics,treatment effects,difference in differences,regression discontinuity,instrumental variables
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Scientific/Engineering :: Information Analysis
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: matplotlib<4.0,>=3.9
+Requires-Dist: numpy<3.0,>=1.26
+Requires-Dist: pandas<4.0,>=2.2
+Requires-Dist: scikit-learn<2.0,>=1.5
+Requires-Dist: scipy<3.0,>=1.13
+Requires-Dist: statsmodels<1.0,>=0.14
+Provides-Extra: dev
+Requires-Dist: pytest<9.0,>=8.2; extra == "dev"
+Dynamic: license-file
+
+# CausalLens
+
+Data science portfolio project for causal effect estimation, observational-study diagnostics, and reviewable treatment-effect outputs.
+
+## Snapshot
+
+- Lane: Data science and causal inference
+- Domain: Observational treatment-effect estimation
+- Stack: Python, pandas, scikit-learn, statsmodels, lightweight estimator objects
+- Includes: regression adjustment, propensity scoring, matching, inverse probability weighting, doubly robust estimation, difference-in-differences, synthetic control, instrumental variables / 2SLS, sharp and fuzzy regression discontinuity with robust bias-corrected inference, McCrary manipulation testing, descriptive bunching analysis, structural bunching elasticity estimation, diagnostics, subgroup summaries, sensitivity analysis, Monte Carlo simulation study, tests
+- Includes: a fixed observational intervention dataset, two public benchmark datasets, synthetic known-effect validation, formal simulation study, and publication-oriented methodology notes
+
+## Overview
+
+CausalLens packages core causal-inference workflows for observational tabular data and quasi-experimental designs into a small, testable Python library. It integrates observational estimators, panel methods, instrumental variables, sharp and fuzzy regression discontinuity with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity estimation through a unified diagnostics-first API. No existing Python package covers this combination of identification strategies with built-in diagnostic infrastructure. The contribution is a compact implementation that makes assumptions, benchmark evidence, and estimator comparison explicit enough to review.
+
+### What CausalLens Does Not Claim
+
+- CausalLens does not claim parity with rdrobust on bandwidth optimization or the full CCT inference pipeline.
+- CausalLens does not claim parity with EconML or DoubleML on ML-based nuisance estimation or heterogeneous treatment effects.
+- CausalLens does not claim parity with DoWhy on graph-based identification and refutation workflows.
+- CausalLens does not claim the bunching implementation matches the depth of the R `bunching` package on round-number corrections or notch designs.
+
+The current repository now uses four complementary evidence tracks:
+
+- a fixed public-safe observational intervention sample under `data/` for reproducible article figures and tests
+- public benchmark datasets drawn from the causal inference literature for externally recognizable evaluation
+- synthetic known-effect data for correctness-oriented validation of estimator behavior
+- a formal Monte Carlo simulation study evaluating estimator bias, RMSE, coverage, and SE calibration across five data-generating processes
+
+## What It Demonstrates
+
+- Propensity score estimation with a scikit-learn logistic model with standardized covariates
+- Regression-adjustment treatment effects with statsmodels OLS
+- Nearest-neighbor propensity matching with optional calipers and Abadie-Imbens analytic standard errors
+- Inverse probability weighting with stabilized weights and weight capping for ATE and ATT targets
+- Doubly robust estimation that combines outcome and propensity models with weight trimming
+- Cross-fitted doubly robust estimation (DML/AIPW style) with 5-fold out-of-fold nuisance estimates to avoid overfitting bias
+- Flexible doubly robust estimation using gradient boosting outcome models for nonlinear confounding
+- T-learner and S-learner meta-learners for conditional average treatment effect (CATE) estimation with optional GBM
+- Analytic standard errors from OLS (regression), Hajek sandwich variance (IPW), Abadie-Imbens matched-pair variance (matching), and semiparametric influence functions (doubly robust)
+- Covariate-balance summaries using standardized mean differences and variance ratios
+- Kish effective sample size for weighted estimators to detect unstable weights
+- Common-support and overlap diagnostics for positivity review
+- Additive-bias sensitivity summaries for explain-away analysis on the outcome scale
+- E-values for unmeasured confounding (VanderWeele & Ding 2017) quantifying the minimum confounder strength to explain away the effect
+- Rosenbaum sensitivity bounds for matched-pair designs quantifying hidden-bias tolerance
+- Placebo/falsification tests on pre-treatment outcomes for specification validation
+- Subgroup treatment-effect summaries for quick heterogeneous-effect review
+- A small command-line demo that exports a reproducible causal report
+- A real-style observational intervention fixture for stable estimator-comparison tests
+- Publication-oriented methodology notes explaining why the initial estimator set is justified
+- Reference parity tests against manual formulas and direct statistical-model fits
+- Paper-ready chart and table exports for estimator comparison, balance, sensitivity, and subgroup effects
+- Love plots showing covariate-level balance before and after adjustment with standard |SMD| thresholds
+- Propensity-score overlap histograms for visual positivity assessment
+- Manuscript drafting docs, figure captions, and cross-dataset benchmark tables for the software-paper path
+- Packaged public benchmarks based on Lalonde and NHEFS so installed users can reproduce the evidence stack without a source checkout
+- Literature comparison table showing CausalLens results match published reference values from Dehejia & Wahba (1999) and Hernán & Robins (2020)
+- Repeated-run stability analysis across seeds, bootstrap counts, and caliper settings
+- External comparison script verifying CausalLens matches manual sklearn/statsmodels implementations to machine precision
+- Difference-in-differences estimator with regression-based ATT, cluster-robust standard errors, and a parallel-trends pre-test
+- Synthetic control method with constrained least-squares donor weights and placebo inference via leave-one-out permutation
+- Two-stage least squares (2SLS) instrumental variables estimator with proper IV variance, first-stage F-statistic, and weak-instrument detection
+- Local sharp regression discontinuity estimator with weighted local-polynomial fitting near the cutoff
+- Fuzzy regression discontinuity via the local Wald ratio with delta-method standard errors and first-stage F-statistic reporting
+- Robust bias-corrected RD inference following Calonico, Cattaneo & Titiunik (2014): pilot-bandwidth curvature estimation, bias correction, and robust standard errors/confidence intervals
+- McCrary (2008) density manipulation test integrated as a method on the RD estimator for running-variable sorting detection
+- Descriptive bunching estimator that measures excess mass around a threshold by comparing observed and smooth counterfactual histogram mass
+- Structural bunching elasticity estimation following Saez (2010) and Kleven (2016), recovering compensated elasticities from kink-point designs with bootstrap confidence intervals
+- Staggered-adoption difference-in-differences estimator following Callaway & Sant'Anna (2021) logic, with cohort-level group-time ATTs, never-treated and not-yet-treated control groups, and size-weighted aggregation
+- Cinelli & Hazlett (2020) omitted-variable bias sensitivity analysis: robustness values, benchmark-calibrated partial-R² bounds, and adjusted effect estimates under hypothetical confounding
+- Cross-design diagnostic comparison that collects assumption evidence from observational, DiD, IV, RD, and bunching designs into a unified summary for side-by-side review
+- Monte Carlo simulation framework with five observational DGPs plus cross-design DGPs for sharp RD, fuzzy RD, and bunching, evaluating bias, RMSE, coverage, and SE calibration ratio
+- IPW standard errors corrected for propensity-score estimation uncertainty via the Lunceford & Davidian (2004) stacked estimating equations adjustment
+
+## Current Output
+
+The default command writes `outputs/causal_report.json` with:
+
+- a fixed real-style observational dataset section with estimator comparisons
+- a Lalonde benchmark section with public observational training-program data, using light propensity-overlap trimming for the weighting estimators
+- an NHEFS benchmark section with public smoking-cessation observational data
+- a synthetic validation dataset section with known-effect comparisons
+- overlap summary and propensity score range checks
+- covariate balance before/after weighting, variance ratios, and effective sample sizes
+- lightweight bootstrap intervals for the selected estimate
+- analytic standard errors and p-values from influence functions (DR, IPW) and OLS (regression)
+- additive-bias sensitivity summaries with E-values for the primary doubly robust estimate
+- subgroup treatment-effect estimates
+- placebo/falsification test results on pre-treatment outcomes
+- Rosenbaum sensitivity bounds for matched-pair designs
+- external comparison and stability-analysis summaries for the exported benchmark artifacts
+
+It also writes paper-oriented artifacts under `outputs/charts/`, `outputs/tables/`, and `outputs/paper/` including:
+
+- estimator comparison charts with confidence intervals
+- balance before/after summary charts
+- sensitivity curves
+- subgroup effect charts
+- estimator summary tables in CSV and Markdown
+- `external_comparison.csv` showing parity against manual sklearn/statsmodels implementations
+- `stability_raw.csv` and `stability_summary.csv` capturing repeated-run variability across benchmark settings
+- `placebo_test.csv` showing falsification test results on pre-treatment outcomes
+- `rosenbaum_bounds.csv` showing matched-pair sensitivity to hidden bias at each Gamma level
+- Love plots and propensity-score overlap histograms for each benchmark dataset
+- PDF and SVG figure variants alongside the PNG exports for publication workflows
+- a curated manuscript bundle under `outputs/paper/figures/` and `outputs/paper/tables/`
+
+## Next Upgrade Path
+
+- add article figures, benchmark tables, and formal estimator-comparison writeups for DiD, synthetic control, and IV
+- add MSE-optimal bandwidth selection for RD (Calonico, Cattaneo & Farrell 2020 approach)
+- expand simulation study to additional sample sizes and publish summary tables
+- add doubly-robust group-time ATTs and bootstrapped simultaneous confidence bands for staggered DiD
+- add notch-design bunching estimation
+- add contour-plot visualization for OVB sensitivity analysis
+
+Cross-sectional estimators, panel-data methods, IV, sharp and fuzzy RDD with robust bias-corrected inference, McCrary manipulation testing, and structural bunching elasticity are now in place.
+
+## Installation
+
+```bash
+pip install .
+```
+
+Or in development mode:
+
+```bash
+pip install -e .
+```
+
+## Quick Start
+
+```python
+from causal_lens import (
+    generate_synthetic_observational_data,
+    RegressionAdjustmentEstimator,
+    DoublyRobustEstimator,
+    CrossFittedDREstimator,
+    DifferenceInDifferences,
+    TwoStageLeastSquares,
+    run_quick_simulation,
+    summarize_simulation,
+)
+
+# --- Cross-sectional estimators ---
+data = generate_synthetic_observational_data(rows=600, seed=42)
+confounders = ["age", "severity", "baseline_score"]
+
+reg = RegressionAdjustmentEstimator("treatment", "outcome", confounders)
+result_reg = reg.fit(data)
+
+dr = CrossFittedDREstimator("treatment", "outcome", confounders)
+result_dr = dr.fit(data)
+
+for r in [result_reg, result_dr]:
+    print(f"{r.method:35s}  effect={r.effect:.2f}  SE={r.se:.3f}  p={r.p_value:.4f}")
+
+# --- Panel data: Difference-in-Differences ---
+import pandas as pd
+panel = pd.DataFrame({"unit": [1,1,2,2], "period": [0,1,0,1],
+                      "treat": [1,1,0,0], "y": [3.0,7.0,2.0,4.0]})
+did = DifferenceInDifferences("unit", "period", "treat", "y")
+result_did = did.fit(panel)
+print(f"DiD ATT={result_did.att:.2f}  SE={result_did.se:.3f}")
+
+# --- Monte Carlo simulation study ---
+raw = run_quick_simulation()
+summary = summarize_simulation(raw)
+print(summary[["dgp", "estimator", "bias", "rmse", "coverage"]].to_string(index=False))
+```
+
+## Documentation
+
+See [docs/architecture.md](docs/architecture.md) for the design notes.
+See [docs/methodology.md](docs/methodology.md) for assumptions, reasoning, and estimator justification.
+See [docs/public-benchmarks.md](docs/public-benchmarks.md) for the public dataset choices and benchmark rationale.
+See [docs/benchmark-interpretation.md](docs/benchmark-interpretation.md) for a results-oriented reading of the current benchmark artifacts.
+See [docs/reference-validation.md](docs/reference-validation.md) for executable validation logic tied to the future journal article.
+See [docs/limitations-and-assumptions.md](docs/limitations-and-assumptions.md) for a paper-ready limitations section.
+See [docs/literature-review.md](docs/literature-review.md) for claim boundaries, software positioning, and cited methodological references.

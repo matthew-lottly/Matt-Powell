@@ -1,0 +1,190 @@
+{
+  "reportName": "Station Risk Classification Lab",
+  "experiment": {
+    "runLabel": "candidate-classifier-review",
+    "generatedAt": "2026-03-19T19:46:14.362649+00:00",
+    "registryFile": "run_registry.json",
+    "candidateModelCount": 3,
+    "testSize": 3,
+    "featureNames": [
+      "recentMean",
+      "variability",
+      "trend",
+      "anomalyRate",
+      "maintenanceLag",
+      "exceedanceDays"
+    ]
+  },
+  "summary": {
+    "sampleCount": 9,
+    "trainCount": 6,
+    "testCount": 3,
+    "classDistribution": {
+      "high": 4,
+      "low": 5
+    },
+    "selectedModel": "centroid_classifier",
+    "selectedFeatureSet": "full_feature_vector",
+    "selectedAccuracy": 1.0,
+    "selectedF1": 1.0
+  },
+  "trainingProfile": {
+    "sampleCount": 6,
+    "averageScorecardRisk": 8.76,
+    "classBalance": {
+      "high": 2,
+      "low": 4
+    },
+    "averageRecentMean": 14.7,
+    "averageAnomalyRate": 0.16
+  },
+  "centroids": {
+    "high": [
+      18.15,
+      2.4,
+      0.485,
+      0.295,
+      6.5,
+      3.5
+    ],
+    "low": [
+      12.975,
+      0.875,
+      0.11,
+      0.09,
+      2.0,
+      0.5
+    ]
+  },
+  "modelLeaderboard": [
+    {
+      "model": "centroid_classifier",
+      "featureSet": "full_feature_vector",
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1Score": 1.0,
+      "truePositives": 2,
+      "trueNegatives": 1,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "predictions": [
+        "low",
+        "high",
+        "high"
+      ]
+    },
+    {
+      "model": "profile_rules",
+      "featureSet": "handcrafted_rules",
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1Score": 1.0,
+      "truePositives": 2,
+      "trueNegatives": 1,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "predictions": [
+        "low",
+        "high",
+        "high"
+      ]
+    },
+    {
+      "model": "scorecard_classifier",
+      "featureSet": "weighted_scorecard",
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1Score": 1.0,
+      "truePositives": 2,
+      "trueNegatives": 1,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "predictions": [
+        "low",
+        "high",
+        "high"
+      ]
+    }
+  ],
+  "testCases": [
+    {
+      "stationId": "station-east-air-004",
+      "metric": "pm25",
+      "actualLabel": "low",
+      "predictedLabel": "low",
+      "scorecardRisk": 4.35,
+      "topRiskDrivers": [
+        {
+          "feature": "recentMean",
+          "contribution": 1.55
+        },
+        {
+          "feature": "anomalyRate",
+          "contribution": 0.84
+        },
+        {
+          "feature": "variability",
+          "contribution": 0.72
+        }
+      ]
+    },
+    {
+      "stationId": "station-south-river-015",
+      "metric": "flow",
+      "actualLabel": "high",
+      "predictedLabel": "high",
+      "scorecardRisk": 20.08,
+      "topRiskDrivers": [
+        {
+          "feature": "exceedanceDays",
+          "contribution": 4.5
+        },
+        {
+          "feature": "anomalyRate",
+          "contribution": 4.44
+        },
+        {
+          "feature": "trend",
+          "contribution": 3.72
+        }
+      ]
+    },
+    {
+      "stationId": "station-north-flow-021",
+      "metric": "flow",
+      "actualLabel": "high",
+      "predictedLabel": "high",
+      "scorecardRisk": 17.57,
+      "topRiskDrivers": [
+        {
+          "feature": "anomalyRate",
+          "contribution": 3.96
+        },
+        {
+          "feature": "exceedanceDays",
+          "contribution": 3.6
+        },
+        {
+          "feature": "trend",
+          "contribution": 3.24
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Designed as a public-safe classification workflow with candidate-model comparison and explainable holdout review.",
+    "The selected classifier is chosen by holdout F1 and accuracy rather than a single hard-coded threshold.",
+    "The same structure can later support calibrated probabilities, richer feature engineering, or external experiment tracking."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "name": "classifier_leaderboard_review",
+        "chart": "charts/classifier-leaderboard-review.png"
+      }
+    ]
+  }
+}

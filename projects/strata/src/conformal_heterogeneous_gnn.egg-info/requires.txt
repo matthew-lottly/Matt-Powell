@@ -1,0 +1,8 @@
+torch>=2.0
+numpy>=1.24
+scipy>=1.10
+geoprompt>=0.1.7
+
+[dev]
+pytest>=7.0
+pytest-cov

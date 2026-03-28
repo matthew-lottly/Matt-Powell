@@ -1,0 +1,5 @@
+Method,Effect,95% CI,Passes
+Regression adjustment,-1103.4173704795483,"[-1,724.9, -372.8]",No
+Propensity matching,-988.5665997196262,"[-1,849.0, 1,248.1]",Yes
+IPW,-2734.405828595222,"[-3,770.7, -2,217.7]",No
+Doubly robust,-2530.463292109368,"[-3,698.6, -1,661.4]",No

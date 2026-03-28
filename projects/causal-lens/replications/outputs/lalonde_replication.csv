@@ -1,0 +1,5 @@
+Estimator,ATT,SE,CI_low,CI_high,p_value,Overlap_OK
+Regression,1548.2,781.3,336.0,3020.6,0.048,True
+Matching,1540.1,883.9,-514.0,3227.7,0.0814,True
+IPW,1463.9,924.0,154.9,3465.2,0.1131,True
+DR,1709.5,671.6,219.8,3370.5,0.0109,True

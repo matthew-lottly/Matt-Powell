@@ -1,0 +1,3 @@
+[console_scripts]
+geoprompt-compare = geoprompt.compare:main
+geoprompt-demo = geoprompt.demo:main

@@ -1,0 +1,572 @@
+\begin{thebibliography}{76}
+\newcommand{\enquote}[1]{``#1''}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+\providecommand{\eprint}[2][]{\url{#2}}
+
+\bibitem[{Abadie(2021)}]{Abadie2021}
+Abadie A (2021).
+\newblock \enquote{Using Synthetic Controls: Feasibility, Data Requirements,
+  and Methodological Aspects.}
+\newblock \emph{Journal of Economic Literature}, \textbf{59}(2), 391--425.
+\newblock \doi{10.1257/jel.20191450}.
+
+\bibitem[{Abadie and Cattaneo(2018)}]{AbadieCattaneo2018}
+Abadie A, Cattaneo MD (2018).
+\newblock \enquote{Econometric Methods for Program Evaluation.}
+\newblock \emph{Annual Review of Economics}, \textbf{10}, 465--503.
+\newblock \doi{10.1146/annurev-economics-080217-053402}.
+
+\bibitem[{Abadie \emph{et~al.}(2010)Abadie, Diamond, and
+  Hainmueller}]{AbadieDiamondHainmueller2010}
+Abadie A, Diamond A, Hainmueller J (2010).
+\newblock \enquote{Synthetic Control Methods for Comparative Case Studies:
+  Estimating the Effect of California's Tobacco Control Program.}
+\newblock \emph{Journal of the American Statistical Association},
+  \textbf{105}(490), 493--505.
+\newblock \doi{10.1198/jasa.2009.ap08746}.
+
+\bibitem[{Abadie \emph{et~al.}(2011)Abadie, Diamond, and
+  Hainmueller}]{AbadieDiamondHainmueller2011}
+Abadie A, Diamond A, Hainmueller J (2011).
+\newblock \enquote{Synth: An \proglang{R} Package for Synthetic Control Methods
+  in Comparative Case Studies.}
+\newblock \emph{Journal of Statistical Software}, \textbf{42}(13), 1--17.
+\newblock \doi{10.18637/jss.v042.i13}.
+
+\bibitem[{Abadie and Imbens(2006)}]{AbadieImbens2006}
+Abadie A, Imbens GW (2006).
+\newblock \enquote{Large Sample Properties of Matching Estimators for Average
+  Treatment Effects.}
+\newblock \emph{Econometrica}, \textbf{74}(1), 235--267.
+\newblock \doi{10.1111/j.1468-0262.2006.00655.x}.
+
+\bibitem[{Angrist \emph{et~al.}(1996)Angrist, Imbens, and
+  Rubin}]{AngristImbensRubin1996}
+Angrist JD, Imbens GW, Rubin DB (1996).
+\newblock \enquote{Identification of Causal Effects Using Instrumental
+  Variables.}
+\newblock \emph{Journal of the American Statistical Association},
+  \textbf{91}(434), 444--455.
+\newblock \doi{10.1080/01621459.1996.10476902}.
+
+\bibitem[{Angrist and Pischke(2009)}]{AngristPischke2009}
+Angrist JD, Pischke JS (2009).
+\newblock \emph{Mostly Harmless Econometrics: An Empiricist's Companion}.
+\newblock Princeton University Press, Princeton.
+
+\bibitem[{Athey and Imbens(2017)}]{AtheyImbens2017}
+Athey S, Imbens GW (2017).
+\newblock \enquote{The State of Applied Econometrics: Causality and Policy
+  Evaluation.}
+\newblock \emph{Journal of Economic Perspectives}, \textbf{31}(2), 3--32.
+\newblock \doi{10.1257/jep.31.2.3}.
+
+\bibitem[{Austin(2009)}]{Austin2009}
+Austin PC (2009).
+\newblock \enquote{Balance Diagnostics for Comparing the Distribution of
+  Baseline Covariates Between Treatment Groups in Propensity-Score Matched
+  Samples.}
+\newblock \emph{Statistics in Medicine}, \textbf{28}(25), 3083--3107.
+\newblock \doi{10.1002/sim.3697}.
+
+\bibitem[{Austin and Stuart(2015)}]{AustinStuart2015}
+Austin PC, Stuart EA (2015).
+\newblock \enquote{Moving Towards Best Practice When Using Inverse Probability
+  of Treatment Weighting ({IPTW}) Using the Propensity Score to Estimate Causal
+  Treatment Effects in Observational Studies.}
+\newblock \emph{Statistics in Medicine}, \textbf{34}(28), 3661--3679.
+\newblock \doi{10.1002/sim.6607}.
+
+\bibitem[{Bach \emph{et~al.}(2022)Bach, Chernozhukov, Kurz, and
+  Spindler}]{BachEtAl2022}
+Bach P, Chernozhukov V, Kurz MS, Spindler M (2022).
+\newblock \enquote{DoubleML -- An Object-Oriented Implementation of Double
+  Machine Learning in \proglang{Python}.}
+\newblock \emph{Journal of Machine Learning Research}, \textbf{23}(53), 1--6.
+\newblock \urlprefix\url{https://www.jmlr.org/papers/v23/21-0862.html}.
+
+\bibitem[{Bang and Robins(2005)}]{BangRobins2005}
+Bang H, Robins JM (2005).
+\newblock \enquote{Doubly Robust Estimation in Missing Data and Causal
+  Inference Models.}
+\newblock \emph{Biometrics}, \textbf{61}(4), 962--973.
+\newblock \doi{10.1111/j.1541-0420.2005.00377.x}.
+
+\bibitem[{Battocchi \emph{et~al.}(2019)Battocchi, Dillon, Hei, Lewis, Oka,
+  Oprescu, and Syrgkanis}]{BattocchiEtAl2019}
+Battocchi K, Dillon E, Hei M, Lewis G, Oka P, Oprescu M, Syrgkanis V (2019).
+\newblock \enquote{\pkg{EconML}: A \proglang{Python} Package for {ML}-Based
+  Heterogeneous Treatment Effects Estimation.}
+\newblock Software documentation,
+  \urlprefix\url{https://www.pywhy.org/EconML/}.
+
+\bibitem[{Callaway and Sant'Anna(2021)}]{CallawaySantAnna2021}
+Callaway B, Sant'Anna PHC (2021).
+\newblock \enquote{Difference-in-Differences with Multiple Time Periods.}
+\newblock \emph{Journal of Econometrics}, \textbf{225}(2), 200--230.
+\newblock \doi{10.1016/j.jeconom.2020.12.001}.
+
+\bibitem[{Calonico \emph{et~al.}(2020)Calonico, Cattaneo, and
+  Farrell}]{CalonicoCattaneoFarrell2020}
+Calonico S, Cattaneo MD, Farrell MH (2020).
+\newblock \enquote{Optimal Bandwidth Choice for Robust Bias Corrected Inference
+  in Regression Discontinuity Designs.}
+\newblock \emph{The Econometrics Journal}, \textbf{23}(2), 192--210.
+\newblock \doi{10.1093/ectj/utaa005}.
+
+\bibitem[{Calonico \emph{et~al.}(2014)Calonico, Cattaneo, and
+  Titiunik}]{CalonicoCattaneoTitiunik2014}
+Calonico S, Cattaneo MD, Titiunik R (2014).
+\newblock \enquote{Robust Nonparametric Confidence Intervals for
+  Regression-Discontinuity Designs.}
+\newblock \emph{Econometrica}, \textbf{82}(6), 2295--2326.
+\newblock \doi{10.3982/ECTA11757}.
+
+\bibitem[{Calonico \emph{et~al.}(2015)Calonico, Cattaneo, and
+  Titiunik}]{CalonicoEtAl2015}
+Calonico S, Cattaneo MD, Titiunik R (2015).
+\newblock \enquote{\pkg{rdrobust}: An \proglang{R} Package for Robust
+  Nonparametric Inference in Regression-Discontinuity Designs.}
+\newblock \emph{The R Journal}, \textbf{7}(1), 38--51.
+\newblock \doi{10.32614/RJ-2015-004}.
+
+\bibitem[{Cattaneo \emph{et~al.}(2020{\natexlab{a}})Cattaneo, Idrobo, and
+  Titiunik}]{CattaneoIdroboTitiunik2020}
+Cattaneo MD, Idrobo N, Titiunik R (2020{\natexlab{a}}).
+\newblock \emph{A Practical Introduction to Regression Discontinuity Designs:
+  Foundations}.
+\newblock Cambridge University Press, Cambridge.
+\newblock \doi{10.1017/9781108684606}.
+
+\bibitem[{Cattaneo \emph{et~al.}(2020{\natexlab{b}})Cattaneo, Jansson, and
+  Ma}]{CattaneoJanssonMa2020}
+Cattaneo MD, Jansson M, Ma X (2020{\natexlab{b}}).
+\newblock \enquote{Simple Local Polynomial Density Estimators.}
+\newblock \emph{Journal of the American Statistical Association},
+  \textbf{115}(531), 1449--1455.
+\newblock \doi{10.1080/01621459.2019.1635480}.
+
+\bibitem[{Cattaneo and Titiunik(2022)}]{CattaneoTitiunik2022}
+Cattaneo MD, Titiunik R (2022).
+\newblock \enquote{Regression Discontinuity Designs.}
+\newblock \emph{Annual Review of Economics}, \textbf{14}, 821--851.
+\newblock \doi{10.1146/annurev-economics-051520-021409}.
+
+\bibitem[{Chen \emph{et~al.}(2020)Chen, Harinen, Lee, Yung, and
+  Zhao}]{ChenEtAl2020}
+Chen H, Harinen T, Lee JY, Yung M, Zhao Z (2020).
+\newblock \enquote{\pkg{causalml}: \proglang{Python} Package for Causal Machine
+  Learning.}
+\newblock Software documentation,
+  \urlprefix\url{https://causalml.readthedocs.io/}.
+
+\bibitem[{Chernozhukov \emph{et~al.}(2018)Chernozhukov, Chetverikov, Demirer,
+  Duflo, Hansen, Newey, and Robins}]{ChernozhukovEtAl2018}
+Chernozhukov V, Chetverikov D, Demirer M, Duflo E, Hansen C, Newey W, Robins J
+  (2018).
+\newblock \enquote{Double/Debiased Machine Learning for Treatment and
+  Structural Parameters.}
+\newblock \emph{The Econometrics Journal}, \textbf{21}(1), C1--C68.
+\newblock \doi{10.1111/ectj.12097}.
+
+\bibitem[{Cinelli \emph{et~al.}(2020)Cinelli, Ferwerda, and
+  Hazlett}]{CinelliFerwerdaHazlett2020}
+Cinelli C, Ferwerda J, Hazlett C (2020).
+\newblock \enquote{sensemakr: Sensitivity Analysis Tools for Omitted Variable
+  Bias in \proglang{R} and Stata.}
+\newblock \emph{Journal of Open Source Software}, \textbf{5}(54), 2279.
+\newblock \doi{10.21105/joss.02279}.
+
+\bibitem[{Cinelli and Hazlett(2020)}]{CinelliHazlett2020}
+Cinelli C, Hazlett C (2020).
+\newblock \enquote{Making Sense of Sensitivity: Extending Omitted Variable
+  Bias.}
+\newblock \emph{Journal of the Royal Statistical Society Series B},
+  \textbf{82}(1), 39--67.
+\newblock \doi{10.1111/rssb.12348}.
+
+\bibitem[{Cunningham(2021)}]{Cunningham2021}
+Cunningham S (2021).
+\newblock \emph{Causal Inference: The Mixtape}.
+\newblock Yale University Press, New Haven.
+
+\bibitem[{de~Chaisemartin and
+  D'Haultfoeuille(2020)}]{deChaisemartinDHaultfoeuille2020}
+de~Chaisemartin C, D'Haultfoeuille X (2020).
+\newblock \enquote{Two-Way Fixed Effects Estimators with Heterogeneous
+  Treatment Effects.}
+\newblock \emph{American Economic Review}, \textbf{110}(9), 2964--2996.
+\newblock \doi{10.1257/aer.20181169}.
+
+\bibitem[{Dehejia and Wahba(1999)}]{DehejiaWahba1999}
+Dehejia RH, Wahba S (1999).
+\newblock \enquote{Causal Effects in Nonexperimental Studies: Reevaluating the
+  Evaluation of Training Programs.}
+\newblock \emph{Journal of the American Statistical Association},
+  \textbf{94}(448), 1053--1062.
+\newblock \doi{10.1080/01621459.1999.10473858}.
+
+\bibitem[{Ding(2024)}]{Ding2024}
+Ding P (2024).
+\newblock \emph{A First Course in Causal Inference}.
+\newblock Chapman \& Hall/CRC, Boca Raton.
+
+\bibitem[{Funk \emph{et~al.}(2011)Funk, Westreich, Wiesen, St\"urmer,
+  Brookhart, and Davidian}]{FunkEtAl2011}
+Funk MJ, Westreich D, Wiesen C, St\"urmer T, Brookhart MA, Davidian M (2011).
+\newblock \enquote{Doubly Robust Estimation of Causal Effects.}
+\newblock \emph{American Journal of Epidemiology}, \textbf{173}(7), 761--767.
+\newblock \doi{10.1093/aje/kwq439}.
+
+\bibitem[{Goodman-Bacon(2021)}]{GoodmanBacon2021}
+Goodman-Bacon A (2021).
+\newblock \enquote{Difference-in-Differences with Variation in Treatment
+  Timing.}
+\newblock \emph{Journal of Econometrics}, \textbf{225}(2), 254--277.
+\newblock \doi{10.1016/j.jeconom.2021.03.014}.
+
+\bibitem[{Hahn \emph{et~al.}(2001)Hahn, Todd, and van~der
+  Klaauw}]{HahnToddVanDerKlaauw2001}
+Hahn J, Todd P, van~der Klaauw W (2001).
+\newblock \enquote{Identification and Estimation of Treatment Effects with a
+  Regression-Discontinuity Design.}
+\newblock \emph{Econometrica}, \textbf{69}(1), 201--209.
+\newblock \doi{10.1111/1468-0262.00183}.
+
+\bibitem[{Harris \emph{et~al.}(2020)Harris, Millman, van~der Walt, Gommers,
+  Virtanen, Cournapeau, Wieser, Taylor, Berg, Smith, Kern, Picus, Hoyer, van
+  Kerkwijk, Brett, Haldane, del R{\'i}o, Wiebe, Peterson, G{\'e}rard-Marchant,
+  Sheppard, Reddy, Weckesser, Abbasi, Gohlke, and Oliphant}]{NumPyEtAl2020}
+Harris CR, Millman KJ, van~der Walt SJ, Gommers R, Virtanen P, Cournapeau D,
+  Wieser E, Taylor J, Berg S, Smith NJ, Kern R, Picus M, Hoyer S, van Kerkwijk
+  MH, Brett M, Haldane A, del R{\'i}o JF, Wiebe M, Peterson P,
+  G{\'e}rard-Marchant P, Sheppard K, Reddy T, Weckesser W, Abbasi H, Gohlke C,
+  Oliphant TE (2020).
+\newblock \enquote{Array Programming with {NumPy}.}
+\newblock \emph{Nature}, \textbf{585}, 357--362.
+\newblock \doi{10.1038/s41586-020-2649-2}.
+
+\bibitem[{Heckman \emph{et~al.}(1997)Heckman, Ichimura, and
+  Todd}]{HeckmanIchimuraTodd1997}
+Heckman JJ, Ichimura H, Todd PE (1997).
+\newblock \enquote{Matching as an Econometric Evaluation Estimator: Evidence
+  from Evaluating a Job Training Programme.}
+\newblock \emph{The Review of Economic Studies}, \textbf{64}(4), 605--654.
+\newblock \doi{10.2307/2971733}.
+
+\bibitem[{Hern\'an and Robins(2020)}]{HernanRobins2020}
+Hern\'an MA, Robins JM (2020).
+\newblock \emph{Causal Inference: What If}.
+\newblock Chapman \& Hall/CRC, Boca Raton.
+\newblock \urlprefix\url{https://miguelhernan.org/whatifbook}.
+
+\bibitem[{Hirano \emph{et~al.}(2003)Hirano, Imbens, and
+  Ridder}]{HiranoImbensRidder2003}
+Hirano K, Imbens GW, Ridder G (2003).
+\newblock \enquote{Efficient Estimation of Average Treatment Effects Using the
+  Estimated Propensity Score.}
+\newblock \emph{Econometrica}, \textbf{71}(4), 1161--1189.
+\newblock \doi{10.1111/1468-0262.00442}.
+
+\bibitem[{Ho \emph{et~al.}(2011)Ho, Imai, King, and
+  Stuart}]{HoImaiKingStuart2011}
+Ho DE, Imai K, King G, Stuart EA (2011).
+\newblock \enquote{MatchIt: Nonparametric Preprocessing for Parametric Causal
+  Inference.}
+\newblock \emph{Journal of Statistical Software}, \textbf{42}(8), 1--28.
+\newblock \doi{10.18637/jss.v042.i08}.
+
+\bibitem[{Holland(1986)}]{Holland1986}
+Holland PW (1986).
+\newblock \enquote{Statistics and Causal Inference.}
+\newblock \emph{Journal of the American Statistical Association},
+  \textbf{81}(396), 945--960.
+\newblock \doi{10.1080/01621459.1986.10478354}.
+
+\bibitem[{Hunter(2007)}]{Hunter2007}
+Hunter JD (2007).
+\newblock \enquote{Matplotlib: A 2D Graphics Environment.}
+\newblock \emph{Computing in Science \& Engineering}, \textbf{9}(3), 90--95.
+\newblock \doi{10.1109/MCSE.2007.55}.
+
+\bibitem[{Huntington-Klein(2022)}]{HuntingtonKlein2022}
+Huntington-Klein N (2022).
+\newblock \emph{The Effect: An Introduction to Research Design and Causality}.
+\newblock Chapman \& Hall/CRC, Boca Raton.
+
+\bibitem[{Imbens(2004)}]{Imbens2004}
+Imbens GW (2004).
+\newblock \enquote{Nonparametric Estimation of Average Treatment Effects under
+  Exogeneity: A Review.}
+\newblock \emph{Review of Economics and Statistics}, \textbf{86}(1), 4--29.
+\newblock \doi{10.1162/003465304323023651}.
+
+\bibitem[{Imbens(2020)}]{Imbens2020}
+Imbens GW (2020).
+\newblock \enquote{Potential Outcome and Directed Acyclic Graph Approaches to
+  Causality: Relevance for Empirical Practice in Economics.}
+\newblock \emph{Journal of Economic Literature}, \textbf{58}(4), 1129--1179.
+\newblock \doi{10.1257/jel.20191597}.
+
+\bibitem[{Imbens and Kalyanaraman(2012)}]{ImbensKalyanaraman2012}
+Imbens GW, Kalyanaraman K (2012).
+\newblock \enquote{Optimal Bandwidth Choice for the Regression Discontinuity
+  Estimator.}
+\newblock \emph{The Review of Economic Studies}, \textbf{79}(3), 933--959.
+\newblock \doi{10.1093/restud/rdr043}.
+
+\bibitem[{Imbens and Lemieux(2008)}]{ImbensLemieux2008}
+Imbens GW, Lemieux T (2008).
+\newblock \enquote{Regression Discontinuity Designs: A Guide to Practice.}
+\newblock \emph{Journal of Econometrics}, \textbf{142}(2), 615--635.
+\newblock \doi{10.1016/j.jeconom.2007.05.001}.
+
+\bibitem[{Imbens and Wooldridge(2009)}]{ImbensWooldridge2009}
+Imbens GW, Wooldridge JM (2009).
+\newblock \enquote{Recent Developments in the Econometrics of Program
+  Evaluation.}
+\newblock \emph{Journal of Economic Literature}, \textbf{47}(1), 5--86.
+\newblock \doi{10.1257/jel.47.1.5}.
+
+\bibitem[{King and Nielsen(2019)}]{KingNielsen2019}
+King G, Nielsen R (2019).
+\newblock \enquote{Why Propensity Scores Should Not Be Used for Matching.}
+\newblock \emph{Political Analysis}, \textbf{27}(4), 435--454.
+\newblock \doi{10.1017/pan.2019.11}.
+
+\bibitem[{Kleven(2016)}]{Kleven2016}
+Kleven HJ (2016).
+\newblock \enquote{Bunching.}
+\newblock \emph{Annual Review of Economics}, \textbf{8}, 435--464.
+\newblock \doi{10.1146/annurev-economics-080315-015234}.
+
+\bibitem[{LaLonde(1986)}]{Lalonde1986}
+LaLonde RJ (1986).
+\newblock \enquote{Evaluating the Econometric Evaluations of Training Programs
+  with Experimental Data.}
+\newblock \emph{The American Economic Review}, \textbf{76}(4), 604--620.
+
+\bibitem[{Lee(2008)}]{Lee2008}
+Lee DS (2008).
+\newblock \enquote{Randomized Experiments from Non-Random Selection in {U.S.}
+  House Elections.}
+\newblock \emph{Journal of Econometrics}, \textbf{142}(2), 675--697.
+\newblock \doi{10.1016/j.jeconom.2007.05.004}.
+
+\bibitem[{Lee and Lemieux(2010)}]{LeeLemieux2010}
+Lee DS, Lemieux T (2010).
+\newblock \enquote{Regression Discontinuity Designs in Economics.}
+\newblock \emph{Journal of Economic Literature}, \textbf{48}(2), 281--355.
+\newblock \doi{10.1257/jel.48.2.281}.
+
+\bibitem[{Mavrokonstantis and Lockwood(2020)}]{MavrokonstantisLockwood2020}
+Mavrokonstantis P, Lockwood B (2020).
+\newblock \enquote{\pkg{bunching}: An \proglang{R} Package for Bunching
+  Estimation.}
+\newblock Software repository / working-paper citation path,
+  \urlprefix\url{https://github.com/trilnick/bunching}.
+
+\bibitem[{McCrary(2008)}]{McCrary2008}
+McCrary J (2008).
+\newblock \enquote{Manipulation of the Running Variable in the Regression
+  Discontinuity Design: A Density Test.}
+\newblock \emph{Journal of Econometrics}, \textbf{142}(2), 698--714.
+\newblock \doi{10.1016/j.jeconom.2007.05.005}.
+
+\bibitem[{McKinney(2010)}]{McKinney2010}
+McKinney W (2010).
+\newblock \enquote{Data Structures for Statistical Computing in
+  \proglang{Python}.}
+\newblock In S~van~der Walt, J~Millman (eds.), \emph{Proceedings of the 9th
+  \proglang{Python} in Science Conference}, pp. 56--61.
+\newblock \doi{10.25080/Majora-92bf1922-00a}.
+
+\bibitem[{Pearl(2009)}]{Pearl2009}
+Pearl J (2009).
+\newblock \emph{Causality: Models, Reasoning, and Inference}.
+\newblock 2nd edition. Cambridge University Press, Cambridge.
+
+\bibitem[{Pedregosa \emph{et~al.}(2011)Pedregosa, Varoquaux, Gramfort, Michel,
+  Thirion, Grisel, Blondel, Prettenhofer, Weiss, Dubourg, VanderPlas, Passos,
+  Cournapeau, Brucher, Perrot, and Duchesnay}]{PedregosaEtAl2011}
+Pedregosa F, Varoquaux G, Gramfort A, Michel V, Thirion B, Grisel O, Blondel M,
+  Prettenhofer P, Weiss R, Dubourg V, VanderPlas J, Passos A, Cournapeau D,
+  Brucher M, Perrot M, Duchesnay {\'E} (2011).
+\newblock \enquote{Scikit-learn: Machine Learning in \proglang{Python}.}
+\newblock \emph{Journal of Machine Learning Research}, \textbf{12}, 2825--2830.
+\newblock \urlprefix\url{https://www.jmlr.org/papers/v12/pedregosa11a.html}.
+
+\bibitem[{Peng(2011)}]{Peng2011}
+Peng RD (2011).
+\newblock \enquote{Reproducible Research in Computational Science.}
+\newblock \emph{Science}, \textbf{334}(6060), 1226--1227.
+\newblock \doi{10.1126/science.1213847}.
+
+\bibitem[{Robins \emph{et~al.}(1994)Robins, Rotnitzky, and
+  Zhao}]{RobinsRotnitzkyZhao1994}
+Robins JM, Rotnitzky A, Zhao LP (1994).
+\newblock \enquote{Estimation of Regression Coefficients when Some Regressors
+  Are Not Always Observed.}
+\newblock \emph{Journal of the American Statistical Association},
+  \textbf{89}(427), 846--866.
+\newblock \doi{10.1080/01621459.1994.10476818}.
+
+\bibitem[{Rosenbaum(2002)}]{Rosenbaum2002}
+Rosenbaum PR (2002).
+\newblock \emph{Observational Studies}.
+\newblock 2nd edition. Springer, New York.
+\newblock \doi{10.1007/978-1-4757-3692-2}.
+
+\bibitem[{Rosenbaum and Rubin(1983)}]{RosenbaumRubin1983}
+Rosenbaum PR, Rubin DB (1983).
+\newblock \enquote{The Central Role of the Propensity Score in Observational
+  Studies for Causal Effects.}
+\newblock \emph{Biometrika}, \textbf{70}(1), 41--55.
+\newblock \doi{10.1093/biomet/70.1.41}.
+
+\bibitem[{Roth \emph{et~al.}(2023)Roth, Sant'Anna, Bilinski, and
+  Poe}]{RothEtAl2023}
+Roth J, Sant'Anna PHC, Bilinski A, Poe J (2023).
+\newblock \enquote{What's Trending in Difference-in-Differences? A Synthesis of
+  the Recent Econometrics Literature.}
+\newblock \emph{Journal of Econometrics}, \textbf{235}(2), 2218--2244.
+\newblock \doi{10.1016/j.jeconom.2023.03.008}.
+
+\bibitem[{Rubin(1974)}]{Rubin1974}
+Rubin DB (1974).
+\newblock \enquote{Estimating Causal Effects of Treatments in Randomized and
+  Nonrandomized Studies.}
+\newblock \emph{Journal of Educational Psychology}, \textbf{66}(5), 688--701.
+\newblock \doi{10.1037/h0037350}.
+
+\bibitem[{Saez(2010)}]{Saez2010}
+Saez E (2010).
+\newblock \enquote{Do Taxpayers Bunch at Kink Points?}
+\newblock \emph{American Economic Journal: Economic Policy}, \textbf{2}(3),
+  180--212.
+\newblock \doi{10.1257/pol.2.3.180}.
+
+\bibitem[{Sandve \emph{et~al.}(2013)Sandve, Nekrutenko, Taylor, and
+  Hovig}]{SandveEtAl2013}
+Sandve GK, Nekrutenko A, Taylor J, Hovig E (2013).
+\newblock \enquote{Ten Simple Rules for Reproducible Computational Research.}
+\newblock \emph{PLoS Computational Biology}, \textbf{9}(10), e1003285.
+\newblock \doi{10.1371/journal.pcbi.1003285}.
+
+\bibitem[{Sant'Anna and Zhao(2020)}]{SantAnnaZhao2020}
+Sant'Anna PHC, Zhao J (2020).
+\newblock \enquote{Doubly Robust Difference-in-Differences Estimators.}
+\newblock \emph{Journal of Econometrics}, \textbf{219}(1), 101--122.
+\newblock \doi{10.1016/j.jeconom.2020.06.003}.
+
+\bibitem[{Seabold and Perktold(2010)}]{SeaboldPerktold2010}
+Seabold S, Perktold J (2010).
+\newblock \enquote{statsmodels: Econometric and Statistical Modeling with
+  \proglang{Python}.}
+\newblock In S~van~der Walt, J~Millman (eds.), \emph{Proceedings of the 9th
+  Python in Science Conference}, pp. 57--61.
+\newblock \doi{10.25080/Majora-92bf1922-011}.
+\newblock
+  \urlprefix\url{https://proceedings.scipy.org/articles/Majora-92bf1922-011}.
+
+\bibitem[{Sharma and Kiciman(2020)}]{SharmaKiciman2020}
+Sharma A, Kiciman E (2020).
+\newblock \enquote{DoWhy: An End-to-End Library for Causal Inference.}
+\newblock arXiv:2011.04216.
+\newblock ArXiv preprint, \urlprefix\url{https://arxiv.org/abs/2011.04216}.
+
+\bibitem[{Shimoni \emph{et~al.}(2019)Shimoni, Yanover, Karavani, and
+  Goldstein}]{ShimoniEtAl2019}
+Shimoni Y, Yanover C, Karavani E, Goldstein Y (2019).
+\newblock \enquote{An Evaluation Toolkit to Guide Model Selection and Cohort
+  Definition in Causal Inference.}
+\newblock arXiv:1906.00442.
+\newblock ArXiv preprint, \urlprefix\url{https://arxiv.org/abs/1906.00442}.
+
+\bibitem[{Smith and Todd(2005)}]{SmithTodd2005}
+Smith JA, Todd PE (2005).
+\newblock \enquote{Does Matching Overcome {LaLonde}'s Critique of
+  Nonexperimental Estimators?}
+\newblock \emph{Journal of Econometrics}, \textbf{125}(1--2), 305--353.
+\newblock \doi{10.1016/j.jeconom.2004.04.011}.
+
+\bibitem[{Staiger and Stock(1997)}]{StaigerStock1997}
+Staiger D, Stock JH (1997).
+\newblock \enquote{Instrumental Variables Regression with Weak Instruments.}
+\newblock \emph{Econometrica}, \textbf{65}(3), 557--586.
+\newblock \doi{10.2307/2171753}.
+
+\bibitem[{Stock and Yogo(2005)}]{StockYogo2005}
+Stock JH, Yogo M (2005).
+\newblock \enquote{Testing for Weak Instruments in Linear {IV} Regression.}
+\newblock In DWK Andrews, JH~Stock (eds.), \emph{Identification and Inference
+  for Econometric Models: Essays in Honor of Thomas Rothenberg}, pp. 80--108.
+  Cambridge University Press, Cambridge.
+\newblock \doi{10.1017/CBO9780511614491.006}.
+
+\bibitem[{Stodden \emph{et~al.}(2016)Stodden, McNutt, Bailey, Deelman, Gil,
+  Hanson, Heroux, Ioannidis, and Teeters}]{StoddenEtAl2016}
+Stodden V, McNutt M, Bailey DH, Deelman E, Gil Y, Hanson B, Heroux MA,
+  Ioannidis JPA, Teeters M (2016).
+\newblock \enquote{Enhancing Reproducibility for Computational Methods.}
+\newblock \emph{Science}, \textbf{354}(6317), 1240--1241.
+\newblock \doi{10.1126/science.aah6168}.
+
+\bibitem[{Stuart(2010)}]{Stuart2010}
+Stuart EA (2010).
+\newblock \enquote{Matching Methods for Causal Inference: A Review and a Look
+  Forward.}
+\newblock \emph{Statistical Science}, \textbf{25}(1), 1--21.
+\newblock \doi{10.1214/09-STS313}.
+
+\bibitem[{Sun and Abraham(2021)}]{SunAbraham2021}
+Sun L, Abraham S (2021).
+\newblock \enquote{Estimating Dynamic Treatment Effects in Event Studies with
+  Heterogeneous Treatment Effects.}
+\newblock \emph{Journal of Econometrics}, \textbf{225}(2), 175--199.
+\newblock \doi{10.1016/j.jeconom.2020.09.006}.
+
+\bibitem[{VanderWeele and Ding(2017)}]{VanderWeeleDing2017}
+VanderWeele TJ, Ding P (2017).
+\newblock \enquote{Sensitivity Analysis in Observational Research: Introducing
+  the E-Value.}
+\newblock \emph{Annals of Internal Medicine}, \textbf{167}(4), 268--274.
+\newblock \doi{10.7326/M16-2607}.
+
+\bibitem[{Virtanen \emph{et~al.}(2020)Virtanen, Gommers, Oliphant, Haberland,
+  Reddy, Cournapeau, Burovski, Peterson, Weckesser, Bright, van~der Walt,
+  Brett, Wilson, Millman, Mayorov, Nelson, Jones, Kern, Larson, Carey,
+  Pli{\'s}ski, Polat, Feng, Moore, VanderPlas, Laxalde, Perktold, Cimrman,
+  Henriksen, Quintero, Harris, Archibald, Ribeiro, Pedregosa, van Mulbregt, and
+  {SciPy 1.0 Contributors}}]{VirtanenEtAl2020}
+Virtanen P, Gommers R, Oliphant TE, Haberland M, Reddy T, Cournapeau D,
+  Burovski E, Peterson P, Weckesser W, Bright J, van~der Walt SJ, Brett M,
+  Wilson J, Millman KJ, Mayorov N, Nelson ARJ, Jones E, Kern R, Larson E, Carey
+  CJ, Pli{\'s}ski {\L}, Polat I, Feng Y, Moore EW, VanderPlas J, Laxalde D,
+  Perktold J, Cimrman R, Henriksen I, Quintero EA, Harris CR, Archibald AM,
+  Ribeiro AH, Pedregosa F, van Mulbregt P, {SciPy 10 Contributors} (2020).
+\newblock \enquote{{{SciPy} 1.0: Fundamental Algorithms for Scientific
+  Computing in \proglang{Python}}.}
+\newblock \emph{Nature Methods}, \textbf{17}(3), 261--272.
+\newblock \doi{10.1038/s41592-019-0686-2}.
+
+\bibitem[{Wilson \emph{et~al.}(2014)Wilson, Aruliah, Brown, Hong, Davis, Guy,
+  Haddock, Huff, Mitchell, Plumbley, Waugh, White, and Wilson}]{WilsonEtAl2014}
+Wilson G, Aruliah DA, Brown CT, Hong NPC, Davis M, Guy RT, Haddock SHD, Huff
+  KD, Mitchell IM, Plumbley MD, Waugh B, White EP, Wilson P (2014).
+\newblock \enquote{Best Practices for Scientific Computing.}
+\newblock \emph{PLoS Biology}, \textbf{12}(1), e1001745.
+\newblock \doi{10.1371/journal.pbio.1001745}.
+
+\bibitem[{Wooldridge(2010)}]{Wooldridge2010}
+Wooldridge JM (2010).
+\newblock \emph{Econometric Analysis of Cross Section and Panel Data}.
+\newblock 2nd edition. MIT Press, Cambridge, MA.
+
+\end{thebibliography}

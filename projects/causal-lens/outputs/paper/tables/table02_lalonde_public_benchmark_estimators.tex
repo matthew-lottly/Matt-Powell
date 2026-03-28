@@ -1,0 +1,17 @@
+\begin{table}[t!]
+\centering
+\footnotesize
+\caption{Lalonde benchmark estimator summary.}
+\label{tab:paper-lalonde_public_benchmark-estimators}
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{llllll}
+\hline
+Method & Estimand & Effect & 95\\% CI & p & Mean |SMD| after \\
+\hline
+Regression adjustment & ATE & 1,480.661 & [200.6, 2,515.4] & 0.058 & 0.410 \\
+Propensity matching & ATT & 1,429.146 & [230.2, 2,705.4] & 0.104 & 0.061 \\
+IPW & ATE & 1,463.947 & [318.0, 3,781.3] & 0.113 & 0.096 \\
+Doubly robust & ATE & 1,709.503 & [535.4, 2,578.0] & 0.011 & 0.098 \\
+\hline
+\end{tabular}
+\end{table}

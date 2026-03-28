@@ -1,0 +1,337 @@
+{
+  "reportName": "Monitoring Anomaly Detection",
+  "experiment": {
+    "runLabel": "detector-comparison-pass",
+    "generatedAt": "2026-03-19T19:49:16.262015+00:00",
+    "registryFile": "run_registry.json",
+    "warmupWindow": 3,
+    "detectorCount": 4,
+    "thresholds": {
+      "global_zscore": 1.35,
+      "rolling_zscore": 1.2,
+      "mad_score": 2.2,
+      "delta_zscore": 1.25
+    }
+  },
+  "summary": {
+    "observationCount": 18,
+    "stationCount": 3,
+    "scoredEventCount": 9,
+    "knownEventCount": 4,
+    "selectedAlertCount": 6,
+    "selectedDetector": "global_zscore",
+    "selectedDetectorF1": 0.8,
+    "detectorWins": {
+      "global_zscore": 1
+    }
+  },
+  "stationBaselines": {
+    "station-central-flow-010": {
+      "mean": 34.13,
+      "stddev": 4.5
+    },
+    "station-east-temp-203": {
+      "mean": 58.8,
+      "stddev": 1.38
+    },
+    "station-west-air-001": {
+      "mean": 13.48,
+      "stddev": 3.35
+    }
+  },
+  "detectorLeaderboard": [
+    {
+      "detector": "global_zscore",
+      "precision": 0.67,
+      "recall": 1.0,
+      "f1Score": 0.8,
+      "alertCount": 6,
+      "truePositives": 4,
+      "falsePositives": 2,
+      "falseNegatives": 0
+    },
+    {
+      "detector": "mad_score",
+      "precision": 0.67,
+      "recall": 1.0,
+      "f1Score": 0.8,
+      "alertCount": 6,
+      "truePositives": 4,
+      "falsePositives": 2,
+      "falseNegatives": 0
+    },
+    {
+      "detector": "rolling_zscore",
+      "precision": 0.38,
+      "recall": 0.75,
+      "f1Score": 0.5,
+      "alertCount": 8,
+      "truePositives": 3,
+      "falsePositives": 5,
+      "falseNegatives": 1
+    },
+    {
+      "detector": "delta_zscore",
+      "precision": 0.33,
+      "recall": 0.5,
+      "f1Score": 0.4,
+      "alertCount": 6,
+      "truePositives": 2,
+      "falsePositives": 4,
+      "falseNegatives": 2
+    }
+  ],
+  "rankedEvents": [
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "timestamp": "2026-03-04T00:00:00Z",
+      "value": 18.6,
+      "isKnownEvent": true,
+      "scores": {
+        "global_zscore": 36.18,
+        "rolling_zscore": 36.18,
+        "mad_score": 24.96,
+        "delta_zscore": 17.75
+      },
+      "flags": {
+        "global_zscore": true,
+        "rolling_zscore": true,
+        "mad_score": true,
+        "delta_zscore": true
+      }
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "streamflow",
+      "timestamp": "2026-03-04T00:00:00Z",
+      "value": 27.5,
+      "isKnownEvent": true,
+      "scores": {
+        "global_zscore": 20.21,
+        "rolling_zscore": 20.21,
+        "mad_score": 11.13,
+        "delta_zscore": 8.7
+      },
+      "flags": {
+        "global_zscore": true,
+        "rolling_zscore": true,
+        "mad_score": true,
+        "delta_zscore": true
+      }
+    },
+    {
+      "stationId": "station-east-temp-203",
+      "metric": "temperature",
+      "timestamp": "2026-03-04T00:00:00Z",
+      "value": 60.2,
+      "isKnownEvent": false,
+      "scores": {
+        "global_zscore": 4.68,
+        "rolling_zscore": 4.68,
+        "mad_score": 3.71,
+        "delta_zscore": 1.6
+      },
+      "flags": {
+        "global_zscore": true,
+        "rolling_zscore": true,
+        "mad_score": true,
+        "delta_zscore": true
+      }
+    },
+    {
+      "stationId": "station-east-temp-203",
+      "metric": "temperature",
+      "timestamp": "2026-03-05T00:00:00Z",
+      "value": 61.1,
+      "isKnownEvent": true,
+      "scores": {
+        "global_zscore": 2.41,
+        "rolling_zscore": 2.03,
+        "mad_score": 3.26,
+        "delta_zscore": 0.15
+      },
+      "flags": {
+        "global_zscore": true,
+        "rolling_zscore": true,
+        "mad_score": true,
+        "delta_zscore": false
+      }
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "streamflow",
+      "timestamp": "2026-03-05T00:00:00Z",
+      "value": 28.1,
+      "isKnownEvent": false,
+      "scores": {
+        "global_zscore": 1.58,
+        "rolling_zscore": 1.28,
+        "mad_score": 10.12,
+        "delta_zscore": 1.0
+      },
+      "flags": {
+        "global_zscore": true,
+        "rolling_zscore": true,
+        "mad_score": true,
+        "delta_zscore": false
+      }
+    },
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "timestamp": "2026-03-05T00:00:00Z",
+      "value": 17.8,
+      "isKnownEvent": true,
+      "scores": {
+        "global_zscore": 1.48,
+        "rolling_zscore": 1.18,
+        "mad_score": 17.54,
+        "delta_zscore": 0.97
+      },
+      "flags": {
+        "global_zscore": true,
+        "rolling_zscore": false,
+        "mad_score": true,
+        "delta_zscore": false
+      }
+    },
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "timestamp": "2026-03-06T00:00:00Z",
+      "value": 11.0,
+      "isKnownEvent": false,
+      "scores": {
+        "global_zscore": 0.86,
+        "rolling_zscore": 1.53,
+        "mad_score": 0.54,
+        "delta_zscore": 2.61
+      },
+      "flags": {
+        "global_zscore": false,
+        "rolling_zscore": true,
+        "mad_score": false,
+        "delta_zscore": true
+      }
+    },
+    {
+      "stationId": "station-east-temp-203",
+      "metric": "temperature",
+      "timestamp": "2026-03-06T00:00:00Z",
+      "value": 57.9,
+      "isKnownEvent": false,
+      "scores": {
+        "global_zscore": 0.75,
+        "rolling_zscore": 1.78,
+        "mad_score": 0.28,
+        "delta_zscore": 4.12
+      },
+      "flags": {
+        "global_zscore": false,
+        "rolling_zscore": true,
+        "mad_score": false,
+        "delta_zscore": true
+      }
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "streamflow",
+      "timestamp": "2026-03-06T00:00:00Z",
+      "value": 37.0,
+      "isKnownEvent": false,
+      "scores": {
+        "global_zscore": 0.73,
+        "rolling_zscore": 1.46,
+        "mad_score": 0.11,
+        "delta_zscore": 2.86
+      },
+      "flags": {
+        "global_zscore": false,
+        "rolling_zscore": true,
+        "mad_score": false,
+        "delta_zscore": true
+      }
+    }
+  ],
+  "selectedAlerts": [
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "timestamp": "2026-03-04T00:00:00Z",
+      "value": 18.6,
+      "isKnownEvent": true,
+      "baselineMean": 13.48,
+      "selectedScore": 36.18,
+      "selectedDetector": "global_zscore"
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "streamflow",
+      "timestamp": "2026-03-04T00:00:00Z",
+      "value": 27.5,
+      "isKnownEvent": true,
+      "baselineMean": 34.13,
+      "selectedScore": 20.21,
+      "selectedDetector": "global_zscore"
+    },
+    {
+      "stationId": "station-east-temp-203",
+      "metric": "temperature",
+      "timestamp": "2026-03-04T00:00:00Z",
+      "value": 60.2,
+      "isKnownEvent": false,
+      "baselineMean": 58.8,
+      "selectedScore": 4.68,
+      "selectedDetector": "global_zscore"
+    },
+    {
+      "stationId": "station-east-temp-203",
+      "metric": "temperature",
+      "timestamp": "2026-03-05T00:00:00Z",
+      "value": 61.1,
+      "isKnownEvent": true,
+      "baselineMean": 58.8,
+      "selectedScore": 2.41,
+      "selectedDetector": "global_zscore"
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "streamflow",
+      "timestamp": "2026-03-05T00:00:00Z",
+      "value": 28.1,
+      "isKnownEvent": false,
+      "baselineMean": 34.13,
+      "selectedScore": 1.58,
+      "selectedDetector": "global_zscore"
+    },
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "timestamp": "2026-03-05T00:00:00Z",
+      "value": 17.8,
+      "isKnownEvent": true,
+      "baselineMean": 13.48,
+      "selectedScore": 1.48,
+      "selectedDetector": "global_zscore"
+    }
+  ],
+  "stationAlertCounts": {
+    "station-central-flow-010": 2,
+    "station-east-temp-203": 2,
+    "station-west-air-001": 2
+  },
+  "notes": [
+    "Designed as a public-safe anomaly-detection workflow with detector comparison and experiment-style metadata.",
+    "The selected detector is chosen by labeled-event F1 rather than a single hard-coded scoring rule.",
+    "The same structure can later support richer event labels, rolling retraining, and external experiment tracking."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "name": "selected_detector_ranking",
+        "chart": "charts/selected-detector-ranking.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+Estimator,ATT (kg),SE,CI_low,CI_high,p_value
+Regression,3.33,0.44,2.48,4.16,0.0
+IPW,3.26,0.59,2.31,4.17,0.0
+DR,3.29,0.5,2.36,4.26,0.0

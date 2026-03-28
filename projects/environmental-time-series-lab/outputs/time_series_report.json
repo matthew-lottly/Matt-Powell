@@ -1,0 +1,385 @@
+{
+  "reportName": "Environmental Time Series Lab",
+  "experiment": {
+    "runLabel": "temporal-diagnostics-review",
+    "generatedAt": "2026-03-19T19:49:20.367958+00:00",
+    "registryFile": "run_registry.json",
+    "reviewWindow": 2,
+    "shortWindow": 3,
+    "longWindow": 5,
+    "seasonLength": 3,
+    "candidateBaselineCount": 5
+  },
+  "summary": {
+    "seriesCount": 3,
+    "reviewWindow": 2,
+    "shortWindow": 3,
+    "longWindow": 5,
+    "seasonLength": 3,
+    "averageSelectedReviewMae": 0.41,
+    "averageSeasonalRange": 0.57,
+    "trendLabels": {
+      "downward": 1,
+      "upward": 2
+    },
+    "dominantPhases": {
+      "phase_1": 1,
+      "phase_2": 2
+    },
+    "changeDirections": {
+      "downward": 1,
+      "stable": 1,
+      "upward": 1
+    },
+    "baselineWins": {
+      "drift": 1,
+      "last_value": 1,
+      "trailing_mean_3": 1
+    }
+  },
+  "seriesDiagnostics": [
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "analysisWindow": 5,
+      "reviewWindow": 2,
+      "featureProfile": {
+        "latestValue": 13.8,
+        "meanValue": 11.88,
+        "shortRollingMean": 12.4,
+        "longRollingMean": 11.88,
+        "recentChange": 1.7,
+        "seriesSlope": 0.7,
+        "variability": 1.03
+      },
+      "seasonalityProfile": {
+        "seasonLength": 3,
+        "phaseAverages": {
+          "phase_1": 11.55,
+          "phase_2": 12.5,
+          "phase_3": 11.3
+        },
+        "seasonalRange": 1.2,
+        "dominantPhase": "phase_2"
+      },
+      "changePointCandidate": {
+        "candidateIndex": 3,
+        "beforeMean": 11.17,
+        "afterMean": 12.95,
+        "meanShift": 1.78,
+        "direction": "upward"
+      },
+      "rollingMeanShort": [
+        11.17,
+        11.53,
+        12.4,
+        13.5,
+        14.53
+      ],
+      "rollingMeanLong": [
+        11.88,
+        12.6,
+        13.4
+      ],
+      "firstDifferences": [
+        0.2,
+        0.1,
+        0.8,
+        1.7,
+        0.8,
+        0.6
+      ],
+      "trendValue": 4.2,
+      "trendLabel": "upward",
+      "baselineLeaderboard": [
+        {
+          "baseline": "drift",
+          "reviewMae": 0.05,
+          "reviewPrediction": [
+            14.5,
+            15.2
+          ]
+        },
+        {
+          "baseline": "last_value",
+          "reviewMae": 1.1,
+          "reviewPrediction": [
+            13.8,
+            13.8
+          ]
+        },
+        {
+          "baseline": "trailing_mean_2",
+          "reviewMae": 1.95,
+          "reviewPrediction": [
+            12.95,
+            12.95
+          ]
+        },
+        {
+          "baseline": "trailing_mean_3",
+          "reviewMae": 2.5,
+          "reviewPrediction": [
+            12.4,
+            12.4
+          ]
+        },
+        {
+          "baseline": "seasonal_naive",
+          "reviewMae": 3.2,
+          "reviewPrediction": [
+            11.3,
+            12.1
+          ]
+        }
+      ],
+      "selectedBaseline": "drift",
+      "selectedReviewMae": 0.05,
+      "reviewActual": [
+        14.6,
+        15.2
+      ],
+      "reviewPrediction": [
+        14.5,
+        15.2
+      ],
+      "latestValue": 15.2
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "streamflow",
+      "analysisWindow": 5,
+      "reviewWindow": 2,
+      "featureProfile": {
+        "latestValue": 34.9,
+        "meanValue": 37.0,
+        "shortRollingMean": 35.73,
+        "longRollingMean": 37.0,
+        "recentChange": -0.3,
+        "seriesSlope": -1.03,
+        "variability": 1.73
+      },
+      "seasonalityProfile": {
+        "seasonLength": 3,
+        "phaseAverages": {
+          "phase_1": 37.1,
+          "phase_2": 36.85,
+          "phase_3": 37.1
+        },
+        "seasonalRange": 0.25,
+        "dominantPhase": "phase_1"
+      },
+      "changePointCandidate": {
+        "candidateIndex": 3,
+        "beforeMean": 38.3,
+        "afterMean": 35.05,
+        "meanShift": 3.25,
+        "direction": "downward"
+      },
+      "rollingMeanShort": [
+        38.3,
+        37.03,
+        35.73,
+        35.53,
+        36.13
+      ],
+      "rollingMeanLong": [
+        37.0,
+        36.5,
+        36.14
+      ],
+      "firstDifferences": [
+        -0.2,
+        -1.7,
+        -1.9,
+        -0.3,
+        1.6,
+        0.5
+      ],
+      "trendValue": -2.0,
+      "trendLabel": "downward",
+      "baselineLeaderboard": [
+        {
+          "baseline": "trailing_mean_3",
+          "reviewMae": 1.02,
+          "reviewPrediction": [
+            35.73,
+            35.73
+          ]
+        },
+        {
+          "baseline": "seasonal_naive",
+          "reviewMae": 1.2,
+          "reviewPrediction": [
+            37.1,
+            35.2
+          ]
+        },
+        {
+          "baseline": "trailing_mean_2",
+          "reviewMae": 1.7,
+          "reviewPrediction": [
+            35.05,
+            35.05
+          ]
+        },
+        {
+          "baseline": "last_value",
+          "reviewMae": 1.85,
+          "reviewPrediction": [
+            34.9,
+            34.9
+          ]
+        },
+        {
+          "baseline": "drift",
+          "reviewMae": 3.38,
+          "reviewPrediction": [
+            33.88,
+            32.85
+          ]
+        }
+      ],
+      "selectedBaseline": "trailing_mean_3",
+      "selectedReviewMae": 1.02,
+      "reviewActual": [
+        36.5,
+        37.0
+      ],
+      "reviewPrediction": [
+        35.73,
+        35.73
+      ],
+      "latestValue": 37.0
+    },
+    {
+      "stationId": "station-east-temp-203",
+      "metric": "temperature",
+      "analysisWindow": 5,
+      "reviewWindow": 2,
+      "featureProfile": {
+        "latestValue": 58.3,
+        "meanValue": 58.04,
+        "shortRollingMean": 58.13,
+        "longRollingMean": 58.04,
+        "recentChange": 0.1,
+        "seriesSlope": 0.12,
+        "variability": 0.19
+      },
+      "seasonalityProfile": {
+        "seasonLength": 3,
+        "phaseAverages": {
+          "phase_1": 58.0,
+          "phase_2": 58.15,
+          "phase_3": 57.9
+        },
+        "seasonalRange": 0.25,
+        "dominantPhase": "phase_2"
+      },
+      "changePointCandidate": {
+        "candidateIndex": 3,
+        "beforeMean": 57.9,
+        "afterMean": 58.25,
+        "meanShift": 0.35,
+        "direction": "stable"
+      },
+      "rollingMeanShort": [
+        57.9,
+        58.03,
+        58.13,
+        58.2,
+        58.27
+      ],
+      "rollingMeanLong": [
+        58.04,
+        58.1,
+        58.18
+      ],
+      "firstDifferences": [
+        0.2,
+        -0.1,
+        0.3,
+        0.1,
+        -0.2,
+        0.3
+      ],
+      "trendValue": 0.6,
+      "trendLabel": "upward",
+      "baselineLeaderboard": [
+        {
+          "baseline": "last_value",
+          "reviewMae": 0.15,
+          "reviewPrediction": [
+            58.3,
+            58.3
+          ]
+        },
+        {
+          "baseline": "trailing_mean_2",
+          "reviewMae": 0.15,
+          "reviewPrediction": [
+            58.25,
+            58.25
+          ]
+        },
+        {
+          "baseline": "trailing_mean_3",
+          "reviewMae": 0.15,
+          "reviewPrediction": [
+            58.13,
+            58.13
+          ]
+        },
+        {
+          "baseline": "seasonal_naive",
+          "reviewMae": 0.2,
+          "reviewPrediction": [
+            57.9,
+            58.2
+          ]
+        },
+        {
+          "baseline": "drift",
+          "reviewMae": 0.23,
+          "reviewPrediction": [
+            58.42,
+            58.55
+          ]
+        }
+      ],
+      "selectedBaseline": "last_value",
+      "selectedReviewMae": 0.15,
+      "reviewActual": [
+        58.1,
+        58.4
+      ],
+      "reviewPrediction": [
+        58.3,
+        58.3
+      ],
+      "latestValue": 58.4
+    }
+  ],
+  "notes": [
+    "Designed as a public-safe temporal diagnostics workflow with split-based review windows and candidate baseline comparison.",
+    "The lab captures feature profiles, rolling summaries, seasonal fingerprints, and change-point candidates before handing off to forecasting or anomaly pipelines.",
+    "Seasonal-naive review baselines make the comparison more realistic for repeating station behavior.",
+    "The same structure can grow into fuller decomposition, formal change-point tests, or external experiment tracking."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "stationId": "station-west-air-001",
+        "chart": "charts/station-west-air-001-diagnostics-review.png"
+      },
+      {
+        "stationId": "station-central-flow-010",
+        "chart": "charts/station-central-flow-010-diagnostics-review.png"
+      },
+      {
+        "stationId": "station-east-temp-203",
+        "chart": "charts/station-east-temp-203-diagnostics-review.png"
+      }
+    ]
+  }
+}

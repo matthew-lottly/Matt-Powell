@@ -1,0 +1,294 @@
+{
+  "reportName": "Station Forecasting Workbench",
+  "experiment": {
+    "runLabel": "baseline-model-review",
+    "generatedAt": "2026-03-19T19:44:45.901306+00:00",
+    "registryFile": "run_registry.json",
+    "candidateModelCount": 4,
+    "validationHorizon": 1,
+    "testHorizon": 1,
+    "projectionHorizon": 3
+  },
+  "summary": {
+    "seriesCount": 3,
+    "validationHorizon": 1,
+    "testHorizon": 1,
+    "projectionHorizon": 3,
+    "averageValidationMae": 0.07,
+    "averageTestMae": 0.1,
+    "modelWins": {
+      "drift": 2,
+      "last_value": 1
+    },
+    "featureSetWins": {
+      "recent_level": 1,
+      "trend_profile": 2
+    }
+  },
+  "forecasts": [
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "trainingWindow": 6,
+      "validationWindow": 1,
+      "testWindow": 1,
+      "featureProfile": {
+        "lastValue": 13.6,
+        "trailingMean3": 13.03,
+        "trailingStdDev3": 0.45,
+        "momentum1": 0.6,
+        "seriesSlope": 0.52
+      },
+      "datasetSplit": {
+        "train": [
+          11.0,
+          11.2,
+          11.8,
+          12.5,
+          13.0,
+          13.6
+        ],
+        "validation": [
+          14.2
+        ],
+        "test": [
+          14.8
+        ]
+      },
+      "modelLeaderboard": [
+        {
+          "model": "drift",
+          "featureSet": "trend_profile",
+          "validationMae": 0.08,
+          "validationPredictions": [
+            14.12
+          ]
+        },
+        {
+          "model": "linear_regression",
+          "featureSet": "trend_profile",
+          "validationMae": 0.11,
+          "validationPredictions": [
+            14.09
+          ]
+        },
+        {
+          "model": "last_value",
+          "featureSet": "recent_level",
+          "validationMae": 0.6,
+          "validationPredictions": [
+            13.6
+          ]
+        },
+        {
+          "model": "trailing_average_3",
+          "featureSet": "recent_level",
+          "validationMae": 1.17,
+          "validationPredictions": [
+            13.03
+          ]
+        }
+      ],
+      "selectedModel": "drift",
+      "selectedFeatureSet": "trend_profile",
+      "selectedValidationMae": 0.08,
+      "testActual": [
+        14.8
+      ],
+      "testPrediction": [
+        14.73
+      ],
+      "selectedTestMae": 0.07,
+      "projectionHorizon": 3,
+      "projection": [
+        15.34,
+        15.89,
+        16.43
+      ],
+      "nextForecast": 15.34
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "streamflow",
+      "trainingWindow": 6,
+      "validationWindow": 1,
+      "testWindow": 1,
+      "featureProfile": {
+        "lastValue": 36.5,
+        "trailingMean3": 36.8,
+        "trailingStdDev3": 0.24,
+        "momentum1": -0.3,
+        "seriesSlope": -0.38
+      },
+      "datasetSplit": {
+        "train": [
+          38.4,
+          38.0,
+          37.6,
+          37.1,
+          36.8,
+          36.5
+        ],
+        "validation": [
+          36.4
+        ],
+        "test": [
+          36.6
+        ]
+      },
+      "modelLeaderboard": [
+        {
+          "model": "last_value",
+          "featureSet": "recent_level",
+          "validationMae": 0.1,
+          "validationPredictions": [
+            36.5
+          ]
+        },
+        {
+          "model": "drift",
+          "featureSet": "trend_profile",
+          "validationMae": 0.28,
+          "validationPredictions": [
+            36.12
+          ]
+        },
+        {
+          "model": "linear_regression",
+          "featureSet": "trend_profile",
+          "validationMae": 0.36,
+          "validationPredictions": [
+            36.04
+          ]
+        },
+        {
+          "model": "trailing_average_3",
+          "featureSet": "recent_level",
+          "validationMae": 0.4,
+          "validationPredictions": [
+            36.8
+          ]
+        }
+      ],
+      "selectedModel": "last_value",
+      "selectedFeatureSet": "recent_level",
+      "selectedValidationMae": 0.1,
+      "testActual": [
+        36.6
+      ],
+      "testPrediction": [
+        36.4
+      ],
+      "selectedTestMae": 0.2,
+      "projectionHorizon": 3,
+      "projection": [
+        36.6,
+        36.6,
+        36.6
+      ],
+      "nextForecast": 36.6
+    },
+    {
+      "stationId": "station-east-temp-203",
+      "metric": "temperature",
+      "trainingWindow": 6,
+      "validationWindow": 1,
+      "testWindow": 1,
+      "featureProfile": {
+        "lastValue": 58.4,
+        "trailingMean3": 58.3,
+        "trailingStdDev3": 0.08,
+        "momentum1": 0.1,
+        "seriesSlope": 0.12
+      },
+      "datasetSplit": {
+        "train": [
+          57.8,
+          58.0,
+          58.1,
+          58.2,
+          58.3,
+          58.4
+        ],
+        "validation": [
+          58.5
+        ],
+        "test": [
+          58.6
+        ]
+      },
+      "modelLeaderboard": [
+        {
+          "model": "drift",
+          "featureSet": "trend_profile",
+          "validationMae": 0.02,
+          "validationPredictions": [
+            58.52
+          ]
+        },
+        {
+          "model": "linear_regression",
+          "featureSet": "trend_profile",
+          "validationMae": 0.03,
+          "validationPredictions": [
+            58.53
+          ]
+        },
+        {
+          "model": "last_value",
+          "featureSet": "recent_level",
+          "validationMae": 0.1,
+          "validationPredictions": [
+            58.4
+          ]
+        },
+        {
+          "model": "trailing_average_3",
+          "featureSet": "recent_level",
+          "validationMae": 0.2,
+          "validationPredictions": [
+            58.3
+          ]
+        }
+      ],
+      "selectedModel": "drift",
+      "selectedFeatureSet": "trend_profile",
+      "selectedValidationMae": 0.02,
+      "testActual": [
+        58.6
+      ],
+      "testPrediction": [
+        58.62
+      ],
+      "selectedTestMae": 0.02,
+      "projectionHorizon": 3,
+      "projection": [
+        58.71,
+        58.83,
+        58.94
+      ],
+      "nextForecast": 58.71
+    }
+  ],
+  "notes": [
+    "Designed as a public-safe forecasting workflow with feature profiling, candidate-model comparison, and experiment-style evaluation.",
+    "The workbench selects models on validation performance and records separate test error for each station series.",
+    "The same structure can later support richer feature engineering, run registries, and external experiment tracking backends."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "stationId": "station-west-air-001",
+        "chart": "charts/station-west-air-001-forecast-review.png"
+      },
+      {
+        "stationId": "station-central-flow-010",
+        "chart": "charts/station-central-flow-010-forecast-review.png"
+      },
+      {
+        "stationId": "station-east-temp-203",
+        "chart": "charts/station-east-temp-203-forecast-review.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "summary": {
+    "siteCount": 2,
+    "noisiestSiteCode": "08211520",
+    "largestDenoisingBenefitSiteCode": "08211520",
+    "denoisingHelpsMoreOnNoisySeries": true,
+    "interpretation": "The noisiest site also shows the largest wavelet benefit in this sample."
+  },
+  "sites": [
+    {
+      "siteName": "Nueces Rv at Calallen, TX",
+      "siteCode": "08211500",
+      "seriesName": "South Texas hourly stage series for Arroyo-style flood forecasting review",
+      "observationCount": 168,
+      "hourToHourVolatility": 0.0159,
+      "stageRange": 0.78,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081,
+      "waveletPmseBenefit": -0.0006,
+      "winningSignal": "raw",
+      "rawBestOrder": 3,
+      "denoisedBestOrder": 2
+    },
+    {
+      "siteName": "Oso Ck at Corpus Christi, TX",
+      "siteCode": "08211520",
+      "seriesName": "South Texas hourly stage series for Arroyo-style flood forecasting review",
+      "observationCount": 168,
+      "hourToHourVolatility": 0.0432,
+      "stageRange": 0.22,
+      "rawPmse": 0.0005,
+      "denoisedPmse": 0.0001,
+      "waveletPmseBenefit": 0.0004,
+      "winningSignal": "denoised",
+      "rawBestOrder": 2,
+      "denoisedBestOrder": 2
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "runs": [
+    {
+      "runLabel": "gauge-validation-review",
+      "generatedAt": "2026-03-19T18:06:56.472761+00:00",
+      "reportName": "Gulf Coast Inundation Lab Validation Summary",
+      "reportFile": "gulf_coast_validation_summary.json",
+      "gaugeCount": 3,
+      "adequateGaugeCount": 2,
+      "meanRSquared": 0.6724
+    },
+    {
+      "runLabel": "gauge-validation-review",
+      "generatedAt": "2026-03-19T18:14:18.904118+00:00",
+      "reportName": "Gulf Coast Inundation Lab Validation Summary",
+      "reportFile": "gulf_coast_validation_summary.json",
+      "gaugeCount": 3,
+      "adequateGaugeCount": 2,
+      "meanRSquared": 0.6724
+    },
+    {
+      "runLabel": "gauge-validation-review",
+      "generatedAt": "2026-03-19T18:37:55.244222+00:00",
+      "reportName": "Gulf Coast Inundation Lab Validation Summary",
+      "reportFile": "gulf_coast_validation_summary.json",
+      "gaugeCount": 3,
+      "adequateGaugeCount": 2,
+      "meanRSquared": 0.6724
+    },
+    {
+      "runLabel": "gauge-validation-review",
+      "generatedAt": "2026-03-19T20:00:56.635162+00:00",
+      "reportName": "Gulf Coast Inundation Lab Validation Summary",
+      "reportFile": "gulf_coast_validation_summary.json",
+      "gaugeCount": 3,
+      "adequateGaugeCount": 2,
+      "meanRSquared": 0.6724
+    },
+    {
+      "runLabel": "gauge-validation-review",
+      "generatedAt": "2026-03-19T20:09:24.518861+00:00",
+      "reportName": "Gulf Coast Inundation Lab Validation Summary",
+      "reportFile": "gulf_coast_validation_summary.json",
+      "gaugeCount": 3,
+      "adequateGaugeCount": 2,
+      "meanRSquared": 0.6724
+    }
+  ]
+}

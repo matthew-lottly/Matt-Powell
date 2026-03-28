@@ -1,0 +1,101 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Cross-Site Wavelet Comparison</title>
+      <style>
+        :root {
+          --bg: #f3efe6;
+          --panel: #fffaf0;
+          --ink: #1e312d;
+          --muted: #60716d;
+          --accent: #1e6f5c;
+          --warn: #b04a2d;
+          --edge: #d8d3c2;
+        }
+        body { margin: 0; font-family: Georgia, serif; background: radial-gradient(circle at top, #f8f4ea 0%, var(--bg) 58%, #ebe8de 100%); color: var(--ink); }
+        main { max-width: 1180px; margin: 0 auto; padding: 34px 24px 64px; }
+        .hero { background: linear-gradient(135deg, #183a37 0%, #204d48 100%); color: #f8f6ee; border-radius: 26px; padding: 30px 34px; box-shadow: 0 18px 42px rgba(24, 58, 55, 0.16); }
+        .hero h1 { margin: 0 0 12px; font-size: 2.3rem; }
+        .hero p { margin: 0; font-family: Arial, sans-serif; line-height: 1.55; max-width: 920px; }
+        .hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 22px; }
+        .hero-stat { background: rgba(255,255,255,0.09); border-radius: 16px; padding: 14px 16px; }
+        .hero-stat strong { display: block; font-size: 1.35rem; margin-bottom: 6px; }
+        .layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 18px; margin-top: 22px; }
+        .panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 22px; padding: 22px; box-shadow: 0 10px 24px rgba(31, 45, 41, 0.06); }
+        .panel h2, .panel h3 { margin-top: 0; }
+        .meta { color: var(--muted); font-family: Arial, sans-serif; font-size: 0.94rem; }
+        .chart { width: 100%; border-radius: 16px; border: 1px solid var(--edge); background: white; }
+        .site-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 18px; }
+        .site-card { background: #fffdf7; border: 1px solid var(--edge); border-radius: 18px; padding: 18px; }
+        .site-card ul { margin: 12px 0 0; padding-left: 20px; font-family: Arial, sans-serif; line-height: 1.6; }
+        .callout { border-left: 5px solid var(--accent); padding-left: 14px; font-family: Arial, sans-serif; line-height: 1.6; }
+        .links a { color: var(--accent); text-decoration: none; font-family: Arial, sans-serif; }
+        .links a:hover { text-decoration: underline; }
+        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+      </style>
+    </head>
+    <body>
+      <main>
+        <section class="hero">
+          <h1>Cross-Site Wavelet Comparison</h1>
+          <p>This page isolates the question behind the extra gauge: does wavelet denoising help more once the stage signal becomes noisier? The answer in this sample is yes.</p>
+          <div class="hero-grid">
+            <div class="hero-stat"><strong>08211520</strong>Noisiest site</div>
+            <div class="hero-stat"><strong>08211520</strong>Largest denoising benefit</div>
+            <div class="hero-stat"><strong>True</strong>Benefit tracks noise</div>
+          </div>
+        </section>
+
+        <section class="layout">
+          <section class="panel">
+            <h2>Comparison Chart</h2>
+            <img class="chart" src="charts/wavelet-benefit-comparison.png" alt="Wavelet benefit comparison chart">
+            <p class="meta">Comparison data: multi_site_comparison.json</p>
+          </section>
+          <section class="panel">
+            <h2>What It Means</h2>
+            <p class="callout">The noisiest site also shows the largest wavelet benefit in this sample.</p>
+            <p class="meta">The Nueces River series is smoother, and the raw branch still wins there. Oso Creek is noisier, and denoising improves holdout PMSE.</p>
+            <div class="links">
+              <p><a href="review-summary.html">Open the full review summary</a></p>
+              <p><a href="multi_site_comparison.json">Open the JSON comparison payload</a></p>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel" style="margin-top: 18px;">
+          <h2>Site Narratives</h2>
+          <div class="site-grid">
+        <article class="site-card">
+          <h3>Nueces Rv at Calallen, TX</h3>
+          <p class="meta">USGS 08211500</p>
+          <ul>
+            <li>Hour-to-hour volatility: <strong>0.0159</strong></li>
+            <li>Raw PMSE: <strong>0.0075</strong></li>
+            <li>Denoised PMSE: <strong>0.0081</strong></li>
+            <li>Wavelet benefit: <strong>-0.0006</strong></li>
+            <li>Winning branch: <strong>raw</strong></li>
+          </ul>
+        </article>
+        
+
+        <article class="site-card">
+          <h3>Oso Ck at Corpus Christi, TX</h3>
+          <p class="meta">USGS 08211520</p>
+          <ul>
+            <li>Hour-to-hour volatility: <strong>0.0432</strong></li>
+            <li>Raw PMSE: <strong>0.0005</strong></li>
+            <li>Denoised PMSE: <strong>0.0001</strong></li>
+            <li>Wavelet benefit: <strong>0.0004</strong></li>
+            <li>Winning branch: <strong>denoised</strong></li>
+          </ul>
+        </article>
+        </div>
+        </section>
+      </main>
+    </body>
+    </html>
+    

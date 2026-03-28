@@ -1,0 +1,5 @@
+[
+  "tests/test_pipeline.py::test_build_change_report",
+  "tests/test_pipeline.py::test_export_change_report",
+  "tests/test_pipeline.py::test_load_grid"
+]

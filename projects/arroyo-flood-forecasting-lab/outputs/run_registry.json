@@ -1,0 +1,100 @@
+{
+  "runs": [
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T17:05:30.956598+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "denoised",
+      "selectedOrder": 1,
+      "rawPmse": 0.3091,
+      "denoisedPmse": 0.2336
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T17:06:52.125210+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "denoised",
+      "selectedOrder": 1,
+      "rawPmse": 0.3091,
+      "denoisedPmse": 0.2336
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T17:20:37.366865+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "raw",
+      "selectedOrder": 3,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T17:25:02.541429+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "raw",
+      "selectedOrder": 3,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081,
+      "chartCount": 5
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T17:30:37.877028+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "raw",
+      "selectedOrder": 3,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081,
+      "chartCount": 5
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T17:44:08.327166+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "raw",
+      "selectedOrder": 3,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081,
+      "chartCount": 5
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T18:38:05.885422+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "raw",
+      "selectedOrder": 3,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081,
+      "chartCount": 5
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T18:46:06.093901+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "raw",
+      "selectedOrder": 3,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081,
+      "chartCount": 5
+    },
+    {
+      "runLabel": "wavelet-ar-review",
+      "generatedAt": "2026-03-19T19:32:09.738601+00:00",
+      "reportName": "Arroyo Flood Forecasting Lab",
+      "reportFile": "arroyo_flood_forecast_report.json",
+      "selectedSeries": "raw",
+      "selectedOrder": 3,
+      "rawPmse": 0.0075,
+      "denoisedPmse": 0.0081,
+      "chartCount": 5
+    }
+  ]
+}

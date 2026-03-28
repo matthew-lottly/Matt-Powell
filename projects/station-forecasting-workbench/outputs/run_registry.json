@@ -1,0 +1,17 @@
+{
+  "runs": [
+    {
+      "runLabel": "baseline-model-review",
+      "generatedAt": "2026-03-19T19:44:45.901306+00:00",
+      "reportName": "Station Forecasting Workbench",
+      "reportFile": "station_forecast_report.json",
+      "seriesCount": 3,
+      "averageValidationMae": 0.07,
+      "averageTestMae": 0.1,
+      "modelWins": {
+        "drift": 2,
+        "last_value": 1
+      }
+    }
+  ]
+}

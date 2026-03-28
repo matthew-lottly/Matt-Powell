@@ -1,0 +1,6 @@
+[
+  "tests/test_workbench.py::test_build_forecast_report",
+  "tests/test_workbench.py::test_export_forecast_report",
+  "tests/test_workbench.py::test_forecast_workbench_class",
+  "tests/test_workbench.py::test_load_histories"
+]

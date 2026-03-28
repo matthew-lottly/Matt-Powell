@@ -1,0 +1,108 @@
+[
+  {
+    "site_id": "alpha-point",
+    "name": "Alpha Intake",
+    "geometry": {"type": "Point", "coordinates": [-111.98, 40.79]},
+    "demand_index": 0.91,
+    "capacity_index": 0.72,
+    "priority_index": 1.19
+  },
+  {
+    "site_id": "beta-point",
+    "name": "Beta Intake",
+    "geometry": {"type": "Point", "coordinates": [-111.87, 40.79]},
+    "demand_index": 0.83,
+    "capacity_index": 0.78,
+    "priority_index": 1.04
+  },
+  {
+    "site_id": "gamma-point",
+    "name": "Gamma Intake",
+    "geometry": {"type": "Point", "coordinates": [-111.98, 40.68]},
+    "demand_index": 0.88,
+    "capacity_index": 0.76,
+    "priority_index": 1.08
+  },
+  {
+    "site_id": "delta-point",
+    "name": "Delta Intake",
+    "geometry": {"type": "Point", "coordinates": [-111.87, 40.67]},
+    "demand_index": 0.79,
+    "capacity_index": 0.82,
+    "priority_index": 0.98
+  },
+  {
+    "site_id": "north-connector-line",
+    "name": "North Connector",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [[-112.0, 40.77], [-111.92, 40.77], [-111.84, 40.77]]
+    },
+    "demand_index": 0.74,
+    "capacity_index": 0.93,
+    "priority_index": 1.01
+  },
+  {
+    "site_id": "west-spine-line",
+    "name": "West Spine",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [[-111.98, 40.81], [-111.98, 40.73], [-111.98, 40.64]]
+    },
+    "demand_index": 0.7,
+    "capacity_index": 0.9,
+    "priority_index": 0.96
+  },
+  {
+    "site_id": "south-arc-line",
+    "name": "South Arc",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [[-111.98, 40.65], [-111.92, 40.66], [-111.84, 40.67]]
+    },
+    "demand_index": 0.77,
+    "capacity_index": 0.89,
+    "priority_index": 1.02
+  },
+  {
+    "site_id": "north-campus-zone",
+    "name": "North Campus",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-111.995, 40.805], [-111.945, 40.805], [-111.945, 40.755], [-111.995, 40.755]]]
+    },
+    "demand_index": 0.68,
+    "capacity_index": 0.8,
+    "priority_index": 0.9
+  },
+  {
+    "site_id": "east-campus-zone",
+    "name": "East Campus",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-111.9, 40.76], [-111.84, 40.76], [-111.84, 40.69], [-111.9, 40.69]]]
+    },
+    "demand_index": 0.72,
+    "capacity_index": 0.81,
+    "priority_index": 0.94
+  },
+  {
+    "site_id": "central-overlap-zone",
+    "name": "Central Overlap Zone",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-111.96, 40.76], [-111.88, 40.76], [-111.88, 40.68], [-111.96, 40.68]]]
+    },
+    "demand_index": 0.86,
+    "capacity_index": 0.79,
+    "priority_index": 1.07
+  },
+  {
+    "site_id": "remote-point",
+    "name": "Remote Outpost",
+    "geometry": {"type": "Point", "coordinates": [-111.72, 40.84]},
+    "demand_index": 0.52,
+    "capacity_index": 0.66,
+    "priority_index": 0.73
+  }
+]

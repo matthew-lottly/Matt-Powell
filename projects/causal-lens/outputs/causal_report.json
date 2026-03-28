@@ -1,0 +1,1133 @@
+{
+  "real_dataset": {
+    "rows": 48,
+    "confounders": [
+      "sensor_age_years",
+      "maintenance_backlog_days",
+      "baseline_alert_rate",
+      "staffing_ratio"
+    ],
+    "results": [
+      {
+        "method": "RegressionAdjustmentEstimator",
+        "estimand": "ATE",
+        "effect": -0.044435779119835817,
+        "ci_low": -0.04699361743083864,
+        "ci_high": -0.041079032620425386,
+        "treated_count": 24,
+        "control_count": 24,
+        "diagnostics": {
+          "propensity_min": 0.4749431133719072,
+          "propensity_max": 0.5278571688864445,
+          "treated_mean_propensity": 0.5005013010626932,
+          "control_mean_propensity": 0.49949922595838053,
+          "overlap_ok": true,
+          "balance_before": {
+            "sensor_age_years": 0.03131121455425769,
+            "maintenance_backlog_days": 0.0,
+            "baseline_alert_rate": 1.2267410812127948e-15,
+            "staffing_ratio": 0.0
+          },
+          "balance_after": {
+            "sensor_age_years": 0.03131121455425769,
+            "maintenance_backlog_days": 0.0,
+            "baseline_alert_rate": 1.2267410812127948e-15,
+            "staffing_ratio": 0.0
+          },
+          "variance_ratios": {
+            "sensor_age_years": 3.4031531531531534,
+            "maintenance_backlog_days": 1.5659828783718304,
+            "baseline_alert_rate": 1.4531741725447638,
+            "staffing_ratio": 1.5172010904842272
+          },
+          "ess_treated": null,
+          "ess_control": null
+        },
+        "se": 0.0015906641237964797,
+        "p_value": 9.337831839234702e-29
+      },
+      {
+        "method": "PropensityMatcher",
+        "estimand": "ATT",
+        "effect": -0.044583333333333336,
+        "ci_low": -0.059937500000000005,
+        "ci_high": -0.0314375,
+        "treated_count": 24,
+        "control_count": 24,
+        "diagnostics": {
+          "propensity_min": 0.4749431133719072,
+          "propensity_max": 0.5278571688864445,
+          "treated_mean_propensity": 0.5005013010626932,
+          "control_mean_propensity": 0.49949922595838053,
+          "overlap_ok": true,
+          "balance_before": {
+            "sensor_age_years": 0.03131121455425769,
+            "maintenance_backlog_days": 0.0,
+            "baseline_alert_rate": 1.2267410812127948e-15,
+            "staffing_ratio": 0.0
+          },
+          "balance_after": {
+            "sensor_age_years": 0.03198465105036029,
+            "maintenance_backlog_days": 0.0,
+            "baseline_alert_rate": 1.253125628318928e-15,
+            "staffing_ratio": 0.0
+          },
+          "variance_ratios": {
+            "sensor_age_years": 3.403153153153153,
+            "maintenance_backlog_days": 1.5659828783718306,
+            "baseline_alert_rate": 1.4531741725447638,
+            "staffing_ratio": 1.5172010904842275
+          },
+          "ess_treated": 24.0,
+          "ess_control": 24.0
+        },
+        "se": 0.007396120376140285,
+        "p_value": 1.6606773733940372e-09
+      },
+      {
+        "method": "IPWEstimator",
+        "estimand": "ATE",
+        "effect": -0.04460196135502753,
+        "ci_low": -0.049666476743286746,
+        "ci_high": -0.04014921003583644,
+        "treated_count": 24,
+        "control_count": 24,
+        "diagnostics": {
+          "propensity_min": 0.4749431133719072,
+          "propensity_max": 0.5278571688864445,
+          "treated_mean_propensity": 0.5005013010626932,
+          "control_mean_propensity": 0.49949922595838053,
+          "overlap_ok": true,
+          "balance_before": {
+            "sensor_age_years": 0.03131121455425769,
+            "maintenance_backlog_days": 0.0,
+            "baseline_alert_rate": 1.2267410812127948e-15,
+            "staffing_ratio": 0.0
+          },
+          "balance_after": {
+            "sensor_age_years": 0.010714464654244988,
+            "maintenance_backlog_days": -0.002973291136686447,
+            "baseline_alert_rate": -0.003182601409311215,
+            "staffing_ratio": 0.002445035132759848
+          },
+          "variance_ratios": {
+            "sensor_age_years": 3.378012129925416,
+            "maintenance_backlog_days": 1.5468951296823088,
+            "baseline_alert_rate": 1.4331664824662642,
+            "staffing_ratio": 1.4975297274498538
+          },
+          "ess_treated": 23.986629038004885,
+          "ess_control": 23.985212322119793
+        },
+        "se": 0.015631921521421108,
+        "p_value": 0.004327298333230534
+      },
+      {
+        "method": "DoublyRobustEstimator",
+        "estimand": "ATE",
+        "effect": -0.04444583349959205,
+        "ci_low": -0.04768995046849565,
+        "ci_high": -0.041041628566135156,
+        "treated_count": 24,
+        "control_count": 24,
+        "diagnostics": {
+          "propensity_min": 0.4749431133719072,
+          "propensity_max": 0.5278571688864445,
+          "treated_mean_propensity": 0.5005013010626932,
+          "control_mean_propensity": 0.49949922595838053,
+          "overlap_ok": true,
+          "balance_before": {
+            "sensor_age_years": 0.03131121455425769,
+            "maintenance_backlog_days": 0.0,
+            "baseline_alert_rate": 1.2267410812127948e-15,
+            "staffing_ratio": 0.0
+          },
+          "balance_after": {
+            "sensor_age_years": 0.010714464654244988,
+            "maintenance_backlog_days": -0.002973291136686447,
+            "baseline_alert_rate": -0.003182601409311215,
+            "staffing_ratio": 0.002445035132759848
+          },
+          "variance_ratios": {
+            "sensor_age_years": 3.378012129925416,
+            "maintenance_backlog_days": 1.5468951296823088,
+            "baseline_alert_rate": 1.4331664824662642,
+            "staffing_ratio": 1.4975297274498538
+          },
+          "ess_treated": 23.986629038004885,
+          "ess_control": 23.985212322119793
+        },
+        "se": 0.0016276738091881727,
+        "p_value": 0.0
+      }
+    ],
+    "primary_sensitivity": {
+      "bias_to_zero_effect": 0.04444583349959205,
+      "bias_to_zero_ci": 0.041041628566135156,
+      "standardized_bias_to_zero_effect": 1.2534121444743789,
+      "standardized_bias_to_zero_ci": 1.1574105292518038,
+      "scenarios": [
+        {
+          "bias": 0.0,
+          "adjusted_effect": -0.04444583349959205,
+          "adjusted_ci_low": -0.04768995046849565,
+          "adjusted_ci_high": -0.041041628566135156
+        },
+        {
+          "bias": 0.011111458374898013,
+          "adjusted_effect": -0.03333437512469404,
+          "adjusted_ci_low": -0.036578492093597634,
+          "adjusted_ci_high": -0.029930170191237143
+        },
+        {
+          "bias": 0.022222916749796026,
+          "adjusted_effect": -0.022222916749796026,
+          "adjusted_ci_low": -0.02546703371869962,
+          "adjusted_ci_high": -0.01881871181633913
+        },
+        {
+          "bias": 0.03333437512469404,
+          "adjusted_effect": -0.011111458374898013,
+          "adjusted_ci_low": -0.014355575343801608,
+          "adjusted_ci_high": -0.007707253441441117
+        },
+        {
+          "bias": 0.04444583349959205,
+          "adjusted_effect": 0.0,
+          "adjusted_ci_low": -0.0032441169689035945,
+          "adjusted_ci_high": 0.003404204933456896
+        },
+        {
+          "bias": 0.055557291874490065,
+          "adjusted_effect": 0.011111458374898013,
+          "adjusted_ci_low": 0.007867341405994419,
+          "adjusted_ci_high": 0.01451566330835491
+        }
+      ],
+      "e_value": 5.709330777561193,
+      "e_value_ci": 5.180456792808228
+    },
+    "subgroups": [
+      {
+        "subgroup": "Midwest",
+        "rows": 12,
+        "treated_count": 6,
+        "control_count": 6,
+        "effect": -0.043333333333333356,
+        "ci_low": -0.05125318340204833,
+        "ci_high": -0.03273025593862544
+      },
+      {
+        "subgroup": "Northeast",
+        "rows": 12,
+        "treated_count": 6,
+        "control_count": 6,
+        "effect": -0.044999999999999964,
+        "ci_low": -0.06865877968046066,
+        "ci_high": -0.03387932175907667
+      },
+      {
+        "subgroup": "South",
+        "rows": 12,
+        "treated_count": 6,
+        "control_count": 6,
+        "effect": -0.044999999999999964,
+        "ci_low": -0.07534306266481128,
+        "ci_high": -0.03364748995298775
+      },
+      {
+        "subgroup": "West",
+        "rows": 12,
+        "treated_count": 6,
+        "control_count": 6,
+        "effect": -0.043333333333333106,
+        "ci_low": -0.10522817486630175,
+        "ci_high": -0.018995329980711195
+      }
+    ]
+  },
+  "lalonde_public_benchmark": {
+    "rows": 614,
+    "confounders": [
+      "age",
+      "educ",
+      "married",
+      "nodegree",
+      "re74",
+      "re75",
+      "race_black",
+      "race_hispanic"
+    ],
+    "results": [
+      {
+        "method": "RegressionAdjustmentEstimator",
+        "estimand": "ATE",
+        "effect": 1480.6609612042494,
+        "ci_low": 200.62506125308738,
+        "ci_high": 2515.375208205852,
+        "treated_count": 184,
+        "control_count": 360,
+        "diagnostics": {
+          "propensity_min": 0.03156607143793045,
+          "propensity_max": 0.8439138567124884,
+          "treated_mean_propensity": 0.5774028394308005,
+          "control_mean_propensity": 0.21600689252717278,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": -0.11273094836957342,
+            "educ": 0.04856816603983661,
+            "married": -0.5275962910081192,
+            "nodegree": 0.15041224374872095,
+            "re74": -0.3509123080691741,
+            "re75": -0.2073762906271877,
+            "race_black": 1.5310366234784782,
+            "race_hispanic": -0.34884472967400226
+          },
+          "balance_after": {
+            "age": -0.11273094836957342,
+            "educ": 0.04856816603983661,
+            "married": -0.5275962910081192,
+            "nodegree": 0.15041224374872095,
+            "re74": -0.3509123080691741,
+            "re75": -0.2073762906271877,
+            "race_black": 1.5310366234784782,
+            "race_hispanic": -0.34884472967400226
+          },
+          "variance_ratios": {
+            "age": 0.4685091997849152,
+            "educ": 0.5224491779045144,
+            "married": 0.6202617202498701,
+            "nodegree": 0.894279986673363,
+            "re74": 0.9013228931454788,
+            "re75": 1.1340384156170773,
+            "race_black": 0.7058765699117656,
+            "race_hispanic": 0.40046613983483803
+          },
+          "ess_treated": null,
+          "ess_control": null
+        },
+        "se": 778.2921343343347,
+        "p_value": 0.05765017697937161
+      },
+      {
+        "method": "PropensityMatcher",
+        "estimand": "ATT",
+        "effect": 1429.146070833333,
+        "ci_low": 230.22653386839545,
+        "ci_high": 2705.413642675318,
+        "treated_count": 184,
+        "control_count": 360,
+        "diagnostics": {
+          "propensity_min": 0.03156607143793045,
+          "propensity_max": 0.8439138567124884,
+          "treated_mean_propensity": 0.5774028394308005,
+          "control_mean_propensity": 0.21600689252717278,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": -0.11273094836957342,
+            "educ": 0.04856816603983661,
+            "married": -0.5275962910081192,
+            "nodegree": 0.15041224374872095,
+            "re74": -0.3509123080691741,
+            "re75": -0.2073762906271877,
+            "race_black": 1.5310366234784782,
+            "race_hispanic": -0.34884472967400226
+          },
+          "balance_after": {
+            "age": -0.007278908559992949,
+            "educ": -0.04759016219853851,
+            "married": 0.19216473443559323,
+            "nodegree": -0.09623395582896697,
+            "re74": 0.06353241484234598,
+            "re75": 0.028731374975441714,
+            "race_black": 0.02100960884096612,
+            "race_hispanic": -0.03002177368174217
+          },
+          "variance_ratios": {
+            "age": 0.4060861804736247,
+            "educ": 0.6516778077825491,
+            "married": 1.243989769820972,
+            "nodegree": 1.0551960411115342,
+            "re74": 1.5416208086469805,
+            "re75": 1.6706947832334933,
+            "race_black": 0.9777389786119597,
+            "race_hispanic": 0.9262152777777779
+          },
+          "ess_treated": 108.0,
+          "ess_control": 108.0
+        },
+        "se": 878.903524428852,
+        "p_value": 0.1039378103957811
+      },
+      {
+        "method": "IPWEstimator",
+        "estimand": "ATE",
+        "effect": 1463.9472999310256,
+        "ci_low": 318.03933396643043,
+        "ci_high": 3781.286263034996,
+        "treated_count": 184,
+        "control_count": 360,
+        "diagnostics": {
+          "propensity_min": 0.03156607143793045,
+          "propensity_max": 0.8439138567124884,
+          "treated_mean_propensity": 0.5774028394308005,
+          "control_mean_propensity": 0.21600689252717278,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": -0.11273094836957342,
+            "educ": 0.04856816603983661,
+            "married": -0.5275962910081192,
+            "nodegree": 0.15041224374872095,
+            "re74": -0.3509123080691741,
+            "re75": -0.2073762906271877,
+            "race_black": 1.5310366234784782,
+            "race_hispanic": -0.34884472967400226
+          },
+          "balance_after": {
+            "age": -0.08710866199231608,
+            "educ": 0.06813690107161571,
+            "married": -0.16688852922119712,
+            "nodegree": -0.0837941397270898,
+            "re74": -0.16843598753101163,
+            "re75": -0.08318691969589184,
+            "race_black": 0.09911511327582762,
+            "race_hispanic": 0.010270850756245467
+          },
+          "variance_ratios": {
+            "age": 0.4110328461081743,
+            "educ": 0.5550446966623543,
+            "married": 0.861585456232944,
+            "nodegree": 1.0498520019861126,
+            "re74": 1.2429239126835732,
+            "re75": 1.1467895979920908,
+            "race_black": 1.0121864207738993,
+            "race_hispanic": 1.0223041066063658
+          },
+          "ess_treated": 76.74945911883101,
+          "ess_control": 279.44499470339315
+        },
+        "se": 924.0380177612149,
+        "p_value": 0.11312697515171144
+      },
+      {
+        "method": "DoublyRobustEstimator",
+        "estimand": "ATE",
+        "effect": 1709.503487405228,
+        "ci_low": 535.4069985724122,
+        "ci_high": 2578.0395826429517,
+        "treated_count": 184,
+        "control_count": 360,
+        "diagnostics": {
+          "propensity_min": 0.03156607143793045,
+          "propensity_max": 0.8439138567124884,
+          "treated_mean_propensity": 0.5774028394308005,
+          "control_mean_propensity": 0.21600689252717278,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": -0.11273094836957342,
+            "educ": 0.04856816603983661,
+            "married": -0.5275962910081192,
+            "nodegree": 0.15041224374872095,
+            "re74": -0.3509123080691741,
+            "re75": -0.2073762906271877,
+            "race_black": 1.5310366234784782,
+            "race_hispanic": -0.34884472967400226
+          },
+          "balance_after": {
+            "age": -0.08935699623904042,
+            "educ": 0.0683287114419187,
+            "married": -0.1769119998624025,
+            "nodegree": -0.08130443857900621,
+            "re74": -0.16553592448999038,
+            "re75": -0.08116674340555957,
+            "race_black": 0.10494569022025652,
+            "race_hispanic": 0.012600419681207339
+          },
+          "variance_ratios": {
+            "age": 0.41154893940263076,
+            "educ": 0.5551237495123823,
+            "married": 0.8520754110216828,
+            "nodegree": 1.048565138548227,
+            "re74": 1.2488574821803067,
+            "re75": 1.1523801585308444,
+            "race_black": 1.0122877110606066,
+            "race_hispanic": 1.027367295392386
+          },
+          "ess_treated": 78.78432240617052,
+          "ess_control": 279.44499470339315
+        },
+        "se": 671.6377122219651,
+        "p_value": 0.010919133081418897
+      }
+    ],
+    "primary_sensitivity": {
+      "bias_to_zero_effect": 1709.503487405228,
+      "bias_to_zero_ci": 535.4069985724122,
+      "standardized_bias_to_zero_effect": 0.24264954603558064,
+      "standardized_bias_to_zero_ci": 0.07599649027043645,
+      "scenarios": [
+        {
+          "bias": 0.0,
+          "adjusted_effect": 1709.503487405228,
+          "adjusted_ci_low": 535.4069985724122,
+          "adjusted_ci_high": 2578.0395826429517
+        },
+        {
+          "bias": 427.37587185130707,
+          "adjusted_effect": 1282.127615553921,
+          "adjusted_ci_low": 108.03112672110518,
+          "adjusted_ci_high": 2150.6637107916445
+        },
+        {
+          "bias": 854.7517437026141,
+          "adjusted_effect": 854.7517437026139,
+          "adjusted_ci_low": -319.3447451302019,
+          "adjusted_ci_high": 1723.2878389403377
+        },
+        {
+          "bias": 1282.1276155539213,
+          "adjusted_effect": 427.3758718513068,
+          "adjusted_ci_low": -746.720616981509,
+          "adjusted_ci_high": 1295.9119670890304
+        },
+        {
+          "bias": 1709.5034874052283,
+          "adjusted_effect": -2.2737367544323206e-13,
+          "adjusted_ci_low": -1174.096488832816,
+          "adjusted_ci_high": 868.5360952377234
+        },
+        {
+          "bias": 2136.8793592565353,
+          "adjusted_effect": -427.37587185130724,
+          "adjusted_ci_low": -1601.472360684123,
+          "adjusted_ci_high": 441.1602233864164
+        }
+      ],
+      "e_value": 1.8021915969402214,
+      "e_value_ci": 1.3486085547506879
+    },
+    "subgroups": []
+  },
+  "nhefs_public_benchmark": {
+    "rows": 1566,
+    "confounders": [
+      "sex",
+      "race",
+      "age",
+      "school",
+      "smokeintensity",
+      "smokeyrs",
+      "exercise",
+      "active",
+      "wt71"
+    ],
+    "results": [
+      {
+        "method": "RegressionAdjustmentEstimator",
+        "estimand": "ATE",
+        "effect": 3.3341674140824518,
+        "ci_low": 2.2393722320170943,
+        "ci_high": 3.9295822307617794,
+        "treated_count": 403,
+        "control_count": 1163,
+        "diagnostics": {
+          "propensity_min": 0.04760305848287307,
+          "propensity_max": 0.7411417962498478,
+          "treated_mean_propensity": 0.29776283933039055,
+          "control_mean_propensity": 0.24331971118977605,
+          "overlap_ok": true,
+          "balance_before": {
+            "sex": -0.16012878671606764,
+            "race": -0.17691793421022026,
+            "age": 0.28198090994486114,
+            "school": 0.049053224496608296,
+            "smokeintensity": -0.21667463346400354,
+            "smokeyrs": 0.15891808232752366,
+            "exercise": 0.10358589696395079,
+            "active": 0.08871423577421006,
+            "wt71": 0.1332161872556066
+          },
+          "balance_after": {
+            "sex": -0.16012878671606764,
+            "race": -0.17691793421022026,
+            "age": 0.28198090994486114,
+            "school": 0.049053224496608296,
+            "smokeintensity": -0.21667463346400354,
+            "smokeyrs": 0.15891808232752366,
+            "exercise": 0.10358589696395079,
+            "active": 0.08871423577421006,
+            "wt71": 0.1332161872556066
+          },
+          "variance_ratios": {
+            "sex": 0.9977865085786558,
+            "race": 0.652867633656678,
+            "age": 1.0730751308305877,
+            "school": 1.231030102617406,
+            "smokeintensity": 1.1678768080283453,
+            "smokeyrs": 1.1846490497166995,
+            "exercise": 0.9077727505496805,
+            "active": 1.0645908508073518,
+            "wt71": 1.06058676400354
+          },
+          "ess_treated": null,
+          "ess_control": null
+        },
+        "se": 0.4409594321908831,
+        "p_value": 6.79265457494549e-14
+      },
+      {
+        "method": "PropensityMatcher",
+        "estimand": "ATT",
+        "effect": 3.2117884332647817,
+        "ci_low": 2.367152375833192,
+        "ci_high": 4.260865857236429,
+        "treated_count": 403,
+        "control_count": 1163,
+        "diagnostics": {
+          "propensity_min": 0.04760305848287307,
+          "propensity_max": 0.7411417962498478,
+          "treated_mean_propensity": 0.29776283933039055,
+          "control_mean_propensity": 0.24331971118977605,
+          "overlap_ok": true,
+          "balance_before": {
+            "sex": -0.16012878671606764,
+            "race": -0.17691793421022026,
+            "age": 0.28198090994486114,
+            "school": 0.049053224496608296,
+            "smokeintensity": -0.21667463346400354,
+            "smokeyrs": 0.15891808232752366,
+            "exercise": 0.10358589696395079,
+            "active": 0.08871423577421006,
+            "wt71": 0.1332161872556066
+          },
+          "balance_after": {
+            "sex": 0.025860262500167798,
+            "race": 0.027129609316543818,
+            "age": -0.017563108718374684,
+            "school": 0.06112100615406752,
+            "smokeintensity": -0.018820635855665204,
+            "smokeyrs": -0.010182679794232565,
+            "exercise": 0.017934745845047104,
+            "active": -0.0435224796359365,
+            "wt71": 0.04677749276886809
+          },
+          "variance_ratios": {
+            "sex": 1.0056333494286174,
+            "race": 1.0817160367722163,
+            "age": 0.9616192955945766,
+            "school": 1.0464190895927112,
+            "smokeintensity": 1.3953716006998516,
+            "smokeyrs": 1.083407702501494,
+            "exercise": 0.935815691158157,
+            "active": 0.9760262319423391,
+            "wt71": 1.3107925071325652
+          },
+          "ess_treated": 389.0,
+          "ess_control": 389.0
+        },
+        "se": 0.5361961467972406,
+        "p_value": 2.0990478244442556e-09
+      },
+      {
+        "method": "IPWEstimator",
+        "estimand": "ATE",
+        "effect": 3.2634978711907743,
+        "ci_low": 2.1075065164087547,
+        "ci_high": 4.012893977499098,
+        "treated_count": 403,
+        "control_count": 1163,
+        "diagnostics": {
+          "propensity_min": 0.04760305848287307,
+          "propensity_max": 0.7411417962498478,
+          "treated_mean_propensity": 0.29776283933039055,
+          "control_mean_propensity": 0.24331971118977605,
+          "overlap_ok": true,
+          "balance_before": {
+            "sex": -0.16012878671606764,
+            "race": -0.17691793421022026,
+            "age": 0.28198090994486114,
+            "school": 0.049053224496608296,
+            "smokeintensity": -0.21667463346400354,
+            "smokeyrs": 0.15891808232752366,
+            "exercise": 0.10358589696395079,
+            "active": 0.08871423577421006,
+            "wt71": 0.1332161872556066
+          },
+          "balance_after": {
+            "sex": -0.011862659342632099,
+            "race": -0.0005693987790223428,
+            "age": 0.031020565558339885,
+            "school": 0.020115796300941888,
+            "smokeintensity": 0.005017947179109594,
+            "smokeyrs": 0.020967386081261346,
+            "exercise": 0.005597303769041177,
+            "active": 0.011715213082477475,
+            "wt71": -0.008816407689490402
+          },
+          "variance_ratios": {
+            "sex": 1.000494322750639,
+            "race": 0.9987614620195786,
+            "age": 0.9961095385454821,
+            "school": 1.130878689329123,
+            "smokeintensity": 1.4029358832932037,
+            "smokeyrs": 1.1073601269049111,
+            "exercise": 0.9116639742139602,
+            "active": 0.9648523229411266,
+            "wt71": 1.0846330314366959
+          },
+          "ess_treated": 343.8363550323472,
+          "ess_control": 1139.3837274814848
+        },
+        "se": 0.5869047562055196,
+        "p_value": 2.6896615157312453e-08
+      },
+      {
+        "method": "DoublyRobustEstimator",
+        "estimand": "ATE",
+        "effect": 3.293647427944588,
+        "ci_low": 2.1395753349188826,
+        "ci_high": 4.040344599824692,
+        "treated_count": 403,
+        "control_count": 1163,
+        "diagnostics": {
+          "propensity_min": 0.04760305848287307,
+          "propensity_max": 0.7411417962498478,
+          "treated_mean_propensity": 0.29776283933039055,
+          "control_mean_propensity": 0.24331971118977605,
+          "overlap_ok": true,
+          "balance_before": {
+            "sex": -0.16012878671606764,
+            "race": -0.17691793421022026,
+            "age": 0.28198090994486114,
+            "school": 0.049053224496608296,
+            "smokeintensity": -0.21667463346400354,
+            "smokeyrs": 0.15891808232752366,
+            "exercise": 0.10358589696395079,
+            "active": 0.08871423577421006,
+            "wt71": 0.1332161872556066
+          },
+          "balance_after": {
+            "sex": -0.011862659342632321,
+            "race": -0.0005693987790222607,
+            "age": 0.031020565558339295,
+            "school": 0.020115796300941884,
+            "smokeintensity": 0.005017947179109308,
+            "smokeyrs": 0.02096738608126105,
+            "exercise": 0.005597303769041177,
+            "active": 0.011715213082477301,
+            "wt71": -0.008816407689491322
+          },
+          "variance_ratios": {
+            "sex": 1.0004943227506389,
+            "race": 0.9987614620195785,
+            "age": 0.9961095385454823,
+            "school": 1.1308786893291232,
+            "smokeintensity": 1.4029358832932037,
+            "smokeyrs": 1.107360126904911,
+            "exercise": 0.9116639742139601,
+            "active": 0.9648523229411263,
+            "wt71": 1.0846330314366963
+          },
+          "ess_treated": 343.8363550323473,
+          "ess_control": 1139.3837274814848
+        },
+        "se": 0.49697147871749936,
+        "p_value": 3.415645544180279e-11
+      }
+    ],
+    "primary_sensitivity": {
+      "bias_to_zero_effect": 3.293647427944588,
+      "bias_to_zero_ci": 2.1395753349188826,
+      "standardized_bias_to_zero_effect": 0.4179801844029769,
+      "standardized_bias_to_zero_ci": 0.2715227153476918,
+      "scenarios": [
+        {
+          "bias": 0.0,
+          "adjusted_effect": 3.293647427944588,
+          "adjusted_ci_low": 2.1395753349188826,
+          "adjusted_ci_high": 4.040344599824692
+        },
+        {
+          "bias": 0.823411856986147,
+          "adjusted_effect": 2.470235570958441,
+          "adjusted_ci_low": 1.3161634779327356,
+          "adjusted_ci_high": 3.2169327428385452
+        },
+        {
+          "bias": 1.646823713972294,
+          "adjusted_effect": 1.646823713972294,
+          "adjusted_ci_low": 0.49275162094658853,
+          "adjusted_ci_high": 2.393520885852398
+        },
+        {
+          "bias": 2.470235570958441,
+          "adjusted_effect": 0.823411856986147,
+          "adjusted_ci_low": -0.3306602360395585,
+          "adjusted_ci_high": 1.5701090288662511
+        },
+        {
+          "bias": 3.293647427944588,
+          "adjusted_effect": 0.0,
+          "adjusted_ci_low": -1.1540720930257056,
+          "adjusted_ci_high": 0.7466971718801041
+        },
+        {
+          "bias": 4.117059284930735,
+          "adjusted_effect": -0.823411856986147,
+          "adjusted_ci_low": -1.9774839500118526,
+          "adjusted_ci_high": -0.07671468510604296
+        }
+      ],
+      "e_value": 2.2856206271562596,
+      "e_value_ci": 1.8793301912184952
+    },
+    "subgroups": [
+      {
+        "subgroup": "female",
+        "rows": 762,
+        "treated_count": 220,
+        "control_count": 542,
+        "effect": 3.4047565426515463,
+        "ci_low": 2.293513450866888,
+        "ci_high": 4.753566532141058
+      },
+      {
+        "subgroup": "male",
+        "rows": 804,
+        "treated_count": 183,
+        "control_count": 621,
+        "effect": 3.113825199957976,
+        "ci_low": 1.7435839947337153,
+        "ci_high": 5.034339561656831
+      }
+    ]
+  },
+  "synthetic_validation_dataset": {
+    "rows": 600,
+    "confounders": [
+      "age",
+      "severity",
+      "baseline_score"
+    ],
+    "results": [
+      {
+        "method": "RegressionAdjustmentEstimator",
+        "estimand": "ATE",
+        "effect": 1.9846249321644263,
+        "ci_low": 1.8069397918112529,
+        "ci_high": 2.2310001115196507,
+        "treated_count": 403,
+        "control_count": 197,
+        "diagnostics": {
+          "propensity_min": 0.12586132054307952,
+          "propensity_max": 0.98035137471887,
+          "treated_mean_propensity": 0.7205072934028821,
+          "control_mean_propensity": 0.5717127866763474,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": 0.20375900567688587,
+            "severity": 0.7408039456760154,
+            "baseline_score": 0.2859083322486706
+          },
+          "balance_after": {
+            "age": 0.20375900567688587,
+            "severity": 0.7408039456760154,
+            "baseline_score": 0.2859083322486706
+          },
+          "variance_ratios": {
+            "age": 1.0215082784296456,
+            "severity": 0.8731032021922585,
+            "baseline_score": 1.0554734757541904
+          },
+          "ess_treated": null,
+          "ess_control": null
+        },
+        "se": 0.09549207618442111,
+        "p_value": 1.5341017594174085e-72
+      },
+      {
+        "method": "PropensityMatcher",
+        "estimand": "ATT",
+        "effect": 1.7069487424995728,
+        "ci_low": 1.402572928720663,
+        "ci_high": 2.407505405011735,
+        "treated_count": 403,
+        "control_count": 197,
+        "diagnostics": {
+          "propensity_min": 0.12586132054307952,
+          "propensity_max": 0.98035137471887,
+          "treated_mean_propensity": 0.7205072934028821,
+          "control_mean_propensity": 0.5717127866763474,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": 0.20375900567688587,
+            "severity": 0.7408039456760154,
+            "baseline_score": 0.2859083322486706
+          },
+          "balance_after": {
+            "age": -0.031153206892825875,
+            "severity": -0.04848336319048919,
+            "baseline_score": -0.07192474487177106
+          },
+          "variance_ratios": {
+            "age": 1.1119428569311578,
+            "severity": 0.8635959779930144,
+            "baseline_score": 1.0445266470064367
+          },
+          "ess_treated": 155.0,
+          "ess_control": 155.0
+        },
+        "se": 0.4234020216891975,
+        "p_value": 5.5420051344068355e-05
+      },
+      {
+        "method": "IPWEstimator",
+        "estimand": "ATE",
+        "effect": 1.927137190707402,
+        "ci_low": 1.610369618478195,
+        "ci_high": 2.1935281232207036,
+        "treated_count": 403,
+        "control_count": 197,
+        "diagnostics": {
+          "propensity_min": 0.12586132054307952,
+          "propensity_max": 0.98035137471887,
+          "treated_mean_propensity": 0.7205072934028821,
+          "control_mean_propensity": 0.5717127866763474,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": 0.20375900567688587,
+            "severity": 0.7408039456760154,
+            "baseline_score": 0.2859083322486706
+          },
+          "balance_after": {
+            "age": -0.005743355373370989,
+            "severity": -0.01564048706364949,
+            "baseline_score": 0.02585548896180889
+          },
+          "variance_ratios": {
+            "age": 1.1079632777550752,
+            "severity": 0.9925827519892573,
+            "baseline_score": 1.0300849238468532
+          },
+          "ess_treated": 350.1354855271612,
+          "ess_control": 140.39712053976024
+        },
+        "se": 0.8832034923403632,
+        "p_value": 0.029110604824800657
+      },
+      {
+        "method": "DoublyRobustEstimator",
+        "estimand": "ATE",
+        "effect": 1.9354540855590772,
+        "ci_low": 1.7356625729311412,
+        "ci_high": 2.1552237917257053,
+        "treated_count": 403,
+        "control_count": 197,
+        "diagnostics": {
+          "propensity_min": 0.12586132054307952,
+          "propensity_max": 0.98035137471887,
+          "treated_mean_propensity": 0.7205072934028821,
+          "control_mean_propensity": 0.5717127866763474,
+          "overlap_ok": true,
+          "balance_before": {
+            "age": 0.20375900567688587,
+            "severity": 0.7408039456760154,
+            "baseline_score": 0.2859083322486706
+          },
+          "balance_after": {
+            "age": -0.0057433553733678925,
+            "severity": -0.01564048706364953,
+            "baseline_score": 0.025855488961809562
+          },
+          "variance_ratios": {
+            "age": 1.107963277755076,
+            "severity": 0.9925827519892575,
+            "baseline_score": 1.0300849238468535
+          },
+          "ess_treated": 350.1354855271611,
+          "ess_control": 140.39712053976032
+        },
+        "se": 0.10234982894973098,
+        "p_value": 0.0
+      }
+    ],
+    "primary_sensitivity": {
+      "bias_to_zero_effect": 1.9354540855590772,
+      "bias_to_zero_ci": 1.7356625729311412,
+      "standardized_bias_to_zero_effect": 0.39403445518315194,
+      "standardized_bias_to_zero_ci": 0.3533593803178001,
+      "scenarios": [
+        {
+          "bias": 0.0,
+          "adjusted_effect": 1.9354540855590772,
+          "adjusted_ci_low": 1.7356625729311412,
+          "adjusted_ci_high": 2.1552237917257053
+        },
+        {
+          "bias": 0.48386352138976924,
+          "adjusted_effect": 1.4515905641693079,
+          "adjusted_ci_low": 1.251799051541372,
+          "adjusted_ci_high": 1.671360270335936
+        },
+        {
+          "bias": 0.9677270427795385,
+          "adjusted_effect": 0.9677270427795387,
+          "adjusted_ci_low": 0.7679355301516028,
+          "adjusted_ci_high": 1.1874967489461667
+        },
+        {
+          "bias": 1.4515905641693077,
+          "adjusted_effect": 0.4838635213897695,
+          "adjusted_ci_low": 0.2840720087618336,
+          "adjusted_ci_high": 0.7036332275563977
+        },
+        {
+          "bias": 1.935454085559077,
+          "adjusted_effect": 2.220446049250313e-16,
+          "adjusted_ci_low": -0.1997915126279357,
+          "adjusted_ci_high": 0.2197697061666284
+        },
+        {
+          "bias": 2.4193176069488462,
+          "adjusted_effect": -0.48386352138976907,
+          "adjusted_ci_low": -0.683655034017705,
+          "adjusted_ci_high": -0.2640938152231409
+        }
+      ],
+      "e_value": 2.216960137091581,
+      "e_value_ci": 2.102545537056023
+    },
+    "subgroups": [
+      {
+        "subgroup": "low",
+        "rows": 200,
+        "treated_count": 94,
+        "control_count": 106,
+        "effect": 1.991194736592792,
+        "ci_low": 1.616234732957918,
+        "ci_high": 2.2673179337887115
+      },
+      {
+        "subgroup": "mid",
+        "rows": 200,
+        "treated_count": 146,
+        "control_count": 54,
+        "effect": 2.090443851316616,
+        "ci_low": 1.8338515921852696,
+        "ci_high": 2.2948732827828984
+      },
+      {
+        "subgroup": "high",
+        "rows": 200,
+        "treated_count": 163,
+        "control_count": 37,
+        "effect": 1.7212112199936147,
+        "ci_low": 1.4162808559835767,
+        "ci_high": 2.0126117950140823
+      }
+    ]
+  },
+  "external_comparison": {
+    "rows": 6,
+    "all_match": true,
+    "datasets": [
+      "lalonde",
+      "nhefs"
+    ]
+  },
+  "stability_analysis": {
+    "rows": 12,
+    "datasets": [
+      "lalonde",
+      "nhefs",
+      "synthetic"
+    ],
+    "methods": [
+      "DoublyRobustEstimator",
+      "IPWEstimator",
+      "PropensityMatcher",
+      "RegressionAdjustmentEstimator"
+    ],
+    "quick_mode": true
+  },
+  "placebo_test": {
+    "outcome": "re74",
+    "all_pass": false,
+    "results": [
+      {
+        "placebo_outcome": "re74",
+        "method": "RegressionAdjustmentEstimator",
+        "effect": -1103.4173704795483,
+        "ci_low": -1724.8761231529295,
+        "ci_high": -372.80546584655457,
+        "passes": false
+      },
+      {
+        "placebo_outcome": "re74",
+        "method": "PropensityMatcher",
+        "effect": -988.5665997196262,
+        "ci_low": -1848.986534965952,
+        "ci_high": 1248.1088934493723,
+        "passes": true
+      },
+      {
+        "placebo_outcome": "re74",
+        "method": "IPWEstimator",
+        "effect": -2734.405828595222,
+        "ci_low": -3770.680397744775,
+        "ci_high": -2217.6602268001407,
+        "passes": false
+      },
+      {
+        "placebo_outcome": "re74",
+        "method": "DoublyRobustEstimator",
+        "effect": -2530.463292109368,
+        "ci_low": -3698.6131837788153,
+        "ci_high": -1661.3649530571668,
+        "passes": false
+      }
+    ]
+  },
+  "rosenbaum_sensitivity": {
+    "dataset": "lalonde",
+    "caliper": 0.05,
+    "gamma_at_loss_of_significance": 1.0,
+    "results": [
+      {
+        "gamma": 1.0,
+        "p_upper": 0.1129986812667243,
+        "significant_at_05": false
+      },
+      {
+        "gamma": 1.25,
+        "p_upper": 0.4169396723798835,
+        "significant_at_05": false
+      },
+      {
+        "gamma": 1.5,
+        "p_upper": 0.7276262472049871,
+        "significant_at_05": false
+      },
+      {
+        "gamma": 1.75,
+        "p_upper": 0.9029762396186529,
+        "significant_at_05": false
+      },
+      {
+        "gamma": 2.0,
+        "p_upper": 0.9716186716974026,
+        "significant_at_05": false
+      },
+      {
+        "gamma": 2.5,
+        "p_upper": 0.9983529607975136,
+        "significant_at_05": false
+      },
+      {
+        "gamma": 3.0,
+        "p_upper": 0.9999305414386794,
+        "significant_at_05": false
+      }
+    ]
+  }
+}

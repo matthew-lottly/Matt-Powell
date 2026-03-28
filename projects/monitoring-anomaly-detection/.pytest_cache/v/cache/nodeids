@@ -1,0 +1,6 @@
+[
+  "tests/test_pipeline.py::test_anomaly_detection_workflow_class",
+  "tests/test_pipeline.py::test_build_anomaly_report",
+  "tests/test_pipeline.py::test_export_anomaly_report",
+  "tests/test_pipeline.py::test_load_observations"
+]

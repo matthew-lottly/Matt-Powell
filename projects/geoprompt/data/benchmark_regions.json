@@ -1,0 +1,38 @@
+[
+  {
+    "region_id": "northwest-sector",
+    "region_name": "Northwest Sector",
+    "region_band": "north",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-112.02, 40.82], [-111.92, 40.82], [-111.92, 40.74], [-112.02, 40.74]]]
+    }
+  },
+  {
+    "region_id": "northeast-sector",
+    "region_name": "Northeast Sector",
+    "region_band": "north",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-111.92, 40.82], [-111.82, 40.82], [-111.82, 40.74], [-111.92, 40.74]]]
+    }
+  },
+  {
+    "region_id": "southwest-sector",
+    "region_name": "Southwest Sector",
+    "region_band": "south",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-112.02, 40.74], [-111.92, 40.74], [-111.92, 40.62], [-112.02, 40.62]]]
+    }
+  },
+  {
+    "region_id": "southeast-sector",
+    "region_name": "Southeast Sector",
+    "region_band": "south",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-111.92, 40.74], [-111.82, 40.74], [-111.82, 40.62], [-111.92, 40.62]]]
+    }
+  }
+]

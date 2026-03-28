@@ -1,0 +1,187 @@
+{
+  "projectName": "QGIS Operations Workbench",
+  "generatedAt": "2026-03-19T19:58:42Z",
+  "summary": {
+    "station_count": 4,
+    "categories": {
+      "air_quality": 1,
+      "hydrology": 1,
+      "infrastructure": 1,
+      "wildfire": 1
+    },
+    "statuses": {
+      "alert": 2,
+      "normal": 1,
+      "offline": 1
+    },
+    "regions": {
+      "Central": 1,
+      "East": 1,
+      "West": 2
+    }
+  },
+  "layers": [
+    {
+      "name": "station_review_points",
+      "source": "data/station_review_points.geojson",
+      "geometryType": "Point"
+    }
+  ],
+  "mapThemes": [
+    {
+      "name": "Alert Review",
+      "description": "Highlights high-priority or alert stations for the morning analyst pass.",
+      "featureIds": [
+        "station-west-air-001",
+        "station-central-fire-003"
+      ]
+    },
+    {
+      "name": "Field Readiness",
+      "description": "Shows stations due for inspection in route-oriented groups.",
+      "featureIds": [
+        "station-west-air-001",
+        "station-west-hydro-002",
+        "station-central-fire-003"
+      ]
+    },
+    {
+      "name": "Air Quality Review",
+      "description": "Focus theme for air quality operations.",
+      "featureIds": [
+        "station-west-air-001"
+      ]
+    },
+    {
+      "name": "Hydrology Review",
+      "description": "Focus theme for hydrology operations.",
+      "featureIds": [
+        "station-west-hydro-002"
+      ]
+    },
+    {
+      "name": "Infrastructure Review",
+      "description": "Focus theme for infrastructure operations.",
+      "featureIds": [
+        "station-east-infra-004"
+      ]
+    },
+    {
+      "name": "Wildfire Review",
+      "description": "Focus theme for wildfire operations.",
+      "featureIds": [
+        "station-central-fire-003"
+      ]
+    }
+  ],
+  "bookmarks": [
+    {
+      "name": "Central Operations",
+      "center": {
+        "longitude": -121.3153,
+        "latitude": 44.0582
+      },
+      "extentPadding": 0.35,
+      "featureCount": 1
+    },
+    {
+      "name": "East Operations",
+      "center": {
+        "longitude": -104.9903,
+        "latitude": 39.7392
+      },
+      "extentPadding": 0.35,
+      "featureCount": 1
+    },
+    {
+      "name": "West Operations",
+      "center": {
+        "longitude": -122.0855,
+        "latitude": 42.0524
+      },
+      "extentPadding": 0.35,
+      "featureCount": 2
+    }
+  ],
+  "layoutJobs": [
+    {
+      "layoutName": "West Daily Review",
+      "region": "West",
+      "mapScale": 24000,
+      "routeId": "route-west-01",
+      "stationNames": [
+        "Sierra Air Quality Node",
+        "Columbia River Gauge"
+      ]
+    },
+    {
+      "layoutName": "Central Smoke Ops",
+      "region": "Central",
+      "mapScale": 35000,
+      "routeId": "route-central-01",
+      "stationNames": [
+        "Cascade Smoke Watch"
+      ]
+    },
+    {
+      "layoutName": "East Asset Triage",
+      "region": "East",
+      "mapScale": 48000,
+      "routeId": "route-east-01",
+      "stationNames": [
+        "Plains Infrastructure Monitor"
+      ]
+    }
+  ],
+  "reviewTasks": [
+    {
+      "featureId": "station-central-fire-003",
+      "stationName": "Cascade Smoke Watch",
+      "region": "Central",
+      "category": "wildfire",
+      "priority": "high",
+      "status": "alert",
+      "recommendedAction": "Validate the latest wildfire readings and export a reviewer map for Central."
+    },
+    {
+      "featureId": "station-west-air-001",
+      "stationName": "Sierra Air Quality Node",
+      "region": "West",
+      "category": "air_quality",
+      "priority": "high",
+      "status": "alert",
+      "recommendedAction": "Validate the latest air quality readings and export a reviewer map for West."
+    },
+    {
+      "featureId": "station-west-hydro-002",
+      "stationName": "Columbia River Gauge",
+      "region": "West",
+      "category": "hydrology",
+      "priority": "medium",
+      "status": "normal",
+      "recommendedAction": "Include in the next standard inspection packet and verify recent field notes."
+    },
+    {
+      "featureId": "station-east-infra-004",
+      "stationName": "Plains Infrastructure Monitor",
+      "region": "East",
+      "category": "infrastructure",
+      "priority": "medium",
+      "status": "offline",
+      "recommendedAction": "Confirm device connectivity and flag the station for the next field route."
+    }
+  ],
+  "notes": [
+    "Designed as a public-safe QGIS-oriented operations pack.",
+    "The checked-in data is sample monitoring content for repeatable portfolio review.",
+    "The accompanying GeoPackage export can be loaded directly into QGIS as a starting review bundle."
+  ],
+  "artifacts": {
+    "charts": [
+      {
+        "name": "station_review_map",
+        "chart": "charts/station-review-map.png"
+      }
+    ]
+  }
+}

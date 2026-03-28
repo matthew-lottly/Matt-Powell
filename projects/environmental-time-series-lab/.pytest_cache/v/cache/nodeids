@@ -1,0 +1,6 @@
+[
+  "tests/test_lab.py::test_build_time_series_report",
+  "tests/test_lab.py::test_export_time_series_report",
+  "tests/test_lab.py::test_load_histories",
+  "tests/test_lab.py::test_time_series_lab_class"
+]

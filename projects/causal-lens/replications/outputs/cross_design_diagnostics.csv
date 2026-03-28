@@ -1,0 +1,9 @@
+design,estimand,key_assumption,diagnostic_name,diagnostic_value,passes,detail
+Bunching,Structural elasticity,Excess mass relative to smooth counterfactual,Excess mass ratio,49.76922013249839,True,"Excess mass = 49.769 in [93.72, 106.28] (positive bunching detected)"
+Difference-in-Differences,ATT,Parallel trends,Pre-trends F-test p-value,0.7810087990428869,True,Joint pre-trend interaction test p = 0.7810 across 2 pre-treatment periods (no evidence against parallel trends)
+Instrumental Variables,LATE,Relevance (strong instrument),First-stage F-statistic,144.0562184982091,True,First-stage F = 144.1 with 1 instrument(s) (>= 10.0 threshold)
+Observational,ATE/ATT,No unmeasured confounding,E-value,4.940940387711786,True,E-value = 4.94: confounder must have RR > 4.94 with both treatment and outcome to explain away the effect
+Observational,ATE/ATT,Covariate balance after adjustment,Max |SMD|,0.48669473128192914,False,Maximum absolute standardized mean difference = 0.4867 (>= 0.1 threshold)
+Observational,ATE/ATT,Conditional exchangeability,Overlap (positivity),1.0,True,Propensity-score ranges of treated and control groups overlap
+Regression Discontinuity,ATE at cutoff,Local continuity,Effective sample within bandwidth,152.0,True,152 observations within bandwidth h = 0.290 (adequate)
+Regression Discontinuity,ATE at cutoff,No manipulation of running variable,McCrary test p-value,0.871131491597158,True,McCrary density test p = 0.8711 (no evidence of manipulation)

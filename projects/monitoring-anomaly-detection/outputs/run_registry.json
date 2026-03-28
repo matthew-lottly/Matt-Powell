@@ -1,0 +1,24 @@
+{
+  "runs": [
+    {
+      "runLabel": "detector-comparison-pass",
+      "generatedAt": "2026-03-19T18:54:21.223487+00:00",
+      "reportName": "Monitoring Anomaly Detection",
+      "reportFile": "anomaly_report.json",
+      "stationCount": 3,
+      "selectedDetector": "global_zscore",
+      "selectedDetectorF1": 0.8,
+      "selectedAlertCount": 6
+    },
+    {
+      "runLabel": "detector-comparison-pass",
+      "generatedAt": "2026-03-19T19:49:16.262015+00:00",
+      "reportName": "Monitoring Anomaly Detection",
+      "reportFile": "anomaly_report.json",
+      "stationCount": 3,
+      "selectedDetector": "global_zscore",
+      "selectedDetectorF1": 0.8,
+      "selectedAlertCount": 6
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "runs": [
+    {
+      "runLabel": "candidate-classifier-review",
+      "generatedAt": "2026-03-19T18:46:11.157376+00:00",
+      "reportName": "Station Risk Classification Lab",
+      "reportFile": "station_risk_report.json",
+      "sampleCount": 9,
+      "selectedModel": "centroid_classifier",
+      "selectedAccuracy": 1.0,
+      "selectedF1": 1.0
+    },
+    {
+      "runLabel": "candidate-classifier-review",
+      "generatedAt": "2026-03-19T18:46:36.380952+00:00",
+      "reportName": "Station Risk Classification Lab",
+      "reportFile": "station_risk_report.json",
+      "sampleCount": 9,
+      "selectedModel": "centroid_classifier",
+      "selectedAccuracy": 1.0,
+      "selectedF1": 1.0
+    },
+    {
+      "runLabel": "candidate-classifier-review",
+      "generatedAt": "2026-03-19T19:46:14.362649+00:00",
+      "reportName": "Station Risk Classification Lab",
+      "reportFile": "station_risk_report.json",
+      "sampleCount": 9,
+      "selectedModel": "centroid_classifier",
+      "selectedAccuracy": 1.0,
+      "selectedF1": 1.0
+    }
+  ]
+}
