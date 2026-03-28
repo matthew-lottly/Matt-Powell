@@ -21,6 +21,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc
+          # Install a minimal TeXLive set sufficient for building most LaTeX documents
+          sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended latexmk
 
       - name: Install Python deps
         run: |
@@ -36,3 +38,21 @@ jobs:
       - name: Run pandoc converter
         working-directory: projects/strata/paper/submission_jmlr
         run: bash ./convert_with_pandoc.sh || true
+
+      - name: Build LaTeX PDF
+        working-directory: projects/strata/paper/submission_jmlr
+        run: |
+          if command -v latexmk >/dev/null 2>&1; then
+            latexmk -pdf -silent manuscript_draft.tex || true
+          else
+            pdflatex -interaction=nonstopmode manuscript_draft.tex || true
+            pdflatex -interaction=nonstopmode manuscript_draft.tex || true
+          fi
+        shell: bash
+
+      - name: Upload manuscript PDF as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript_draft_pdf
+          path: projects/strata/paper/submission_jmlr/manuscript_draft.pdf
