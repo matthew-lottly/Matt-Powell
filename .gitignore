@@ -7,4 +7,6 @@ __pycache__/
 build/
 dist/
 .venv/
+projects/
 standalone-checkouts/
+_strata_temp/

@@ -1,34 +1,11 @@
 {
-  "python.analysis.extraPaths": [
-    "./projects/strata/src",
-    "./standalone-checkouts/strata/src",
-    "./projects/monitoring-anomaly-detection/src",
-    "./standalone-checkouts/monitoring-anomaly-detection/src",
-    "./projects/environmental-time-series-lab/src",
-    "./projects/gulf-coast-inundation-lab/src",
-    "./projects/arroyo-flood-forecasting-lab/src",
-    "./standalone-checkouts/environmental-time-series-lab/src",
-    "./standalone-checkouts/gulf-coast-inundation-lab/src",
-    "./standalone-checkouts/arroyo-flood-forecasting-lab/src",
-    "./projects/station-forecasting-workbench/src",
-    "./projects/station-risk-classification-lab/src",
-    "./standalone-checkouts/station-forecasting-workbench/src",
-    "./standalone-checkouts/station-risk-classification-lab/src",
-    "./standalone-checkouts/environmental-monitoring-api/src",
-    "./projects/spatial-data-api/src",
-    "./standalone-checkouts/spatial-data-api/src",
-    "./projects/postgis-service-blueprint/src",
-    "./standalone-checkouts/postgis-service-blueprint/src",
-    "./projects/qgis-operations-workbench/src",
-    "./standalone-checkouts/qgis-operations-workbench/src",
-    "./projects/raster-monitoring-pipeline/src",
-    "./standalone-checkouts/raster-monitoring-pipeline/src"
-  ],
   "python.defaultInterpreterPath": "d:/GitHub/.venv/Scripts/python.exe",
   "python.analysis.exclude": [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
+    "./projects",
+    "./standalone-checkouts",
     "./standalone-repos"
   ]
 }

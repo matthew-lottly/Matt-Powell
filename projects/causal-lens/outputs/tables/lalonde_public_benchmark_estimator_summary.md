@@ -1,6 +1,0 @@
-| method | estimand | effect | se | p_value | ci_low | ci_high | overlap_ok | mean_abs_balance_before | mean_abs_balance_after | ess_treated | ess_control |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Regression adjustment | ATE | 1,480.661 | 778.292 | 0.058 | 200.625 | 2,515.375 | Yes | 0.410 | 0.410 |  |  |
-| Propensity matching | ATT | 1,429.146 | 878.904 | 0.104 | 230.227 | 2,705.414 | Yes | 0.410 | 0.061 | 108 | 108 |
-| IPW | ATE | 1,463.947 | 924.038 | 0.113 | 318.039 | 3,781.286 | Yes | 0.410 | 0.096 | 76.7 | 279 |
-| Doubly robust | ATE | 1,709.503 | 671.638 | 0.011 | 535.407 | 2,578.040 | Yes | 0.410 | 0.098 | 78.8 | 279 |
