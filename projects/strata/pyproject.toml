@@ -23,6 +23,8 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-cov",
+    "ruff>=0.4",
+    "pre-commit>=3.5",
 ]
 
 [tool.setuptools.packages.find]
@@ -30,3 +32,36 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = ["ignore::UserWarning"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "N803",   # argument name should be lowercase (math convention)
+    "N806",   # variable in function should be lowercase (math convention)
+    "B905",   # zip without strict (py3.10 compat)
+    "SIM108", # ternary operator
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hetero_conformal"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

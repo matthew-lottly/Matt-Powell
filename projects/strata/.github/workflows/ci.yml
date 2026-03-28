@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   tests:
@@ -38,3 +40,29 @@ jobs:
         with:
           name: paper-tables
           path: projects/strata/paper/tables
+
+  build_pdf:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-xetex biber
+
+      - name: Build LaTeX manuscript
+        working-directory: projects/strata/paper/submission_jmlr
+        run: |
+          pdflatex -interaction=nonstopmode manuscript_draft.tex || true
+          bibtex manuscript_draft || true
+          pdflatex -interaction=nonstopmode manuscript_draft.tex || true
+          pdflatex -interaction=nonstopmode manuscript_draft.tex || true
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-pdf
+          path: projects/strata/paper/submission_jmlr/manuscript_draft.pdf

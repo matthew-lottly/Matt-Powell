@@ -246,11 +246,12 @@ class PropagationAwareCalibrator(HeteroConformalCalibrator):
                     if dst_type != ntype or ei.shape[1] == 0:
                         continue
                     src_idx, dst_idx = ei[0], ei[1]
-                    for e in range(ei.shape[1]):
-                        s, d = int(src_idx[e]), int(dst_idx[e])
-                        if train_masks[src_type][s]:
-                            neighbor_sum[d] += train_residuals[src_type][s]
-                            neighbor_count[d] += 1
+                    # Vectorized: filter edges where source is in training set
+                    train_mask_src = train_masks[src_type][src_idx]
+                    valid_src = src_idx[train_mask_src]
+                    valid_dst = dst_idx[train_mask_src]
+                    np.add.at(neighbor_sum, valid_dst, train_residuals[src_type][valid_src])
+                    np.add.at(neighbor_count, valid_dst, 1.0)
                 safe_count = np.maximum(neighbor_count, 1.0)
                 frozen_neighbor_avg[ntype] = (neighbor_sum / safe_count).astype(np.float32)
             else:
@@ -260,10 +261,12 @@ class PropagationAwareCalibrator(HeteroConformalCalibrator):
                     if dst_type != ntype or ei.shape[1] == 0:
                         continue
                     src_idx, dst_idx = ei[0], ei[1]
-                    for e in range(ei.shape[1]):
-                        s, d = int(src_idx[e]), int(dst_idx[e])
-                        if train_masks[src_type][s]:
-                            neighbor_lists[d].append(float(train_residuals[src_type][s]))
+                    train_mask_src = train_masks[src_type][src_idx]
+                    valid_src = src_idx[train_mask_src]
+                    valid_dst = dst_idx[train_mask_src]
+                    valid_resid = train_residuals[src_type][valid_src]
+                    for e in range(len(valid_dst)):
+                        neighbor_lists[int(valid_dst[e])].append(float(valid_resid[e]))
 
                 agg = np.zeros(n, dtype=np.float32)
                 for i in range(n):

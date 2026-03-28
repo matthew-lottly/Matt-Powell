@@ -69,7 +69,7 @@ def mean_interval_width(result: ConformalResult) -> float:
     if not all_widths:
         return 0.0
     combined = np.concatenate(all_widths)
-    return float(np.mean(combined))
+    return float(np.mean(combined)) if len(combined) > 0 else 0.0
 
 
 def calibration_error(

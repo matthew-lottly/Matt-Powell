@@ -76,11 +76,12 @@ class LearnableLambdaCalibrator:
             for (src_type, rel, dst_type), ei in edge_index.items():
                 if dst_type != ntype or ei.shape[1] == 0:
                     continue
-                for e in range(ei.shape[1]):
-                    s, d = int(ei[0, e]), int(ei[1, e])
-                    if train_masks[src_type][s]:
-                        neighbor_sum[d] += train_resid[src_type][s]
-                        neighbor_count[d] += 1
+                src_idx, dst_idx = ei[0], ei[1]
+                train_mask_src = train_masks[src_type][src_idx]
+                valid_src = src_idx[train_mask_src]
+                valid_dst = dst_idx[train_mask_src]
+                np.add.at(neighbor_sum, valid_dst, train_resid[src_type][valid_src])
+                np.add.at(neighbor_count, valid_dst, 1.0)
             safe_count = np.maximum(neighbor_count, 1.0)
             frozen_avg[ntype] = (neighbor_sum / safe_count).astype(np.float32)
         return frozen_avg
@@ -570,11 +571,12 @@ class CQRCalibrator:
                 for (st, rel, dt), ei in edge_index.items():
                     if dt != ntype or ei.shape[1] == 0:
                         continue
-                    for e in range(ei.shape[1]):
-                        s, d = int(ei[0, e]), int(ei[1, e])
-                        if train_masks[st][s]:
-                            ns[d] += train_resid[st][s]
-                            nc[d] += 1
+                    src_idx, dst_idx = ei[0], ei[1]
+                    train_mask_src = train_masks[st][src_idx]
+                    valid_src = src_idx[train_mask_src]
+                    valid_dst = dst_idx[train_mask_src]
+                    np.add.at(ns, valid_dst, train_resid[st][valid_src])
+                    np.add.at(nc, valid_dst, 1.0)
                 avg = ns / np.maximum(nc, 1)
                 self._sigma[ntype] = (1.0 + self.neighborhood_weight * avg).astype(np.float32)
         else:

@@ -112,10 +112,13 @@ class MetaCalibrator:
             for (src_type, rel, dst_type), ei in edge_index.items():
                 if dst_type != ntype or ei.shape[1] == 0:
                     continue
-                for e in range(ei.shape[1]):
-                    s, d = int(ei[0, e]), int(ei[1, e])
-                    if train_masks[src_type][s]:
-                        neighbor_lists[d].append(float(train_resid[src_type][s]))
+                src_idx, dst_idx = ei[0], ei[1]
+                train_mask_src = train_masks[src_type][src_idx]
+                valid_src = src_idx[train_mask_src]
+                valid_dst = dst_idx[train_mask_src]
+                valid_resid = train_resid[src_type][valid_src]
+                for e in range(len(valid_dst)):
+                    neighbor_lists[int(valid_dst[e])].append(float(valid_resid[e]))
 
             # Aggregate to fixed-size features
             feat = np.zeros((n, 4), dtype=np.float32)

@@ -151,17 +151,15 @@ def conditional_coverage_by_degree(
     This diagnostic reveals whether propagation-aware calibration
     adapts well to connectivity patterns.
     """
-    # Compute degree per node type
+    # Compute degree per node type (vectorized)
     degree: Dict[str, np.ndarray] = {}
     for ntype in num_nodes:
         degree[ntype] = np.zeros(num_nodes[ntype], dtype=np.int64)
     for (src_t, rel, dst_t), ei in edge_index.items():
         if ei.shape[1] == 0:
             continue
-        for e in range(ei.shape[1]):
-            d = int(ei[1, e])
-            if d < len(degree[dst_t]):
-                degree[dst_t][d] += 1
+        dst_idx = ei[1]
+        np.add.at(degree[dst_t], dst_idx, 1)
 
     out: Dict[str, Dict[str, np.ndarray]] = {}
     for ntype in result.lower:

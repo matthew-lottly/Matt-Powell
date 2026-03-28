@@ -33,6 +33,17 @@ from hetero_conformal.diagnostics import (
     spatial_autocorrelation_test,
     full_diagnostic_report,
 )
+from hetero_conformal.streaming import (
+    StreamingConformalCalibrator,
+    AdaptiveConformalCalibrator,
+)
+from hetero_conformal.explainability import (
+    interval_decomposition,
+    calibration_curve_data,
+    uncertainty_attribution,
+    coverage_by_feature_bin,
+)
+from hetero_conformal.hyperparam_search import grid_search, random_search
 
 __all__ = [
     # Core data structures
@@ -70,4 +81,15 @@ __all__ = [
     "nonexchangeability_test",
     "spatial_autocorrelation_test",
     "full_diagnostic_report",
+    # Streaming / Online
+    "StreamingConformalCalibrator",
+    "AdaptiveConformalCalibrator",
+    # Explainability
+    "interval_decomposition",
+    "calibration_curve_data",
+    "uncertainty_attribution",
+    "coverage_by_feature_bin",
+    # Hyperparameter search
+    "grid_search",
+    "random_search",
 ]
