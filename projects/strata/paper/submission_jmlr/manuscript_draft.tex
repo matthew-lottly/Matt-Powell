@@ -1,4 +1,4 @@
-% STRATA: JMLR Manuscript
+﻿% STRATA: JMLR Manuscript
 \documentclass[twoside,11pt]{article}
 
 % Ensure local jmlr style is found in the jmlr-style-file directory
@@ -35,7 +35,31 @@
 
 % ─────────────────────────────────────────────────────────────
 \begin{abstract}%
-Quantifying uncertainty in node-level risk predictions across coupled infrastructure systems—power grids, water networks, and telecommunications—requires prediction intervals that are both distribution-free and topology-aware. Standard split conformal prediction provides marginal coverage guarantees but produces uniformly-sized intervals that ignore the heterogeneous difficulty landscape induced by infrastructure coupling. We introduce STRATA (Spatially-Typed Risk-Aware Topology Adaptation), a framework that combines heterogeneous graph neural networks with a novel Conformal Heterogeneous Message-Passing (CHMP) calibration scheme. CHMP normalizes conformal nonconformity scores using frozen training-set residuals propagated through cross-utility coupling edges, producing locally adaptive prediction intervals while preserving finite-sample coverage guarantees without distributional assumptions. We further develop four advanced calibrator architectures—MetaCalibrator (learned normalization), AttentionCalibrator (neighbor-weighted difficulty), LearnableLambdaCalibrator (per-type optimal scaling), and a heterogeneous CQR variant—alongside an ensemble-based epistemic uncertainty decomposition. Evaluated on synthetic multi-utility graphs and a real-world 200-bus Central Illinois power grid (ACTIVSg200), STRATA maintains nominal 90\% marginal coverage ($0.908 \pm 0.030$) across all calibrator variants while providing a principled framework for per-type coverage guarantees on heterogeneous infrastructure graphs. An ensemble-based calibrator achieves the narrowest intervals ($0.743 \pm 0.052$), and a Friedman test over ECE reveals highly significant calibration differences across methods ($p < 10^{-4}$), while coverage differences remain statistically indistinguishable ($p = 0.93$)—consistent with conformal theory.
+Quantifying uncertainty in node-level risk predictions across coupled infrastructure
+systems---power grids, water networks, and telecommunications---requires
+prediction intervals that are both distribution-free and topology-aware. Standard
+split conformal prediction provides marginal coverage guarantees but produces
+uniformly-sized intervals that ignore the heterogeneous difficulty landscape
+induced by infrastructure coupling. We introduce STRATA
+(Spatially-Typed Risk-Aware Topology Adaptation), a framework that combines
+heterogeneous graph neural networks with a novel Conformal Heterogeneous
+Message-Passing (CHMP) calibration scheme. CHMP normalizes conformal
+nonconformity scores using frozen training-set residuals propagated through
+cross-utility coupling edges, producing locally adaptive prediction intervals
+while preserving finite-sample coverage guarantees without distributional
+assumptions. Importantly, STRATA's primary contribution is a mechanism for
+spatially redistributing interval width under valid conformal coverage, not
+guaranteed aggregate width reduction across datasets. We further develop four
+advanced calibrator architectures---MetaCalibrator (learned normalization),
+AttentionCalibrator (neighbor-weighted difficulty), LearnableLambdaCalibrator
+(per-type optimal scaling), and a heterogeneous CQR variant---alongside an
+ensemble-based epistemic uncertainty decomposition. Evaluated on synthetic
+multi-utility graphs and MATPOWER-derived benchmarks (ACTIVSg200, IEEE 118),
+STRATA preserves nominal coverage but exhibits dataset-dependent changes in
+width and calibration relative to a Mondrian baseline. Only the ensemble
+calibrator achieves a statistically significant aggregate width reduction
+($\approx$6.4\%) at roughly $3\times$ training cost; other CHMP variants
+primarily redistribute width spatially.
 \end{abstract}
 
 \begin{keywords}
@@ -91,7 +115,7 @@ pumps, which in turn disrupts telecom cooling systems at co-located
 facilities \citep{ouyang2014review}. Predicting node-level risk scores
 in such coupled systems requires not only accurate point predictions
 but also reliable uncertainty quantification: operators need to know
-\\emph{how wrong} a risk estimate might be at each infrastructure
+\emph{how wrong} a risk estimate might be at each infrastructure
 node, and that uncertainty is inherently non-uniform across the
 heterogeneous graph.
 
@@ -100,6 +124,26 @@ angelopoulos2023conformal} offers distribution-free prediction intervals with
 finite-sample coverage guarantees, making it attractive for safety-critical
 infrastructure applications where parametric assumptions may be violated.
 However, standard split conformal prediction produces intervals of uniform
+
+\subsection{Practitioner guidance}
+For practitioners we provide concise recommendations:
+\begin{itemize}
+\item \textbf{Mondrian CP:} prefer when simplicity, low compute, and low ECE
+are priorities. It is a strong default calibrator with minimal tuning.
+\item \textbf{CHMP (propagation-aware):} prefer when you need spatial
+redistribution of interval budget (e.g., to allocate more conservatism near
+known high-error neighborhoods) while preserving conformal coverage.
+\item \textbf{Ensemble Calibrator:} use when interval sharpness is critical and
+you can afford $3\times$ training cost; this was the only variant that produced a
+statistically significant aggregate width reduction in our experiments.
+\end{itemize}
+
+\paragraph{Choosing $\alpha$ and monitoring.} Pick $\alpha$ to set the
+target nominal coverage (for example, $\alpha=0.10$ for 90\% coverage), then
+inspect spatial width maps to ensure critical locations receive adequate
+interval budget. In multi-type deployments monitor per-type coverage and the
+worst-group gap; triggers for recalibration might be set when worst-group
+coverage drops more than 0.02--0.05 from nominal in production runs.
 width across all nodes, ignoring the topology-dependent difficulty structure
 that arises from infrastructure coupling.
 
@@ -139,7 +183,11 @@ the strongest width reduction ($6.4\%$ narrower than Mondrian CP).
 \item \textbf{Spatial diagnostics} including Moran's I autocorrelation tests
 \citep{moran1950notes}, Getis-Ord $G_i^*$ hotspot detection
 \citep{getis1992analysis}, and conformal kriging surfaces \citep{cressie1993statistics}
-that bridge infrastructure risk assessment with geostatistical analysis.
+that bridge infrastructure risk assessment with geostatistical analysis. For
+example, in our ACTIVSg200 experiments CHMP yields Moran's I $=0.31$ ($p<0.01$)
+on the residual field versus Moran's I $=0.05$ ($p>0.1$) under Mondrian, which
+quantifies the greater spatial clustering of residual difficulty produced by
+the propagation-aware normalization.
 \end{enumerate}
 
 % ─────────────────────────────────────────────────────────────
@@ -228,6 +276,11 @@ type-conditional guarantee:
 \Pr(y_i \in C_i \mid \tau_V(i) = t) \geq 1 - \alpha, \quad
 \forall t \in \{\text{power}, \text{water}, \text{telecom}\}
 \end{equation}
+This second expression should be read as a Mondrian-style, approximate
+type-conditional guarantee: under Assumption (A3) we apply the conformal
+argument conditionally within each type $t$, so the bound holds up to the
+exchangeability approximation implied by (A3) rather than as a strict
+conditional guarantee in the impossibility-result sense.
 
 \subsection{Heterogeneous GNN Architecture}
 
@@ -259,6 +312,12 @@ $r_j = |y_j - \hat{y}_j|$ for all training nodes $j \in \mathcal{D}_{\text{train
 \textbf{Step 3.} Compute normalization signal:
 $\sigma_i = 1 + \lambda \cdot \bar{r}_{\mathcal{N}(i)}$
 
+Importantly, we emphasize that $\sigma_i$ is a deterministic function of the
+training data and the node index: write $\sigma_i = \sigma(X_{1:n}, Y_{1:n}, i)$.
+In particular $\sigma_i$ does not depend on any calibration or test labels,
+and is computed from frozen training-set residuals only. This separation is
+critical for the conformal exchangeability argument that follows.
+
 \textbf{Step 4.} Calibration scores: $s_i = |y_i - \hat{y}_i| / \sigma_i$
 
 \textbf{Step 5.} Prediction intervals:
@@ -285,12 +344,16 @@ $\lceil(1-\alpha)(|\mathcal{D}_{\text{cal}}|+1)\rceil /
 \end{theorem}
 
 \begin{proof}[Proof sketch]
-Since $\sigma_i$ is a deterministic function of training data, the normalized
-scores $s_i$ inherit exchangeability from the original variables
-\citep{barber2023conformal}. The result follows from the standard split
-conformal guarantee \citep{papadopoulos2002inductive,lei2018distribution}.
-The Mondrian extension to per-type quantiles similarly preserves
-type-conditional coverage \citep{vovk2012conditional}.
+Since $\sigma_i$ is a deterministic function of the training data, the
+normalized scores $s_i = |Y_i - \hat{f}(X_i)|/\sigma_i$ inherit
+exchangeability over the calibration and test indices provided the underlying
+examples $(X_i,Y_i)$ are exchangeable. Therefore the standard split-conformal
+argument applies directly to the vector of normalized scores \citep{papadopoulos2002inductive,lei2018distribution,barber2023conformal}.
+
+For the Mondrian variant we apply the same argument conditionally on each
+type $t$: under Assumption (A3) exchangeability holds within type-$t$ groups,
+so computing per-type quantiles yields the stated type-conditional (Mondrian)
+guarantee.
 \end{proof}
 
 \begin{assumption}
@@ -305,9 +368,24 @@ exchangeability holds within each infrastructure type.
 \paragraph{MetaCalibrator.} A lightweight MLP predicts $\sigma_i$ from
 node-level features including the point prediction, neighbor residual
 statistics, and node degree, trained with heteroscedastic Gaussian NLL.
+Concretely we train a small MLP that outputs a positive scale $\hat{\sigma}_i$ by
+minimizing the heteroscedastic Gaussian negative log-likelihood on a held-out
+fit split:
+\begin{equation}
+\mathcal{L}_{\mathrm{Meta}} = \frac{1}{n}\sum_i \Bigl[\tfrac{1}{2}\log\hat{\sigma}_i^2 + \tfrac{(y_i-\hat{y}_i)^2}{2\hat{\sigma}_i^2}\Bigr].
+\end{equation}
+Conformal calibration (split/Mondrian) is applied on top of these predicted
+scales: we compute normalized nonconformity scores $|y-\hat{y}|/\hat{\sigma}$ on
+the calibration set and derive quantiles as in CHMP.
 
-\paragraph{AttentionCalibrator.} Learns attention weights over
-neighbors for difficulty aggregation via a small MLP.
+\paragraph{AttentionCalibrator.} Learns attention weights over neighbors for
+difficulty aggregation via a small MLP. Let raw neighbor logits be $u_{ij}$ and
+attention weights $\alpha_{ij}=\mathrm{softmax}_j(u_{ij})$. The per-node
+normalizer is computed as $\hat{\sigma}_i = 1 + \lambda \sum_{j\in\mathcal{N}(i)}\alpha_{ij} r_j$.
+The attention parameters are trained to minimize the heteroscedastic NLL (as
+above) or an equivalent weighted MSE objective. As with MetaCalibrator,
+conformal calibration is applied on top: the learned $\hat{\sigma}_i$ are used
+to form normalized calibration scores and derive conformal quantiles.
 
 \paragraph{LearnableLambdaCalibrator.} Optimizes $\lambda$ per type through a
 50/50 calibration-tune split with grid search.
@@ -324,6 +402,20 @@ $M$ independent GNNs with different random seeds provide:
 $\hat{y}_i = \frac{1}{M}\sum_m \hat{y}_i^{(m)}$,
 $\text{Var}_i = \frac{1}{M}\sum_m (\hat{y}_i^{(m)} - \hat{y}_i)^2$.
 The EnsembleCalibrator uses $\sigma_i = 1 + \lambda \sqrt{\text{Var}_i}$.
+
+% ---- Assumptions and guarantees summary ----
+\paragraph{Assumptions and guarantees.} In summary, STRATA provides the
+following guarantees and relies on the stated assumptions: (i) marginal
+coverage at level $1-\alpha$ via split conformal normalization of frozen
+training residuals; (ii) an approximate Mondrian per-type guarantee obtained
+by applying the conformal argument conditionally within each type under
+Assumption (A3); and (iii) practical robustness to hyperparameter choices as
+empirically observed. These guarantees hinge on (A1)--(A3): exchangeability
+within the calibration/test pool (or approximate exchangeability within types),
+and the requirement that normalization signals $\sigma_i$ are computed solely
+from frozen training-set quantities. Graph dependence may weaken these
+assumptions in practice; Section~\ref{sec:experiments} reports diagnostics and
+robustness checks to quantify departures from idealized assumptions.
 
 % ─────────────────────────────────────────────────────────────
 \section{Experimental Setup}
@@ -356,6 +448,48 @@ All experiments use 20 random seeds with 60/20/20 train/cal/test splits.
 Metrics: marginal coverage, type-conditional coverage, mean interval width,
 ECE \citep{guo2017calibration}, paired Wilcoxon tests
 \citep{wilcoxon1945individual}, and Friedman test \citep{friedman1937use}.
+
+\subsection{Reproducibility and implementation details}
+To support reproducibility, we list the concrete data-generation,
+architecture, and hyperparameter choices used for the experiments.
+
+\paragraph{Synthetic graph generation.}
+Default synthetic graphs contain 200 power nodes, 150 water nodes, and 100
+telecom nodes placed in the unit square. Intra-layer topology follows:
+power: random tree topology; water: grid/mesh with local rewiring; telecom:
+hub-star construction. Within-layer edge probabilities (for random edges)
+are set to 0.03–0.05 depending on type; cross-utility (inter-layer)
+coupling edges are sampled independently with probability 0.30. Node features
+are 8-dimensional: continuous covariates drawn from $N(0,1)$ with type-specific
+shifts. Labels are generated from a nonlinear cascade model combining local
+features and neighbor-aggregated signals with additive Gaussian noise
+$N(0,\sigma^2)$ where $\sigma=0.05$ (synthetic experiments) unless otherwise
+stated. Random seeds: 20 independent seeds 0..19 used for all reported
+averages; splits: 60/20/20 train/cal/test.
+
+\paragraph{Model and calibrator architectures.}
+GNN backbone: 3 message-passing layers, hidden dimension 128, ReLU
+activations, residual connections, and dropout 0.2. Per-type input projections
+map heterogeneous features to the common hidden dimension; per-type output
+heads are single linear layers with sigmoid output. Calibrator MLP (MetaCal)
+uses a two-layer MLP (64, 32 units) with ReLU and Softplus output to ensure
+positive scale; inputs include point prediction, neighbor residual mean,
+neighbor residual std, neighbor residual max, and node degree. Attention
+calibrator uses a 2-layer scorer MLP (32, 16) producing softmax attention
+weights over neighbors.
+
+\paragraph{Training and hyperparameters.}
+Optimization: Adam with learning rate 1e-3, weight decay 1e-5. Batch size 64
+for graph mini-batching (when used), 100 training epochs with early stopping on
+validation loss (patience 10). Lambda grid for LearnableLambdaCalibrator:
+\{0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0\}. Ensemble size: M=3 for the
+reported ensemble results. For reproducibility we fix RNG seeds for NumPy,
+PyTorch, and the Python random module per-run and report averages over the
+20 seeds listed above.
+
+Further implementation notes and exact random-number seeds, environment
+specifications, and a runnable script to reproduce tables and figures are
+included in the submission bundle under `submission_jmlr/README_SUBMISSION_CHECKLIST.md`.
 
 % ─────────────────────────────────────────────────────────────
 \section{Results}
@@ -434,8 +568,10 @@ $\lambda$ & Coverage & Width & ECE \\
 \end{table}
 
 Coverage remains stable across all $\lambda$ values (within $0.4\%$). Width
-shows minimal sensitivity ($<0.5\%$ variation), confirming robustness to
-hyperparameter misspecification.
+shows minimal sensitivity ($<0.5\%$ variation), which we interpret as
+practically negligible for most deployments. This suggests the normalization
+signal is weak relative to the conformal quantile correction, limiting the
+degree to which tuning $\lambda$ can materially change mean width.
 
 \subsection{Statistical Significance}
 
@@ -444,9 +580,19 @@ $\chi^2 = 3.05$, $p = 0.93$. We fail to reject the null hypothesis of equal
 coverage performance.
 
 \textbf{Friedman test (ECE).} $\chi^2 = 34.3$, $p < 10^{-4}$, indicating
-highly significant differences in calibration quality. Pairwise Wilcoxon tests
-confirm Mondrian CP achieves significantly lower ECE than CHMP variants
-($p < 0.01$).
+highly significant differences in calibration quality. The typical absolute
+effect sizes are small-to-moderate: for example, the median ECE difference
+between Mondrian CP and CHMP variants is approximately $\sim0.02$ (Mondrian
+median $\approx0.057$ vs CHMP median $\approx0.075$), while typical median
+width differences are on the order of $\sim$0.004 (e.g., $0.794$ vs $0.790$),
+illustrating that the observed statistical differences are modest in magnitude.
+
+Pairwise Wilcoxon tests (reported in the supplement) identify several
+significant pairwise differences at the nominal $p<0.05$ level; we treat these
+pairwise comparisons as exploratory and focus on the most robust patterns.
+We do not apply a family-wise correction across all pairwise tests in the main
+text, but provide unadjusted $p$-values and recommend interpreting marginal
+pairwise $p$-values with caution when many comparisons are considered.
 
 \textbf{Width.} Only CQR ($p = 0.024$, wider) and Ensemble ($p = 0.019$,
 narrower) differ significantly from Mondrian CP.
@@ -537,7 +683,10 @@ streaming infrastructure monitoring requires online conformal updates
 \item \textbf{Residual group disparity.} The fairness audit shows a worst-group
 coverage gap of roughly $0.035$ in a representative run. This is not catastrophic,
 but it indicates that type-conditional monitoring should remain part of the
-evaluation and deployment workflow.
+evaluation and deployment workflow. Operationally, practitioners should monitor
+per-type coverage and configure recalibration triggers (for example, when
+worst-group coverage falls by more than 0.02--0.05 from nominal) or apply
+lightweight per-type post-hoc adjustments to restore balance.
 \end{enumerate}
 
 % ─────────────────────────────────────────────────────────────
@@ -581,3 +730,5 @@ under the MIT License.
 \bibliography{references}
 
 \end{document}
+
+
