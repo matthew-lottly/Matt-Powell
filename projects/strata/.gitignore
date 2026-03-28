@@ -34,8 +34,10 @@ outputs/*.csv
 outputs/*.png
 outputs/*.md
 
-# Paper drafts (in progress)
-# (tracked for submission)
+# Paper / submission (tracked in monorepo, excluded from standalone)
+paper/
+REFERENCES.md
+PUBLISHING.md
 
 # Data (large files)
 data/*.csv

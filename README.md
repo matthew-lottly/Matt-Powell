@@ -25,6 +25,8 @@ I build practical systems around data-heavy problems. My work spans enterprise G
 - [projects/station-forecasting-workbench](projects/station-forecasting-workbench) for the forecasting data science lane
 - [projects/station-risk-classification-lab](projects/station-risk-classification-lab) for the classification data science lane
 - [projects/experience-builder-station-brief-widget](projects/experience-builder-station-brief-widget) for the GIS frontend prototype lane
+- [projects/causal-lens](projects/causal-lens) for the causal inference and observational study lane
+- [projects/strata](projects/strata) for the conformal prediction and GNN uncertainty quantification lane
 - [standalone-checkouts](standalone-checkouts) for real standalone repository checkouts
 - [docs/publishing/repo-split-plan.md](docs/publishing/repo-split-plan.md) for the standalone repo roadmap
 - [docs/next-gis-repo-sequence.md](docs/next-gis-repo-sequence.md) for the next non-Esri GIS expansion plan
@@ -110,6 +112,8 @@ Start with the flagship backend project, then move outward by lane.
 | [projects/raster-monitoring-pipeline](projects/raster-monitoring-pipeline) | Raster Analysis | Python pipeline for raster snapshot comparison, hotspot ranking, and downstream monitoring summaries. |
 | [projects/gulf-coast-inundation-lab](projects/gulf-coast-inundation-lab) | Remote Sensing | Google Earth Engine and Python workflow for Landsat-based inundation-frequency mapping, QA masking, and gauge-correlation validation summaries. |
 | [projects/experience-builder-station-brief-widget](projects/experience-builder-station-brief-widget) | GIS Frontend | Public-safe React and TypeScript widget prototype inspired by ArcGIS Experience Builder patterns, with conceptual visuals and selection-driven station summaries. |
+| [projects/causal-lens](projects/causal-lens) | Data Science | Causal inference toolkit for observational monitoring data with propensity scoring, matching, sensitivity analysis, and treatment-effect estimation. |
+| [projects/strata](projects/strata) | Data Science | Conformal prediction framework for heterogeneous infrastructure graphs with GNN-based uncertainty quantification, per-type coverage guarantees, and propagation-aware calibration. |
 
 ## Project Cards
 
@@ -221,6 +225,18 @@ Frontend GIS project focused on widget-style interaction patterns, station filte
 Demo asset: [projects/experience-builder-station-brief-widget/assets/widget-live-screenshot.png](projects/experience-builder-station-brief-widget/assets/widget-live-screenshot.png)
 Site map: [projects/experience-builder-station-brief-widget/docs/site-map.md](projects/experience-builder-station-brief-widget/docs/site-map.md)
 Demo narrative: [projects/experience-builder-station-brief-widget/docs/demo-storyboard.md](projects/experience-builder-station-brief-widget/docs/demo-storyboard.md)
+
+### Causal Lens
+
+Causal inference project focused on propensity scoring, matching, sensitivity analysis, and treatment-effect estimation for observational monitoring data.
+
+Standalone repo: [github.com/matthew-lottly/causal-lens](https://github.com/matthew-lottly/causal-lens)
+
+### STRATA
+
+Conformal prediction and GNN uncertainty quantification project focused on heterogeneous infrastructure graphs with per-type coverage guarantees, propagation-aware calibration, and real power-grid validation.
+
+Standalone repo: [github.com/matthew-lottly/strata](https://github.com/matthew-lottly/strata)
 
 ## Next GIS Expansion
 

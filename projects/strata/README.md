@@ -38,17 +38,24 @@ src/hetero_conformal/
 ├── metrics.py             # Coverage, efficiency, calibration error metrics
 ├── diagnostics.py         # Bootstrap CIs, statistical tests, non-exchangeability
 ├── geo_integration.py     # Geoprompt hooks: spatial layouts, kriging, hotspots
+├── real_data.py           # ACTIVSg200 real power-grid loader + adapter
 └── experiment.py          # Train/calibrate/test pipeline and ablation runner
 
 scripts/
 ├── run_benchmark.py       # Full 9-step benchmark suite
+├── run_lambda_only.py     # Lambda sensitivity sweep
 └── plot_paper_figures.py  # Publication-ready figures (PDF/SVG)
 
 tests/
 ├── test_graph.py
 ├── test_model.py
 ├── test_conformal.py
-└── test_metrics.py
+├── test_metrics.py
+├── test_advanced.py       # Advanced calibrator tests
+└── test_real_data.py      # Real data integration tests
+
+data/
+└── case_ACTIVSg200.m      # Illinois 200-bus synthetic grid (MATPOWER format)
 ```
 
 ## Quick Start

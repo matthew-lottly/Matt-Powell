@@ -1,7 +1,7 @@
 """Full benchmark: 20-seed comparison, CSV output, tables, plots, and maps.
 
 Usage:
-    cd projects/conformal-heterogeneous-gnn
+    cd projects/strata
     python scripts/run_benchmark.py
 
 Part of the STRATA project.
