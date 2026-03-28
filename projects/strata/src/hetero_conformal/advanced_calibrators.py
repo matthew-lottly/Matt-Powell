@@ -109,13 +109,26 @@ class LearnableLambdaCalibrator:
                 continue
 
             # Split cal into tune/eval (50/50)
+            # Skip lambda search if calibration set too small for reliable tuning
             rng = np.random.default_rng(42)
             perm = rng.permutation(n_cal)
             n_tune = n_cal // 2
+            cal_resid = np.abs(labels[ntype] - predictions[ntype])
+
+            if n_tune < 10:
+                # Too few samples for reliable lambda tuning; default to λ=0
+                best_lam = 0.0
+                self.optimal_lambdas[ntype] = best_lam
+                sigma = 1.0 + best_lam * frozen_avg[ntype]
+                self._sigma[ntype] = sigma
+                normalized = cal_resid[cal_mask] / sigma[cal_mask]
+                level = min(np.ceil((n_cal + 1) * (1 - self.alpha)) / n_cal, 1.0)
+                self.quantiles[ntype] = float(np.quantile(normalized, level))
+                continue
+
             tune_idx = cal_indices[perm[:n_tune]]
             eval_idx = cal_indices[perm[n_tune:]]
 
-            cal_resid = np.abs(labels[ntype] - predictions[ntype])
             best_lam = 0.0
             best_width = float("inf")
 

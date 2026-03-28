@@ -185,7 +185,7 @@ class MetaCalibrator:
             for _ in range(self.meta_epochs):
                 sigma = net(train_feat)
                 # Heteroscedastic Gaussian NLL: (r²)/(2σ²) + log(σ)
-                loss = (train_resid ** 2) / (2 * sigma ** 2) + torch.log(sigma)
+                loss = (train_resid ** 2) / (2 * sigma ** 2) + torch.log(sigma + 1e-8)
                 loss = loss.mean()
                 optimizer.zero_grad()
                 loss.backward()

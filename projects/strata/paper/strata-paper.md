@@ -6,7 +6,7 @@
 
 ## Abstract
 
-Quantifying uncertainty in node-level risk predictions across coupled infrastructure systems—power grids, water networks, and telecommunications—requires prediction intervals that are both distribution-free and topology-aware. Standard split conformal prediction provides marginal coverage guarantees but produces uniformly-sized intervals that ignore the heterogeneous difficulty landscape induced by infrastructure coupling. We introduce **STRATA** (Spatially-Typed Risk-Aware Topology Adaptation), a framework that combines heterogeneous graph neural networks with a novel **Conformal Heterogeneous Message-Passing (CHMP)** calibration scheme. CHMP normalizes conformal nonconformity scores using frozen training-set residuals propagated through cross-utility coupling edges, producing locally adaptive prediction intervals while preserving finite-sample coverage guarantees without distributional assumptions. We further develop four advanced calibrator architectures—MetaCalibrator (learned normalization), AttentionCalibrator (neighbor-weighted difficulty), LearnableLambdaCalibrator (per-type optimal scaling), and a heterogeneous CQR variant—alongside an ensemble-based epistemic uncertainty decomposition. Evaluated on synthetic multi-utility graphs and a real-world 200-bus Central Illinois power grid (ACTIVSg200), STRATA achieves nominal 90% marginal coverage with 15–25% narrower intervals than vanilla Mondrian conformal prediction, while maintaining type-conditional coverage across power, water, and telecom subsystems. Spatial diagnostics reveal significant Moran's I autocorrelation in coverage patterns, confirming the value of propagation-aware calibration in infrastructure networks.
+Quantifying uncertainty in node-level risk predictions across coupled infrastructure systems—power grids, water networks, and telecommunications—requires prediction intervals that are both distribution-free and topology-aware. Standard split conformal prediction provides marginal coverage guarantees but produces uniformly-sized intervals that ignore the heterogeneous difficulty landscape induced by infrastructure coupling. We introduce **STRATA** (Spatially-Typed Risk-Aware Topology Adaptation), a framework that combines heterogeneous graph neural networks with a novel **Conformal Heterogeneous Message-Passing (CHMP)** calibration scheme. CHMP normalizes conformal nonconformity scores using frozen training-set residuals propagated through cross-utility coupling edges, producing locally adaptive prediction intervals while preserving finite-sample coverage guarantees without distributional assumptions. We further develop four advanced calibrator architectures—MetaCalibrator (learned normalization), AttentionCalibrator (neighbor-weighted difficulty), LearnableLambdaCalibrator (per-type optimal scaling), and a heterogeneous CQR variant—alongside an ensemble-based epistemic uncertainty decomposition. Evaluated on synthetic multi-utility graphs and a real-world 200-bus Central Illinois power grid (ACTIVSg200), STRATA maintains nominal 90% marginal coverage ($0.908 \pm 0.030$) across all calibrator variants while providing a principled framework for per-type coverage guarantees on heterogeneous infrastructure graphs. An ensemble-based calibrator achieves the narrowest intervals ($0.743 \pm 0.052$), and a Friedman test over ECE reveals highly significant calibration differences across methods ($p < 10^{-4}$), while coverage differences remain statistically indistinguishable ($p = 0.93$)—consistent with conformal theory. Spatial diagnostics reveal significant Moran's I autocorrelation in coverage patterns, confirming the value of propagation-aware calibration in infrastructure networks.
 
 ---
 
@@ -20,9 +20,9 @@ Critical infrastructure systems—electric power, water distribution, and teleco
 
 We address these limitations with **STRATA**, a framework that integrates three key innovations:
 
-1. **Conformal Heterogeneous Message Passing (CHMP)**: A propagation-aware calibration scheme that normalizes nonconformity scores using frozen training-set residuals propagated through the infrastructure coupling topology. By treating neighbor difficulty as a fixed constant derived solely from training data, CHMP produces locally adaptive intervals while preserving conformal validity [8].
+1. **Conformal Heterogeneous Message Passing (CHMP)**: A propagation-aware calibration scheme that normalizes nonconformity scores using frozen training-set residuals propagated through the infrastructure coupling topology. By treating neighbor difficulty as a fixed constant derived solely from training data, CHMP produces locally adaptive intervals while preserving conformal validity [8]. Rather than reducing aggregate interval width, CHMP *redistributes* width across nodes—giving wider intervals to nodes in high-difficulty neighborhoods and narrower intervals to low-difficulty nodes.
 
-2. **A family of advanced calibrators** that learn the normalization function from data: a MetaCalibrator using heteroscedastic Gaussian NLL [22], an AttentionCalibrator using learned neighbor weights [32], a LearnableLambdaCalibrator with per-type grid-search, and a heterogeneous CQR variant [6] that trains quantile heads on frozen GNN representations.
+2. **A family of advanced calibrators** that learn the normalization function from data: a MetaCalibrator using heteroscedastic Gaussian NLL [22], an AttentionCalibrator using learned neighbor weights [32], a LearnableLambdaCalibrator with per-type grid-search, and a heterogeneous CQR variant [6] that trains quantile heads on frozen GNN representations. An ensemble-based calibrator using epistemic variance [20] achieves the strongest width reduction ($6.4\%$ narrower than Mondrian CP).
 
 3. **Spatial diagnostics** including Moran's I autocorrelation tests [26], Getis-Ord Gi* hotspot detection [27], and conformal kriging surfaces [35] that bridge infrastructure risk assessment with geostatistical analysis.
 
@@ -126,9 +126,15 @@ and calibration scores become $s_i = |y_i - \hat{y}_i| / \sigma_i$.
 
 $$C_i = [\hat{y}_i - \hat{q}_{\tau(i)} \cdot \sigma_i, \; \hat{y}_i + \hat{q}_{\tau(i)} \cdot \sigma_i]$$
 
-**Validity.** Because $\sigma_i$ depends only on frozen training-set residuals $\{r_j\}_{j \in \mathcal{D}_{\text{train}}}$ (which are fixed constants at calibration time), the normalized scores $\{s_i\}_{i \in \mathcal{D}_{\text{cal}}}$ remain exchangeable [8], and the conformal coverage guarantee holds:
+**Validity.** Because $\sigma_i$ depends only on frozen training-set residuals $\{r_j\}_{j \in \mathcal{D}_{\text{train}}}$ (which are fixed constants at calibration time), the normalized scores $\{s_i\}_{i \in \mathcal{D}_{\text{cal}}}$ remain exchangeable [8], and the conformal coverage guarantee holds.
 
-$$\Pr(y_{\text{test}} \in C_{\text{test}}) \geq 1 - \alpha$$
+**Theorem 1 (CHMP Coverage Guarantee).** Let $\{(X_i, Y_i)\}_{i=1}^{n+1}$ be exchangeable random variables, let $\hat{f}$ be a regression function trained on $\mathcal{D}_{\text{train}}$ (disjoint from the calibration and test sets), and let $\sigma_i = 1 + \lambda \cdot \bar{r}_{\mathcal{N}(i)}$ where $\bar{r}_{\mathcal{N}(i)}$ is computed exclusively from frozen training-set residuals $\{|Y_j - \hat{f}(X_j)|\}_{j \in \mathcal{D}_{\text{train}}}$. Define the normalized nonconformity scores $s_i = |Y_i - \hat{f}(X_i)| / \sigma_i$ for $i \in \mathcal{D}_{\text{cal}} \cup \{n+1\}$. Let $\hat{q}$ be the $\lceil(1-\alpha)(|\mathcal{D}_{\text{cal}}|+1)\rceil / |\mathcal{D}_{\text{cal}}|$ quantile of $\{s_i\}_{i \in \mathcal{D}_{\text{cal}}}$. Then:
+
+$$\Pr(Y_{n+1} \in [\hat{f}(X_{n+1}) - \hat{q} \cdot \sigma_{n+1}, \; \hat{f}(X_{n+1}) + \hat{q} \cdot \sigma_{n+1}]) \geq 1 - \alpha$$
+
+*Proof sketch.* Since $\sigma_i$ is a deterministic function of training data (fixed before calibration), it acts as a constant scaling factor on the nonconformity scores. The normalized scores $s_i = |Y_i - \hat{f}(X_i)| / \sigma_i$ inherit exchangeability from the original variables $\{(X_i, Y_i)\}$ [8, Theorem 2]. The result then follows from the standard split conformal guarantee [3, 4]. The Mondrian extension to per-type quantiles $\hat{q}_t$ similarly preserves type-conditional coverage under exchangeability within each type [5]. $\square$
+
+**Assumptions.** (A1) Exchangeability of calibration and test data conditioned on the training set. (A2) The normalization signal $\sigma_i$ is computed solely from training-set quantities and is strictly positive ($\sigma_i \geq 1$ by construction). (A3) For Mondrian type-conditional coverage, exchangeability holds within each infrastructure type. Note that (A1) may be violated in graph settings where node labels depend on neighbor features through message passing; CHMP mitigates this by absorbing neighbor information into $\sigma_i$ via training residuals, but does not formally restore exchangeability on graph-dependent data.
 
 **Intuition.** The scaling factor $\sigma_i$ is larger for nodes whose training neighbors had high prediction error, producing wider intervals. This captures the insight that infrastructure nodes near high-error regions (e.g., at coupling boundaries) require more conservative uncertainty quantification.
 
@@ -246,71 +252,138 @@ We compare nine calibration methods:
 
 ### 5.1 Baseline Comparison
 
-[TABLE: Insert 20-seed baseline comparison from outputs/baseline_comparison.csv]
+Table 1 summarizes the baseline calibration methods (Mondrian CP and three CHMP aggregation variants) across 20 random seeds.
 
-The baseline comparison across 20 seeds demonstrates that all CHMP variants achieve the nominal 90% marginal coverage target. Key findings:
+**Table 1.** Baseline comparison (20 seeds, $\alpha = 0.10$). Coverage target: $\geq 0.90$.
 
-- **Coverage validity**: All methods maintain marginal coverage $\geq 0.90$ on average across seeds, consistent with theoretical guarantees.
-- **Width efficiency**: CHMP variants produce narrower prediction intervals than vanilla Mondrian CP while maintaining valid coverage.
-- **Floor sigma effect**: The `chmp_median_floor` variant produces intervals distinct from `chmp_median`, confirming that the floor parameter actively influences normalization for nodes with low-residual neighbors.
-- **Type-conditional coverage**: Per-type coverage remains balanced across power, water, and telecom subsystems, with power and water nodes typically achieving slightly higher coverage than telecom nodes (attributable to the hub topology's higher connectivity variance).
+| Method | Marginal Coverage | Mean Width | ECE |
+|--------|:-:|:-:|:-:|
+| Mondrian CP | $0.908 \pm 0.032$ | $0.794 \pm 0.072$ | $0.057 \pm 0.022$ |
+| CHMP (mean) | $0.908 \pm 0.030$ | $0.793 \pm 0.071$ | $0.080 \pm 0.020$ |
+| CHMP (median) | $0.908 \pm 0.030$ | $0.794 \pm 0.071$ | $0.078 \pm 0.021$ |
+| CHMP (median + floor) | $0.908 \pm 0.032$ | $0.794 \pm 0.072$ | $0.067 \pm 0.023$ |
+
+All four methods achieve the nominal 90% coverage target, consistent with conformal theory. Several observations are notable:
+
+- **Coverage equivalence.** All methods produce statistically indistinguishable marginal coverage (Friedman $p = 0.93$), confirming that CHMP's normalization preserves the conformal guarantee without inflating or deflating coverage.
+- **Width similarity.** Mean interval widths are nearly identical across methods ($<0.2\%$ difference), indicating that on this graph topology, CHMP's propagation-aware normalization does not significantly reduce aggregate width. The primary effect of CHMP is *redistributing* width across nodes—giving wider intervals to nodes in high-difficulty neighborhoods and narrower intervals to nodes in low-difficulty neighborhoods—rather than reducing total width.
+- **ECE trade-off.** Mondrian CP achieves the lowest ECE ($0.057$), while CHMP variants show higher ECE ($0.067$–$0.080$). This reflects a known trade-off: propagation-aware normalization improves local adaptivity at the cost of bin-level calibration, since nodes receiving adjusted widths may fall into different quantile bins.
+
+**Table 2.** Per-type coverage and width breakdown (20 seeds).
+
+| Method | Power Cov | Power Width | Water Cov | Water Width | Telecom Cov | Telecom Width |
+|--------|:-:|:-:|:-:|:-:|:-:|:-:|
+| Mondrian CP | $0.902 \pm 0.058$ | $0.761 \pm 0.092$ | $0.901 \pm 0.051$ | $0.754 \pm 0.112$ | $0.928 \pm 0.071$ | $0.921 \pm 0.164$ |
+| CHMP (mean) | $0.901 \pm 0.051$ | $0.758 \pm 0.086$ | $0.904 \pm 0.048$ | $0.755 \pm 0.112$ | $0.928 \pm 0.071$ | $0.922 \pm 0.166$ |
+| CHMP (median) | $0.901 \pm 0.051$ | $0.758 \pm 0.086$ | $0.903 \pm 0.049$ | $0.755 \pm 0.111$ | $0.928 \pm 0.071$ | $0.923 \pm 0.167$ |
+| CHMP (median + floor) | $0.903 \pm 0.055$ | $0.758 \pm 0.088$ | $0.901 \pm 0.051$ | $0.756 \pm 0.112$ | $0.928 \pm 0.071$ | $0.923 \pm 0.166$ |
+
+Per-type coverage is maintained across all infrastructure subsystems ($\geq 0.90$ for each type on average), validating the Mondrian splitting approach. Telecom nodes exhibit the widest intervals ($\sim 0.92$ vs. $\sim 0.76$ for power/water), reflecting the higher variance in hub-topology telecom features and fewer calibration samples.
 
 ### 5.2 Lambda Sensitivity Analysis
 
-[FIGURE: Insert lambda_sensitivity.png]
+The propagation weight $\lambda$ controls the degree of topology-adaptive calibration. At $\lambda = 0$, CHMP reduces to standard Mondrian CP. Table 3 shows results across $\lambda \in \{0.0, 0.1, 0.3, 0.5, 1.0\}$.
 
-The propagation weight $\lambda$ controls the degree of topology-adaptive calibration. At $\lambda = 0$, CHMP reduces to standard Mondrian CP. As $\lambda$ increases from 0 to 1.0:
-- Coverage remains stable (near 90%) across all values, confirming the conformal guarantee is robust to $\lambda$ choice.
-- Mean interval width initially decreases (better efficiency) before increasing for large $\lambda$ (over-adaptation), with optimal efficiency near $\lambda \in [0.2, 0.5]$.
+**Table 3.** Lambda sensitivity (20 seeds, $\alpha = 0.10$).
+
+| $\lambda$ | Coverage | Width | ECE |
+|:-:|:-:|:-:|:-:|
+| 0.0 | $0.916 \pm 0.033$ | $0.792 \pm 0.078$ | $0.056$ |
+| 0.1 | $0.916 \pm 0.032$ | $0.791 \pm 0.077$ | $0.069$ |
+| 0.3 | $0.916 \pm 0.029$ | $0.789 \pm 0.075$ | $0.067$ |
+| 0.5 | $0.915 \pm 0.029$ | $0.788 \pm 0.073$ | $0.069$ |
+| 1.0 | $0.912 \pm 0.029$ | $0.791 \pm 0.071$ | $0.071$ |
+
+Coverage remains stable across all $\lambda$ values (within $0.4\%$), confirming that the conformal guarantee is robust to the propagation weight. Width shows minimal sensitivity ($<0.5\%$ variation), with a slight minimum near $\lambda = 0.5$. The practical implication is that CHMP's benefit is primarily in *spatial redistribution* of interval widths rather than aggregate width reduction, and the method is robust to $\lambda$ misspecification.
 
 ### 5.3 Alpha Sweep (Calibration Curve)
 
-[FIGURE: Insert alpha_calibration.png]
+Table 4 confirms distribution-free coverage validity across multiple miscoverage levels.
 
-Empirical coverage tracks the target $1 - \alpha$ across $\alpha \in \{0.05, 0.10, 0.15, 0.20\}$, confirming distribution-free validity at multiple miscoverage levels. The calibration curve demonstrates that STRATA's coverage guarantee holds universally across confidence levels.
+**Table 4.** Alpha sweep (20 seeds).
+
+| $\alpha$ | Target | Empirical Coverage | Width |
+|:-:|:-:|:-:|:-:|
+| 0.05 | 0.95 | $0.961 \pm 0.021$ | $1.032 \pm 0.137$ |
+| 0.10 | 0.90 | $0.911 \pm 0.032$ | $0.790 \pm 0.074$ |
+| 0.15 | 0.85 | $0.866 \pm 0.041$ | $0.670 \pm 0.062$ |
+| 0.20 | 0.80 | $0.815 \pm 0.049$ | $0.589 \pm 0.059$ |
+
+Empirical coverage consistently meets or exceeds the target $1 - \alpha$ at all levels, with slight over-coverage attributable to the finite-sample ceiling correction $\lceil (1-\alpha)(n+1) \rceil / n$. Interval width scales monotonically with the confidence level.
 
 ### 5.4 Advanced Calibrator Comparison
 
-[TABLE: Insert advanced_comparison.csv]
+Table 5 compares all nine calibration methods, including the four advanced calibrators and the ensemble approach.
 
-The four advanced calibrators and ensemble method extend CHMP with learned normalization:
+**Table 5.** Full method comparison (20 seeds, $\alpha = 0.10$). Best width in bold (among methods with valid coverage).
 
-- **MetaCalibrator**: Achieves competitive coverage with learned per-node difficulty, often producing the most spatially coherent interval patterns.
-- **AttentionCalibrator**: Selective neighbor weighting provides slight width improvements over uniform CHMP aggregation.
-- **LearnableLambda**: Per-type $\lambda$ optimization consistently achieves valid coverage with near-optimal width.
-- **CQR**: Asymmetric intervals capture skewed risk distributions, with propagation-aware normalization improving efficiency over standalone CQR.
-- **Ensemble**: Epistemic variance provides a complementary uncertainty signal, particularly effective for nodes in under-sampled graph regions.
+| Method | Marginal Coverage | Mean Width | ECE |
+|--------|:-:|:-:|:-:|
+| Mondrian CP | $0.908 \pm 0.032$ | $0.794 \pm 0.072$ | $\mathbf{0.057}$ |
+| CHMP (mean) | $0.908 \pm 0.030$ | $0.793 \pm 0.071$ | $0.080$ |
+| CHMP (median) | $0.908 \pm 0.030$ | $0.794 \pm 0.071$ | $0.078$ |
+| CHMP (median + floor) | $0.908 \pm 0.032$ | $0.794 \pm 0.072$ | $0.067$ |
+| MetaCalibrator | $0.916 \pm 0.027$ | $0.792 \pm 0.069$ | $0.075$ |
+| AttentionCalibrator | $0.914 \pm 0.027$ | $0.790 \pm 0.070$ | $0.070$ |
+| LearnableLambda | $0.914 \pm 0.026$ | $0.788 \pm 0.064$ | $0.065$ |
+| CQR + propagation | $0.900 \pm 0.034$ | $0.838 \pm 0.063$ | $0.083$ |
+| **Ensemble (M=3)** | $0.920 \pm 0.030$ | $\mathbf{0.743 \pm 0.052}$ | $0.073$ |
+
+Key findings:
+
+- **Ensemble dominance.** The ensemble-based calibrator ($M=3$) achieves the narrowest intervals ($0.743$), a $6.4\%$ reduction from Mondrian CP ($0.794$), while maintaining valid coverage ($0.920$). This confirms that epistemic variance provides a stronger normalization signal than neighbor-residual propagation, at the cost of $3\times$ training time.
+- **Advanced calibrators.** MetaCalibrator, AttentionCalibrator, and LearnableLambda achieve slightly narrower intervals ($0.788$–$0.792$) than baseline CHMP/Mondrian ($0.793$–$0.794$), with improvements under $1\%$. Their primary advantage is more balanced per-type width distributions (see Table 6).
+- **CQR underperformance.** CQR with propagation produces the widest intervals ($0.838$, $5.5\%$ wider than Mondrian) and the lowest coverage ($0.900$, just at the nominal threshold). This suggests that quantile head training on the frozen GNN representations is insufficiently expressive for this heterogeneous graph structure, and the added model complexity does not translate to improved calibration.
+
+**Table 6.** Per-type width comparison for advanced methods (20 seeds).
+
+| Method | Power Width | Water Width | Telecom Width |
+|--------|:-:|:-:|:-:|
+| Mondrian CP | $0.761$ | $0.754$ | $0.921$ |
+| CHMP (mean) | $0.758$ | $0.755$ | $0.922$ |
+| MetaCalibrator | $0.796$ | $0.752$ | $0.845$ |
+| AttentionCalibrator | $0.790$ | $0.754$ | $0.846$ |
+| LearnableLambda | $0.790$ | $0.749$ | $0.845$ |
+| Ensemble (M=3) | $0.724$ | $0.736$ | $0.789$ |
+
+The advanced calibrators (Meta, Attention, LearnableLambda) produce more *balanced* per-type widths: telecom intervals narrow from $0.92$ to $0.85$ (an $8\%$ improvement) while power intervals widen slightly from $0.76$ to $0.79$. This width redistribution reflects the learned normalization functions adapting to per-type difficulty: telecom nodes in hub topologies have higher neighbor-aggregated residuals, receiving more aggressive normalization. The ensemble method narrows all types uniformly.
 
 ### 5.5 Statistical Significance
 
-Paired Wilcoxon signed-rank tests across 20 seeds confirm [direction of significance]. The Friedman test across all methods yields [statistic], indicating [significant/non-significant] differences in rank-order performance.
+**Friedman test (coverage).** Across all nine methods and 20 seeds, the Friedman test yields $\chi^2 = 3.05$, $p = 0.93$. We **fail to reject** the null hypothesis of equal rank-order performance in coverage. This is expected: conformal prediction guarantees marginal coverage regardless of the normalization strategy, so all methods should produce statistically equivalent coverage.
+
+**Friedman test (ECE).** The Friedman test for ECE yields $\chi^2 = 34.3$, $p < 10^{-4}$, indicating **highly significant** differences in calibration quality across methods. Pairwise Wilcoxon tests confirm that Mondrian CP achieves significantly lower ECE than CHMP mean ($p < 0.001$), CHMP median ($p < 0.001$), CQR ($p = 0.001$), and MetaCalibrator ($p = 0.015$). Only LearnableLambda ($p = 0.30$) is statistically indistinguishable from Mondrian CP in ECE.
+
+**Width significance.** Pairwise Wilcoxon tests for width find no significant differences between Mondrian CP and any CHMP variant ($p > 0.50$). Only CQR ($p = 0.024$, wider) and Ensemble ($p = 0.019$, narrower) differ significantly from Mondrian CP.
 
 ### 5.6 Real-World Evaluation (ACTIVSg200)
 
-On the ACTIVSg200 200-bus Central Illinois power grid:
+On the ACTIVSg200 200-bus Central Illinois power grid (single seed, diagnostic run):
 
-- **Marginal coverage**: 0.9175 (target: 0.90) — exceeds target
-- **Type-conditional coverage**: Power 0.94, Water 0.93, Telecom 0.85
-- **Mean interval width**: 0.517
-- **ECE**: 0.040
+- **Marginal coverage**: 0.894 (target: 0.90)
+- **Type-conditional coverage**: Power 0.94, Water 0.84, Telecom 0.88
+- **Mean interval width**: 0.774
+- **ECE**: 0.061
 
-The telecom layer shows lower coverage (0.85 < 0.90), attributable to fewer hub nodes and higher feature variance. This suggests that sparse utility subsystems may benefit from the floor sigma mechanism to prevent under-coverage.
+Water coverage falls below the nominal target ($0.84 < 0.90$), while power exceeds it ($0.94 > 0.90$). This imbalance reflects the construction of the water layer from power demand heuristics: water nodes derived from low-demand power buses receive less informative features, leading to higher prediction error and under-coverage. The telecom layer similarly shows coverage below target ($0.88$), though closer to the nominal level.
+
+We note that the water and telecom layers are *synthetically derived* from the power topology (Section 4.2) rather than sourced from independent utility datasets. This limits the strength of multi-type conclusions from this evaluation; the synthetic multi-utility graphs provide a more controlled testbed for cross-type calibration behavior.
 
 ### 5.7 Spatial Diagnostics
 
-[FIGURE: Insert spatial_diagnostics.png]
-
 Moran's I tests on coverage indicators reveal significant positive spatial autocorrelation ($I > 0, p < 0.05$) in the synthetic data, confirming that nearby infrastructure nodes tend to share coverage outcomes. This spatial clustering validates the core premise of propagation-aware calibration: local difficulty is indeed correlated through the graph topology.
 
-The Wald-Wolfowitz runs test detects non-exchangeability in conformal score sequences when nodes are ordered by graph traversal, further supporting the need for topology-aware calibration.
+The Wald-Wolfowitz runs test detects non-exchangeability in conformal score sequences when nodes are ordered by graph traversal, further supporting the need for topology-aware calibration approaches. While CHMP does not eliminate this spatial structure (it is an inherent property of the graph), it provides a principled framework for accounting for it within the conformal prediction paradigm.
 
 ---
 
 ## 6. Discussion
 
-### 6.1 Why Propagation-Aware Calibration Works
+### 6.1 Why Propagation-Aware Calibration Matters
 
 The effectiveness of CHMP rests on a simple observation: in coupled infrastructure networks, prediction error is not independent across nodes. A power substation serving as a water system's electrical supply creates a dependency where errors in power-node predictions correlate with errors at the coupled water node. By propagating frozen training residuals through these coupling edges, CHMP captures this correlation structure without violating conformal validity.
+
+Our experiments reveal that CHMP's primary effect is **width redistribution** rather than aggregate width reduction. Across 20 seeds, CHMP variants and Mondrian CP produce nearly identical mean widths ($\sim 0.794$), but the spatial distribution of interval widths differs: CHMP assigns wider intervals to nodes in high-difficulty neighborhoods (e.g., at power-water coupling boundaries) and narrower intervals to isolated nodes. This redistribution is operationally valuable even when aggregate metrics are similar—infrastructure operators need wider intervals precisely where cascading risk is highest.
 
 The key constraint is that normalization signals $\sigma_i$ must be fixed constants at calibration time—not functions of calibration or test labels. STRATA achieves this by computing $\sigma_i$ exclusively from training-set residuals, which are finalized before the calibration step begins.
 
@@ -328,10 +401,13 @@ In practice, we recommend CHMP (median + floor) as the default choice, with Lear
 
 ### 6.3 Limitations
 
-1. **Synthetic data dominance**: While we evaluate on ACTIVSg200, the power grid data lacks intrinsic water/telecom layers—these are derived from power demand heuristics. True multi-utility datasets are needed.
-2. **Scalability**: The current framework evaluates on graphs with $\sim$400 nodes. Scaling to metropolitan-scale infrastructure ($10^4$–$10^6$ nodes) requires sampling-based message passing [19].
-3. **Temporal dynamics**: STRATA provides static risk intervals. Streaming infrastructure monitoring requires online conformal updates [42].
-4. **Node feature quality**: Coverage quality depends on informative node features. Real infrastructure datasets may have missing or noisy features requiring imputation.
+1. **No significant aggregate width improvement.** CHMP does not produce statistically narrower intervals than Mondrian CP in our experiments ($p > 0.50$, Wilcoxon). The benefit is spatial redistribution of widths, not aggregate efficiency. Only the ensemble method ($M=3$) achieves significant width reduction ($6.4\%$, $p = 0.019$), at $3\times$ training cost. Practitioners seeking pure width minimization should consider ensemble approaches.
+2. **Lambda insensitivity.** The propagation weight $\lambda$ has minimal impact on aggregate metrics (width varies $< 0.5\%$ across $\lambda \in [0, 1]$). While this makes CHMP robust to hyperparameter misspecification, it also suggests that the normalization signal is weak relative to the conformal quantile correction. Stronger normalization signals (e.g., from larger or more heterogeneous graphs) may yield greater sensitivity.
+3. **CQR underperformance.** The CQR variant produces the widest intervals ($0.838$) and lowest coverage ($0.900$). Quantile head training on frozen GNN representations appears insufficiently expressive for this graph structure. Further work is needed to determine whether end-to-end quantile training (jointly with the GNN) would improve CQR on heterogeneous graphs.
+4. **ECE trade-off.** CHMP variants exhibit higher ECE than Mondrian CP ($0.067$–$0.080$ vs. $0.057$, $p < 0.01$). Propagation-aware normalization redistributes interval widths in ways that increase bin-level miscalibration, even while maintaining correct marginal coverage. Applications where bin-level calibration is critical should prefer Mondrian CP or LearnableLambda.
+5. **Synthetic data dominance.** While we evaluate on ACTIVSg200, the water and telecom layers are derived from power demand heuristics rather than sourced from independent utility datasets. True multi-utility datasets with independently sourced infrastructure layers are needed to validate cross-type calibration behavior.
+6. **Scalability.** The current framework evaluates on graphs with $\sim$400 nodes. Scaling to metropolitan-scale infrastructure ($10^4$–$10^6$ nodes) requires sampling-based message passing [19].
+7. **Temporal dynamics.** STRATA provides static risk intervals. Streaming infrastructure monitoring requires online conformal updates [42].
 
 ### 6.4 Broader Impact
 
@@ -341,9 +417,11 @@ Reliable uncertainty quantification for infrastructure risk supports equitable r
 
 ## 7. Conclusion
 
-We introduced STRATA, a framework for distribution-free uncertainty quantification on heterogeneous infrastructure graphs. The core innovation—Conformal Heterogeneous Message Passing—produces locally adaptive prediction intervals by propagating frozen training-set difficulty signals through the infrastructure coupling topology, preserving finite-sample coverage guarantees while adapting interval width to local graph structure. Experiments on synthetic and real infrastructure data demonstrate valid marginal and type-conditional coverage with improved interval efficiency over standard Mondrian conformal prediction. Four advanced calibrator variants and spatial diagnostic tools provide a comprehensive toolkit for infrastructure risk assessment under uncertainty.
+We introduced STRATA, a framework for distribution-free uncertainty quantification on heterogeneous infrastructure graphs. The core contribution—Conformal Heterogeneous Message Passing—provides locally adaptive prediction intervals by propagating frozen training-set difficulty signals through the infrastructure coupling topology, preserving finite-sample coverage guarantees. Experiments on synthetic and real infrastructure data across 20 random seeds demonstrate that all calibrator variants maintain valid marginal and type-conditional coverage, consistent with conformal theory (Friedman $p = 0.93$ for coverage differences).
 
-Future work will focus on (i) scaling to large real-world multi-utility datasets, (ii) incorporating temporal dynamics via online conformal prediction, (iii) extending to classification-based risk tiers, and (iv) integrating with operational decision-support systems for infrastructure maintenance planning.
+Our results reveal an important nuance: CHMP's primary effect is *spatial redistribution* of interval widths—wider for high-difficulty nodes, narrower for low-difficulty nodes—rather than aggregate width reduction. Among all calibrators, the ensemble approach ($M=3$) achieves the only statistically significant width improvement ($6.4\%$, $p = 0.019$), while CHMP variants produce widths statistically indistinguishable from Mondrian CP ($p > 0.50$). The learned calibrators (Meta, Attention, LearnableLambda) provide more balanced per-type width distributions, narrowing telecom intervals by $\sim 8\%$ relative to baseline.
+
+STRATA's contribution is therefore best understood as a **principled framework** for applying conformal prediction to heterogeneous graph-structured data with per-type coverage guarantees, spatial diagnostics, and a family of normalization strategies—rather than a method that dramatically outperforms simpler approaches on aggregate metrics. The framework establishes a foundation for future work on (i) scaling to large real-world multi-utility datasets, (ii) incorporating temporal dynamics via online conformal prediction, (iii) extending to classification-based risk tiers, and (iv) integrating with operational decision-support systems for infrastructure maintenance planning.
 
 ---
 
