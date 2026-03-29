@@ -1,3 +1,9 @@
 {
+  "python.analysis.extraPaths": [
+    "projects/tsuan/src"
+  ],
+  "python.analysis.typeCheckingMode": "basic"
+}
+{
   "python.defaultInterpreterPath": "d:/GitHub/.venv/Scripts/python.exe",
 }

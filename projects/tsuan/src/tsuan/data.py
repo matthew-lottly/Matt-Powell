@@ -100,7 +100,7 @@ class SatelliteTimeSeriesDataset(Dataset):
             arrays = tuple(np.rot90(a, k, axes=(-2, -1)).copy() for a in arrays)
         return arrays
 
-    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor | str]:
         pid = self.patch_ids[idx]
 
         optical = self._load_array("optical", pid).astype(np.float32)
