@@ -11,8 +11,30 @@ import sys
 import traceback
 
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import networkx as nx
+
+# Publication defaults
+plt.rcParams.update({
+    "font.size": 11,
+    "axes.titlesize": 13,
+    "axes.labelsize": 11,
+    "xtick.labelsize": 9,
+    "ytick.labelsize": 9,
+    "legend.fontsize": 9,
+    "figure.dpi": 300,
+    "savefig.dpi": 300,
+    "savefig.bbox": "tight",
+    "axes.grid": True,
+    "grid.alpha": 0.3,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+})
+
+# Colorblind-friendly palette
+COLORS = ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#D55E00"]
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "outputs" / "figures"
@@ -33,8 +55,8 @@ def plot_grouped_metrics(df, dataset_col, method_col, metrics, out_prefix):
     methods = grouped[method_col].unique()
 
     for metric in metrics:
-        fig, ax = plt.subplots(figsize=(6, 4))
-        width = 0.8 / len(methods)
+        fig, ax = plt.subplots(figsize=(7, 4.5))
+        width = 0.75 / len(methods)
         x = range(len(datasets))
         for i, m in enumerate(sorted(methods)):
             vals = []
@@ -44,15 +66,19 @@ def plot_grouped_metrics(df, dataset_col, method_col, metrics, out_prefix):
                     vals.append(float(row.iloc[0][metric]))
                 else:
                     vals.append(0.0)
-            ax.bar([xi + i*width for xi in x], vals, width=width, label=m)
+            color = COLORS[i % len(COLORS)]
+            ax.bar([xi + i*width for xi in x], vals, width=width, label=m,
+                   color=color, edgecolor="black", linewidth=0.5, alpha=0.85)
         ax.set_xticks([xi + width*(len(methods)-1)/2 for xi in x])
-        ax.set_xticklabels(datasets)
-        ax.set_ylabel(metric)
-        ax.set_title(metric.replace('_', ' ').title())
-        ax.legend()
+        ax.set_xticklabels(datasets, fontweight="bold")
+        ax.set_ylabel(metric.replace("_", " ").title())
+        ax.set_title(metric.replace("_", " ").title(), fontweight="bold")
+        if metric == "marginal_cov":
+            ax.axhline(0.9, color="#d62728", ls="--", lw=1.2, label="Target")
+        ax.legend(framealpha=0.9)
         fig.tight_layout()
         out = OUT / f"{out_prefix}_{metric}.png"
-        fig.savefig(out, dpi=200)
+        fig.savefig(out)
         print(f"Wrote {out}")
         plt.close(fig)
 
@@ -60,25 +86,25 @@ def plot_grouped_metrics(df, dataset_col, method_col, metrics, out_prefix):
 def draw_schematic(graph, name):
     G = graph
     if not isinstance(G, nx.Graph):
-        # try to coerce: expect adjacency list or edge list
         try:
             G = nx.from_numpy_array(G)
         except Exception:
-            # fallback: create random graph with node count
             try:
                 n = int(getattr(G, 'number_of_nodes', lambda: len(G))())
             except Exception:
                 n = 50
             G = nx.erdos_renyi_graph(n, 0.05)
     pos = nx.spring_layout(G, seed=2)
-    fig, ax = plt.subplots(figsize=(6, 6))
-    nx.draw_networkx_nodes(G, pos, node_size=30, ax=ax)
-    nx.draw_networkx_edges(G, pos, alpha=0.5, ax=ax)
-    ax.set_title(name)
+    fig, ax = plt.subplots(figsize=(7, 7))
+    nx.draw_networkx_nodes(G, pos, node_size=35, node_color="#0072B2",
+                           alpha=0.8, ax=ax, edgecolors="black", linewidths=0.3)
+    nx.draw_networkx_edges(G, pos, alpha=0.3, edge_color="#999999",
+                           width=0.6, ax=ax)
+    ax.set_title(name.replace("_", " "), fontweight="bold", fontsize=13)
     ax.set_axis_off()
     out = OUT / f"{name.replace(' ', '_').lower()}.png"
     fig.tight_layout()
-    fig.savefig(out, dpi=200)
+    fig.savefig(out)
     plt.close(fig)
     print(f"Wrote {out}")
 

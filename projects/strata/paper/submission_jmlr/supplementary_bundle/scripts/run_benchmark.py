@@ -432,7 +432,7 @@ def run_advanced_sweep() -> list[dict]:
             try:
                 import json
                 out_losses = {k: v for k, v in cqr_cal._quantile_losses.items()}
-                out_path = os.path.join(os.getcwd(), "outputs", f"cqr_quantile_losses_seed{seed}.json")
+                out_path = str(OUT_DIR / f"cqr_quantile_losses_seed{seed}.json")
                 with open(out_path, "w") as fh:
                     json.dump(out_losses, fh)
                 print(f"  wrote {out_path}")
@@ -621,67 +621,130 @@ def build_summary_table(rows: list[dict], group_col: str, path: Path):
 
 # ── Plots ────────────────────────────────────────────────────────────────────
 
-def plot_baseline_boxplots(rows: list[dict]):
+def _pub_style():
+    """Apply publication-quality matplotlib defaults."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 12,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "legend.fontsize": 9,
+        "figure.dpi": 300,
+        "savefig.dpi": 300,
+        "savefig.bbox": "tight",
+        "axes.grid": True,
+        "grid.alpha": 0.3,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+    })
+    return plt
+
+
+# Colorblind-friendly palette (Wong 2011)
+METHOD_COLORS = {
+    "mondrian_cp": "#0072B2",
+    "chmp_mean": "#E69F00",
+    "chmp_median": "#009E73",
+    "chmp_median_floor": "#CC79A7",
+    "meta_learned": "#D55E00",
+    "chmp_learned_lambda": "#56B4E9",
+    "chmp_attention": "#F0E442",
+    "cqr_propagation": "#999999",
+    "ensemble_cp": "#000000",
+}
+
+METHOD_LABELS = {
+    "mondrian_cp": "Mondrian CP",
+    "chmp_mean": "CHMP (Mean)",
+    "chmp_median": "CHMP (Median)",
+    "chmp_median_floor": "CHMP (Med+Floor)",
+    "meta_learned": "MetaCal",
+    "chmp_learned_lambda": "Learnable λ",
+    "chmp_attention": "AttentionCal",
+    "cqr_propagation": "CQR",
+    "ensemble_cp": "Ensemble CP",
+}
+
+
+def plot_baseline_boxplots(rows: list[dict]):
+    plt = _pub_style()
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
     metrics = [("marginal_cov", "Marginal Coverage"), ("mean_width", "Mean Width"), ("ece", "ECE")]
     methods = sorted({r["method"] for r in rows})
+    labels = [METHOD_LABELS.get(m, m) for m in methods]
+    colors = [METHOD_COLORS.get(m, "#888888") for m in methods]
 
     for ax, (col, title) in zip(axes, metrics):
         data = [[r[col] for r in rows if r["method"] == m] for m in methods]
-        bp = ax.boxplot(data, tick_labels=methods, patch_artist=True)
-        colors = ["#4C72B0", "#DD8452"]
+        bp = ax.boxplot(data, tick_labels=labels, patch_artist=True, widths=0.6)
         for patch, color in zip(bp["boxes"], colors):
             patch.set_facecolor(color)
-            patch.set_alpha(0.7)
+            patch.set_alpha(0.75)
+            patch.set_edgecolor("black")
+            patch.set_linewidth(0.8)
+        for element in ["whiskers", "caps"]:
+            for line in bp[element]:
+                line.set_color("black")
+                line.set_linewidth(0.8)
+        for line in bp["medians"]:
+            line.set_color("white")
+            line.set_linewidth(1.5)
         if col == "marginal_cov":
-            ax.axhline(0.9, color="red", ls="--", lw=1, label="target 0.90")
-            ax.legend(fontsize=8)
-        ax.set_title(title)
-        ax.grid(axis="y", alpha=0.3)
+            ax.axhline(0.9, color="#d62728", ls="--", lw=1.2, label="Target (1−α = 0.90)")
+            ax.legend(fontsize=8, framealpha=0.9)
+        ax.set_title(title, fontweight="bold")
+        ax.tick_params(axis="x", rotation=25)
 
-    fig.suptitle(f"Baseline Comparison ({SEED_COUNT} seeds, α=0.10)", fontweight="bold")
+    fig.suptitle(f"Baseline Comparison ({SEED_COUNT} seeds, α = 0.10)", fontweight="bold", fontsize=13)
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "baseline_boxplots.png", dpi=150)
+    fig.savefig(OUT_DIR / "baseline_boxplots.png")
     plt.close(fig)
     print("  wrote baseline_boxplots.png")
 
 
 def plot_coverage_by_type(rows: list[dict]):
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+    plt = _pub_style()
 
     methods = sorted({r["method"] for r in rows})
+    labels = [METHOD_LABELS.get(m, m) for m in methods]
+    colors = [METHOD_COLORS.get(m, "#888888") for m in methods]
     fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
 
     for ax, nt in zip(axes, NODE_TYPES):
         col = f"cov_{nt}"
         data = [[r[col] for r in rows if r["method"] == m] for m in methods]
-        bp = ax.boxplot(data, tick_labels=methods, patch_artist=True)
-        colors = ["#4C72B0", "#DD8452"]
+        bp = ax.boxplot(data, tick_labels=labels, patch_artist=True, widths=0.6)
         for patch, color in zip(bp["boxes"], colors):
             patch.set_facecolor(color)
-            patch.set_alpha(0.7)
-        ax.axhline(0.9, color="red", ls="--", lw=1)
-        ax.set_title(f"{nt.capitalize()} Coverage")
-        ax.set_ylim(0.6, 1.05)
-        ax.grid(axis="y", alpha=0.3)
+            patch.set_alpha(0.75)
+            patch.set_edgecolor("black")
+            patch.set_linewidth(0.8)
+        for element in ["whiskers", "caps"]:
+            for line in bp[element]:
+                line.set_color("black")
+                line.set_linewidth(0.8)
+        for line in bp["medians"]:
+            line.set_color("white")
+            line.set_linewidth(1.5)
+        ax.axhline(0.9, color="#d62728", ls="--", lw=1.2)
+        ax.set_title(f"{nt.capitalize()} Coverage", fontweight="bold")
+        ax.set_ylim(0.65, 1.05)
+        ax.tick_params(axis="x", rotation=25)
 
-    fig.suptitle(f"Per-Type Coverage ({SEED_COUNT} seeds, α=0.10)", fontweight="bold")
+    fig.suptitle(f"Per-Type Coverage ({SEED_COUNT} seeds, α = 0.10)", fontweight="bold", fontsize=13)
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "coverage_by_type.png", dpi=150)
+    fig.savefig(OUT_DIR / "coverage_by_type.png")
     plt.close(fig)
     print("  wrote coverage_by_type.png")
 
 
 def plot_lambda_sensitivity(rows: list[dict]):
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+    plt = _pub_style()
 
     lambdas_sorted = sorted(set(r["lambda"] for r in rows))
     mean_cov = [np.mean([r["marginal_cov"] for r in rows if r["lambda"] == l]) for l in lambdas_sorted]
@@ -690,50 +753,60 @@ def plot_lambda_sensitivity(rows: list[dict]):
     std_w = [np.std([r["mean_width"] for r in rows if r["lambda"] == l]) for l in lambdas_sorted]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5))
-    ax1.errorbar(lambdas_sorted, mean_cov, yerr=std_cov, marker="o", capsize=3)
-    ax1.axhline(0.9, color="red", ls="--", lw=1, label="target")
+
+    # Coverage with shaded band
+    ax1.plot(lambdas_sorted, mean_cov, "o-", color="#0072B2", lw=2, markersize=7, zorder=5)
+    ax1.fill_between(lambdas_sorted,
+                     [m - s for m, s in zip(mean_cov, std_cov)],
+                     [m + s for m, s in zip(mean_cov, std_cov)],
+                     alpha=0.2, color="#0072B2")
+    ax1.axhline(0.9, color="#d62728", ls="--", lw=1.2, label="Target (1−α)")
     ax1.set_xlabel("λ (neighborhood weight)")
     ax1.set_ylabel("Marginal Coverage")
-    ax1.set_title("Coverage vs λ")
-    ax1.legend()
-    ax1.grid(alpha=0.3)
+    ax1.set_title("Coverage vs λ", fontweight="bold")
+    ax1.legend(framealpha=0.9)
 
-    ax2.errorbar(lambdas_sorted, mean_w, yerr=std_w, marker="s", capsize=3, color="#DD8452")
+    # Width with shaded band
+    ax2.plot(lambdas_sorted, mean_w, "s-", color="#E69F00", lw=2, markersize=7, zorder=5)
+    ax2.fill_between(lambdas_sorted,
+                     [m - s for m, s in zip(mean_w, std_w)],
+                     [m + s for m, s in zip(mean_w, std_w)],
+                     alpha=0.2, color="#E69F00")
     ax2.set_xlabel("λ (neighborhood weight)")
     ax2.set_ylabel("Mean Interval Width")
-    ax2.set_title("Efficiency vs λ")
-    ax2.grid(alpha=0.3)
+    ax2.set_title("Efficiency vs λ", fontweight="bold")
 
-    fig.suptitle(f"Lambda Sensitivity ({SEED_COUNT} seeds, α=0.10)", fontweight="bold")
+    fig.suptitle(f"Lambda Sensitivity ({SEED_COUNT} seeds, α = 0.10)", fontweight="bold", fontsize=13)
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "lambda_sensitivity.png", dpi=150)
+    fig.savefig(OUT_DIR / "lambda_sensitivity.png")
     plt.close(fig)
     print("  wrote lambda_sensitivity.png")
 
-
 def plot_alpha_calibration(rows: list[dict]):
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+    plt = _pub_style()
 
     alphas_sorted = sorted(set(r["alpha"] for r in rows))
     mean_cov = [np.mean([r["marginal_cov"] for r in rows if r["alpha"] == a]) for a in alphas_sorted]
+    std_cov = [np.std([r["marginal_cov"] for r in rows if r["alpha"] == a]) for a in alphas_sorted]
     targets = [1 - a for a in alphas_sorted]
 
     fig, ax = plt.subplots(figsize=(6, 5))
-    ax.plot([0.75, 1.0], [0.75, 1.0], "k--", lw=1, label="ideal")
-    ax.scatter(targets, mean_cov, s=80, zorder=5, label=f"CHMP (mean over {SEED_COUNT} seeds)")
+    ax.plot([0.75, 1.0], [0.75, 1.0], "k--", lw=1, label="Ideal calibration")
+    ax.errorbar(targets, mean_cov, yerr=std_cov, fmt="o", color="#0072B2",
+                markersize=9, capsize=4, capthick=1.5, lw=1.5, zorder=5,
+                label=f"CHMP (mean ± std, {SEED_COUNT} seeds)")
     for t, mc in zip(targets, mean_cov):
-        ax.annotate(f"α={1-t:.2f}", (float(t), float(mc)), textcoords="offset points", xytext=(8, -8), fontsize=8)
-    ax.set_xlabel("Target Coverage (1−α)")
+        ax.annotate(f"α = {1-t:.2f}", (float(t), float(mc)),
+                    textcoords="offset points", xytext=(10, -10), fontsize=9,
+                    arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
+    ax.set_xlabel("Target Coverage (1 − α)")
     ax.set_ylabel("Empirical Coverage")
-    ax.set_title("Calibration Plot")
-    ax.legend()
-    ax.grid(alpha=0.3)
+    ax.set_title("Calibration Plot", fontweight="bold")
+    ax.legend(framealpha=0.9, loc="upper left")
     ax.set_xlim(0.75, 1.0)
     ax.set_ylim(0.75, 1.0)
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "alpha_calibration.png", dpi=150)
+    fig.savefig(OUT_DIR / "alpha_calibration.png")
     plt.close(fig)
     print("  wrote alpha_calibration.png")
 
@@ -742,9 +815,7 @@ def plot_alpha_calibration(rows: list[dict]):
 
 def plot_spatial_map(seed: int = 0):
     """Plot a spatial map of the graph with node risk scores and intervals."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+    plt = _pub_style()
     from matplotlib.collections import LineCollection
 
     cfg = _cfg(seed, alpha=0.1, lam=0.3, prop=True)
@@ -756,16 +827,16 @@ def plot_spatial_map(seed: int = 0):
     r = run_experiment(cfg, verbose=False)
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
-    cmap = plt.cm.RdYlGn_r  # type: ignore[attr-defined]
     markers = {"power": "^", "water": "s", "telecom": "o"}
+    marker_sizes = {"power": 40, "water": 45, "telecom": 35}
     titles = [
         "Risk Scores (Ground Truth)",
         "Prediction Intervals (Width)",
-        "Coverage Map (Hit/Miss)",
+        "Coverage Map (Hit / Miss)",
     ]
 
     for ax, title in zip(axes, titles):
-        ax.set_title(title, fontsize=11)
+        ax.set_title(title, fontsize=12, fontweight="bold")
         ax.set_xlabel("Longitude")
         ax.set_ylabel("Latitude")
         ax.set_aspect("equal")
@@ -776,27 +847,34 @@ def plot_spatial_map(seed: int = 0):
     for nt in NODE_TYPES:
         pos = graph.node_positions[nt]
         labels = graph.node_labels[nt]
-        sc = ax.scatter(pos[:, 0], pos[:, 1], c=labels, cmap=cmap,
-                        marker=markers[nt], s=30, alpha=0.8, edgecolors="k",
-                        linewidths=0.3, vmin=0, vmax=1, label=nt)
+        sc = ax.scatter(pos[:, 0], pos[:, 1], c=labels, cmap="RdYlGn_r",
+                        marker=markers[nt], s=marker_sizes[nt], alpha=0.85,
+                        edgecolors="black", linewidths=0.4, vmin=0, vmax=1,
+                        label=nt.capitalize())
     if sc is not None:
-        fig.colorbar(sc, ax=ax, label="Risk Score", shrink=0.8)
-    ax.legend(loc="lower left", fontsize=8)
+        fig.colorbar(sc, ax=ax, label="Risk Score", shrink=0.8, pad=0.02)
+    ax.legend(loc="lower left", fontsize=8, framealpha=0.9)
 
     # Panel 2: interval widths on test nodes
     assert r.conformal_result is not None, "conformal_result is required for plotting"
     ax = axes[1]
+    all_widths = []
+    for nt in NODE_TYPES:
+        widths = r.conformal_result.upper[nt] - r.conformal_result.lower[nt]
+        all_widths.extend(widths.tolist())
+    vmin_w, vmax_w = min(all_widths), max(all_widths)
     sc = None
     for nt in NODE_TYPES:
         test_mask = graph.node_masks[nt]["test"]
         pos = graph.node_positions[nt][test_mask]
         widths = r.conformal_result.upper[nt] - r.conformal_result.lower[nt]
         sc = ax.scatter(pos[:, 0], pos[:, 1], c=widths, cmap="YlOrRd",
-                        marker=markers[nt], s=35, alpha=0.85, edgecolors="k",
-                        linewidths=0.3, label=nt)
+                        marker=markers[nt], s=marker_sizes[nt], alpha=0.85,
+                        edgecolors="black", linewidths=0.4,
+                        vmin=vmin_w, vmax=vmax_w, label=nt.capitalize())
     if sc is not None:
-        fig.colorbar(sc, ax=ax, label="Interval Width", shrink=0.8)
-    ax.legend(loc="lower left", fontsize=8)
+        fig.colorbar(sc, ax=ax, label="Interval Width", shrink=0.8, pad=0.02)
+    ax.legend(loc="lower left", fontsize=8, framealpha=0.9)
 
     # Panel 3: coverage hit/miss
     ax = axes[2]
@@ -809,43 +887,41 @@ def plot_spatial_map(seed: int = 0):
         hit = (true >= lo) & (true <= hi)
         colors = ["#2ca02c" if h else "#d62728" for h in hit]
         ax.scatter(pos[:, 0], pos[:, 1], c=colors,
-                   marker=markers[nt], s=35, alpha=0.85, edgecolors="k",
-                   linewidths=0.3, label=nt)
-    # manual legend for hit/miss
+                   marker=markers[nt], s=marker_sizes[nt], alpha=0.85,
+                   edgecolors="black", linewidths=0.4, label=nt.capitalize())
     from matplotlib.lines import Line2D
     legend_elements = [
-        Line2D([0], [0], marker="o", color="w", markerfacecolor="#2ca02c", markersize=8, label="Covered"),
-        Line2D([0], [0], marker="o", color="w", markerfacecolor="#d62728", markersize=8, label="Missed"),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#2ca02c",
+               markersize=9, markeredgecolor="black", markeredgewidth=0.5, label="Covered"),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#d62728",
+               markersize=9, markeredgecolor="black", markeredgewidth=0.5, label="Missed"),
     ]
-    ax.legend(handles=legend_elements, loc="lower left", fontsize=8)
+    ax.legend(handles=legend_elements, loc="lower left", fontsize=8, framealpha=0.9)
 
-    # Draw some cross-edges lightly in all panels
+    # Draw cross-edges lightly in all panels
     for ax_i in axes:
         for (src_type, rel, dst_type), ei in graph.edge_index.items():
             if src_type == dst_type or ei.shape[1] == 0:
                 continue
             src_pos = graph.node_positions[src_type]
             dst_pos = graph.node_positions[dst_type]
-            # sample up to 200 edges for visual clarity
             n_draw = min(200, ei.shape[1])
             idx = np.random.default_rng(0).choice(ei.shape[1], n_draw, replace=False)
             segs = np.stack([src_pos[ei[0, idx]], dst_pos[ei[1, idx]]], axis=1)
             segs_list = segs.tolist()
-            lc = LineCollection(segs_list, colors="gray", alpha=0.06, linewidths=0.3)
+            lc = LineCollection(segs_list, colors="#cccccc", alpha=0.15, linewidths=0.4)
             ax_i.add_collection(lc)
 
-    fig.suptitle(f"Spatial Infrastructure Map (seed={seed}, α=0.10)", fontweight="bold")
+    fig.suptitle(f"Spatial Infrastructure Map (seed = {seed}, α = 0.10)", fontweight="bold", fontsize=14)
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "spatial_map.png", dpi=150)
+    fig.savefig(OUT_DIR / "spatial_map.png")
     plt.close(fig)
     print("  wrote spatial_map.png")
 
 
 def plot_per_type_width_map(seed: int = 0):
     """One map per infrastructure type showing interval width heatmap."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+    plt = _pub_style()
 
     cfg = _cfg(seed, alpha=0.1, lam=0.3, prop=True)
     graph = generate_synthetic_infrastructure(
@@ -860,25 +936,77 @@ def plot_per_type_width_map(seed: int = 0):
     fig, axes = plt.subplots(1, 3, figsize=(16, 5))
     markers = {"power": "^", "water": "s", "telecom": "o"}
 
+    # Compute global vmin/vmax across all types for consistent colorscale
+    all_widths = []
+    for nt in NODE_TYPES:
+        test_mask = graph.node_masks[nt]["test"]
+        widths = r.conformal_result.upper[nt] - r.conformal_result.lower[nt]
+        all_widths.extend(widths.tolist())
+    vmin_w, vmax_w = min(all_widths), max(all_widths)
+
     for ax, nt in zip(axes, NODE_TYPES):
         test_mask = graph.node_masks[nt]["test"]
         pos = graph.node_positions[nt][test_mask]
         widths = r.conformal_result.upper[nt] - r.conformal_result.lower[nt]
         sc = ax.scatter(pos[:, 0], pos[:, 1], c=widths, cmap="YlOrRd",
-                        marker=markers[nt], s=50, alpha=0.9,
-                        edgecolors="k", linewidths=0.4)
-        fig.colorbar(sc, ax=ax, shrink=0.8, label="Width")
-        ax.set_title(f"{nt.capitalize()} — Interval Width", fontsize=11)
+                        marker=markers[nt], s=60, alpha=0.9,
+                        edgecolors="black", linewidths=0.5,
+                        vmin=vmin_w, vmax=vmax_w)
+        fig.colorbar(sc, ax=ax, shrink=0.8, label="Width", pad=0.02)
+        ax.set_title(f"{nt.capitalize()} — Interval Width", fontsize=12, fontweight="bold")
         ax.set_xlabel("Longitude")
         ax.set_ylabel("Latitude")
         ax.set_aspect("equal")
-        ax.grid(alpha=0.2)
 
-    fig.suptitle(f"Per-Type Interval Width Maps (seed={seed})", fontweight="bold")
+    fig.suptitle(f"Per-Type Interval Width Maps (seed = {seed})", fontweight="bold", fontsize=14)
     fig.tight_layout()
-    fig.savefig(OUT_DIR / "per_type_width_map.png", dpi=150)
+    fig.savefig(OUT_DIR / "per_type_width_map.png")
     plt.close(fig)
     print("  wrote per_type_width_map.png")
+
+
+def plot_full_comparison(rows: list[dict]):
+    """Publication-quality figure showing all methods across coverage, width, ECE."""
+    plt = _pub_style()
+
+    methods = sorted({r["method"] for r in rows})
+    labels = [METHOD_LABELS.get(m, m) for m in methods]
+    colors = [METHOD_COLORS.get(m, "#888888") for m in methods]
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+    metrics = [
+        ("marginal_cov", "Marginal Coverage"),
+        ("mean_width", "Mean Interval Width"),
+        ("ece", "Expected Calibration Error"),
+    ]
+
+    for ax, (col, title) in zip(axes, metrics):
+        data = [[r[col] for r in rows if r["method"] == m] for m in methods]
+        bp = ax.boxplot(data, tick_labels=labels, patch_artist=True, widths=0.55)
+        for patch, color in zip(bp["boxes"], colors):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.75)
+            patch.set_edgecolor("black")
+            patch.set_linewidth(0.8)
+        for element in ["whiskers", "caps"]:
+            for line in bp[element]:
+                line.set_color("black")
+                line.set_linewidth(0.8)
+        for line in bp["medians"]:
+            line.set_color("white")
+            line.set_linewidth(1.5)
+        if col == "marginal_cov":
+            ax.axhline(0.9, color="#d62728", ls="--", lw=1.2, label="Target (1−α = 0.90)")
+            ax.legend(fontsize=8, framealpha=0.9)
+        ax.set_title(title, fontweight="bold")
+        ax.tick_params(axis="x", rotation=35)
+
+    fig.suptitle(f"Full Method Comparison ({SEED_COUNT} seeds, α = 0.10)",
+                 fontweight="bold", fontsize=14)
+    fig.tight_layout()
+    fig.savefig(OUT_DIR / "full_comparison_boxplots.png")
+    plt.close(fig)
+    print("  wrote full_comparison_boxplots.png")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -926,6 +1054,7 @@ def main():
     all_method_rows = baseline_rows + advanced_rows + ensemble_rows
     _write_csv(OUT_DIR / "full_comparison.csv", all_method_rows)
     build_summary_table(all_method_rows, "method", OUT_DIR / "full_comparison_table.md")
+    plot_full_comparison(all_method_rows)
 
     # 7. Statistical tests
     print("\n[7/9] Statistical tests (Wilcoxon, Friedman)…")

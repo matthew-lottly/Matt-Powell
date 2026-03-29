@@ -17,7 +17,7 @@ Quantifying uncertainty in node-level risk predictions across coupled infrastruc
 
 **Figures and supplementary material**
 
-The figures used for this manuscript are available in the submission bundle. The compiled JMLR draft and supplementary figures are in `submission_jmlr/` and `submission_jmlr/supplementary_bundle/outputs/` respectively. Key figures referenced in the text are included below:
+The figures used for this manuscript are available in the submission bundle. The compiled JMLR draft and supplementary figures are in \\texttt{submission\_jmlr/} and \\texttt{submission\_jmlr/supplementary\_bundle/outputs/} respectively. Key figures referenced in the text are included below:
 
 - Figure 1 — Method comparison (marginal coverage):
 
@@ -39,7 +39,7 @@ The figures used for this manuscript are available in the submission bundle. The
 
 	![Per-type width map](./submission_jmlr/supplementary_bundle/outputs/per_type_width_map.png)
 
-See `submission_jmlr/manuscript_draft.pdf` for the formatted submission. 
+See \\texttt{submission\_jmlr/manuscript\_draft.pdf} for the formatted submission. 
 
 ## 1. Introduction
 
@@ -81,7 +81,7 @@ STRATA differs from these approaches by (i) targeting regression rather than cla
 
 Standard GNNs [14, 15, 16, 19] operate on homogeneous graphs. Heterogeneous GNNs extend message passing to multi-typed graphs: R-GCN [17] introduces relation-specific weight matrices, HAN [18] applies hierarchical attention, HGT [39] uses transformer-style attention across heterogeneous edges, and HetGNN [40] uses type-based neighbor sampling with heterogeneous content encoding. GTN [41] learns to compose new graph structures from meta-paths. Spectral foundations trace to Bruna et al. [46] and ChebNet [47], built on graph signal processing theory [45].
 
-STRATA's `HeteroMessagePassingLayer` follows the R-GCN design [17] with per-edge-type linear transforms, residual connections, and dropout—chosen for interpretability and computational efficiency over attention-based alternatives.
+STRATA's \\texttt{HeteroMessagePassingLayer} follows the R-GCN design [17] with per-edge-type linear transforms, residual connections, and dropout—chosen for interpretability and computational efficiency over attention-based alternatives.
 
 Xu et al. [63] established theoretical expressiveness limits for GNNs via the Weisfeiler-Leman test, while Li et al. [64] analyzed oversmoothing in deep GCNs, informing our architectural choice of 3 message-passing layers with residual connections.
 
@@ -119,7 +119,7 @@ $$\Pr(y_i \in C_i \mid \tau_V(i) = t) \geq 1 - \alpha, \quad \forall t \in \{\te
 
 ### 3.2 Heterogeneous GNN Architecture
 
-STRATA's GNN backbone extends the R-GCN framework [17] with residual connections. Each `HeteroMessagePassingLayer` $\ell$ computes:
+STRATA's GNN backbone extends the R-GCN framework [17] with residual connections. Each \\texttt{HeteroMessagePassingLayer} $\ell$ computes:
 
 $$\mathbf{h}_i^{(\ell)} = \text{ReLU}\!\left(\mathbf{W}_{\text{self}} \mathbf{h}_i^{(\ell-1)} + \sum_{r \in \mathcal{R}} \frac{1}{|\mathcal{N}_r(i)|} \sum_{j \in \mathcal{N}_r(i)} \mathbf{W}_r \mathbf{h}_j^{(\ell-1)}\right) + \mathbf{h}_i^{(\ell-1)}$$
 
@@ -213,11 +213,11 @@ STRATA extends conformalized quantile regression [6] to heterogeneous graphs:
 
 ### 3.5 Ensemble Uncertainty Decomposition
 
-STRATA's `EnsembleHeteroGNN` trains $M$ independent GNNs with different random seeds. At prediction time:
+STRATA's \\texttt{EnsembleHeteroGNN} trains $M$ independent GNNs with different random seeds. At prediction time:
 
 $$\hat{y}_i = \frac{1}{M} \sum_{m=1}^M \hat{y}_i^{(m)}, \quad \text{Var}_i = \frac{1}{M} \sum_{m=1}^M (\hat{y}_i^{(m)} - \hat{y}_i)^2$$
 
-The `EnsembleCalibrator` uses epistemic variance as the normalization signal:
+The \\texttt{EnsembleCalibrator} uses epistemic variance as the normalization signal:
 
 $$\sigma_i = 1 + \lambda \cdot \sqrt{\text{Var}_i}$$
 
@@ -238,7 +238,7 @@ STRATA includes spatial diagnostic tools that bridge infrastructure risk assessm
 
 ### 4.1 Synthetic Infrastructure Data
 
-We generate heterogeneous infrastructure graphs using STRATA's `generate_synthetic_infrastructure()` function with the following default configuration: 200 power nodes (tree topology), 150 water nodes (grid/mesh topology), 100 telecom nodes (star-hub topology), 8-dimensional node features per type, cross-utility coupling probability 0.3 within radius 0.15. Node positions are sampled in a unit square with type-specific spatial patterns (Houston-area coordinates). Risk labels are simulated via a cascade model incorporating node features, neighbor-propagated risk, and type-dependent noise.
+We generate heterogeneous infrastructure graphs using STRATA's \\texttt{generate\_synthetic\_infrastructure()} function with the following default configuration: 200 power nodes (tree topology), 150 water nodes (grid/mesh topology), 100 telecom nodes (star-hub topology), 8-dimensional node features per type, cross-utility coupling probability 0.3 within radius 0.15. Node positions are sampled in a unit square with type-specific spatial patterns (Houston-area coordinates). Risk labels are simulated via a cascade model incorporating node features, neighbor-propagated risk, and type-dependent noise.
 
 ### 4.2 Real Infrastructure Data: ACTIVSg200
 

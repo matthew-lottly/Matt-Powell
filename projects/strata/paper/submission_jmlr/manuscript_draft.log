@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.25)  28 MAR 2026 14:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.25)  28 MAR 2026 21:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -459,14 +459,14 @@ File: supplementary_bundle/outputs/figures/activsg200_site_map.png Graphic file
 Package pdftex.def Info: supplementary_bundle/outputs/figures/activsg200_site_m
 ap.png  used on input line 93.
 (pdftex.def)             Requested size: 325.215pt x 325.22743pt.
-<supplementary_bundle/outputs/per_type_width_map.png, id=128, 1156.32pt x 361.3
-5pt>
+<supplementary_bundle/outputs/per_type_width_map.png, id=128, 1141.1433pt x 361
+.8318pt>
 File: supplementary_bundle/outputs/per_type_width_map.png Graphic file (type pn
 g)
 <use supplementary_bundle/outputs/per_type_width_map.png>
 Package pdftex.def Info: supplementary_bundle/outputs/per_type_width_map.png  u
 sed on input line 100.
-(pdftex.def)             Requested size: 325.215pt x 101.62944pt.
+(pdftex.def)             Requested size: 325.215pt x 103.11761pt.
 
 Overfull \hbox (6.99641pt too wide) in paragraph at lines 109--121
 \OT1/cmr/m/n/10.95 Critical in-fras-truc-ture systems---electric power, wa-ter 
@@ -478,20 +478,23 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [1
 
-{C:/Users/mapow/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}] [2
+{C:/Users/mapow/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
+Underfull \vbox (badness 5548) has occurred while \output is active []
+
+ [2
 pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.131 \item \textbf
-                   {Mondrian CP:} prefer when simplicity, low compute, and l...
+l.130 \textbf{Graph neural networks}
+                                     (GNNs) \citep{kipf2017semi,gilmer2017ne...
 
 pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.131 \item \textbf
-                   {Mondrian CP:} prefer when simplicity, low compute, and l...
+l.130 \textbf{Graph neural networks}
+                                     (GNNs) \citep{kipf2017semi,gilmer2017ne...
  <./supplementary_bundle/outputs/figures/method_comparison_marginal_cov.png> <.
 /supplementary_bundle/outputs/figures/method_comparison_mean_width.png>]
 [3
@@ -499,45 +502,44 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.162 
-       <./supplementary_bundle/outputs/figures/method_comparison_ece.png>]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [4
+l.163 \item \textbf
+                   {Spatial diagnostics} including Moran's I autocorrelation...
+ <./supplementary_bundle/outputs/figures/method_comparison_ece.png>] [4
 pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.174 
-      
+l.171 \end{enumerate}
+                     
 pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.174 
-       <./supplementary_bundle/outputs/figures/activsg200_site_map.png> <./supp
-lementary_bundle/outputs/per_type_width_map.png>] [5]
-Underfull \vbox (badness 3735) has occurred while \output is active []
-
- [6]
-Underfull \hbox (badness 10000) in paragraph at lines 353--358
+l.171 \end{enumerate}
+                      <./supplementary_bundle/outputs/figures/activsg200_site_m
+ap.png> <./supplementary_bundle/outputs/per_type_width_map.png>] [5] [6]
+Underfull \hbox (badness 10000) in paragraph at lines 345--348
 
  []
 
-[7] [8] [9]
+[7]
+Underfull \vbox (badness 1648) has occurred while \output is active []
+
+ [8]
 LaTeX Font Info:    Trying to load font information for OMS+cmr on input line 4
-85.
+87.
 
 (C:\Users\mapow\AppData\Local\Programs\MiKTeX\tex/latex/base\omscmr.fd
 File: omscmr.fd 2024/11/19 v2.5n Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 485.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 487.
 
+[9]
 ! Missing $ inserted.
 <inserted text> 
                 $
-l.492 ...sion_jmlr/README_SUBMISSION_CHECKLIST.md}
+l.494 ...sion_jmlr/README_SUBMISSION_CHECKLIST.md}
                                                   .
 I've inserted a begin-math/end-math symbol since I think
 you left one out. Proceed, with fingers crossed.
@@ -545,7 +547,7 @@ you left one out. Proceed, with fingers crossed.
 ! Extra }, or forgotten $.
 <recently read> \egroup 
                         
-l.492 ...sion_jmlr/README_SUBMISSION_CHECKLIST.md}
+l.494 ...sion_jmlr/README_SUBMISSION_CHECKLIST.md}
                                                   .
 I've deleted a group-closing symbol because it seems to be
 spurious, as in `$x}$'. But perhaps the } is legitimate and
@@ -556,91 +558,75 @@ deleted material, e.g., by typing `I$}'.
 ! Missing $ inserted.
 <inserted text> 
                 $
-l.493 
+l.495 
       
 I've inserted a begin-math/end-math symbol since I think
 you left one out. Proceed, with fingers crossed.
 
 
-Overfull \hbox (37.52634pt too wide) in paragraph at lines 516--520
+Overfull \hbox (37.52634pt too wide) in paragraph at lines 518--522
 []\OT1/cmtt/m/n/10.95 All methods achieve the nominal 90% coverage target. Cove
 rage is statistically
  []
 
 
-Overfull \hbox (8.36397pt too wide) in paragraph at lines 516--520
+Overfull \hbox (8.36397pt too wide) in paragraph at lines 518--522
 \OT1/cmtt/m/n/10.95 indistinguishable (Friedman $\OML/cmm/m/it/10.95 p \OT1/cmr
 /m/n/10.95 = 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 93$\OT1/cmtt/m/n/10.95 ),
  confirming CHMP preserves the conformal
  []
 
 
-Overfull \hbox (22.42738pt too wide) in paragraph at lines 516--520
+Overfull \hbox (22.42738pt too wide) in paragraph at lines 518--522
 \OT1/cmtt/m/n/10.95 guarantee. CHMP's primary effect is width \OT1/cmtt/m/it/10
 .95 redistribution \OT1/cmtt/m/n/10.95 rather than aggregate
  []
 
 
-Overfull \hbox (11.09785pt too wide) in paragraph at lines 545--550
-\OT1/cmtt/m/n/10.95 The ensemble-based calibrator achieves the narrowest interv
-als ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 743$\OT1/cmtt
-/m/n/10.95 ), a $\OT1/cmr/m/n/10.95 6\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 4%
-$
+Overfull \hbox (28.09785pt too wide) in paragraph at lines 547--556
+[]\OT1/cmtt/m/n/10.95 The ensemble-based calibrator achieves the narrowest inte
+rvals ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 743$\OT1/cm
+tt/m/n/10.95 ), a $\OT1/cmr/m/n/10.95 6\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 
+4%$
  []
 
 
-Overfull \hbox (16.7246pt too wide) in paragraph at lines 545--550
-\OT1/cmtt/m/n/10.95 reduction from Mondrian CP, while maintaining valid coverag
-e ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 920$\OT1/cmtt/m
-/n/10.95 ). CQR with
+Overfull \hbox (31.08504pt too wide) in paragraph at lines 547--556
+\OT1/cmtt/m/n/10.95 reduction from Mondrian CP ($\OML/cmm/m/it/10.95 p \OT1/cmr
+/m/n/10.95 = 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 019$\OT1/cmtt/m/n/10.95 ,
+ Wilcoxon), while maintaining valid coverage
  []
 
 
-Overfull \hbox (22.47328pt too wide) in paragraph at lines 545--550
-\OT1/cmtt/m/n/10.95 propagation produces the widest intervals ($\OT1/cmr/m/n/10
-.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 838$\OT1/cmtt/m/n/10.95 ), suggest
-ing that quantile head
+Overfull \hbox (18.67154pt too wide) in paragraph at lines 547--556
+\OT1/cmtt/m/n/10.95 ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.
+95 920$\OT1/cmtt/m/n/10.95 ). CQR with propagation produces the widest interval
+s ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 838$\OT1/cmtt/m
+/n/10.95 ), reflecting
  []
 
 
-Overfull \hbox (60.76715pt too wide) in paragraph at lines 545--550
-\OT1/cmtt/m/n/10.95 training on frozen representations is insufficiently expres
-sive for this heterogeneous
+Overfull \hbox (63.53516pt too wide) in paragraph at lines 547--556
+\OT1/cmtt/m/n/10.95 the difficulty of training quantile heads from only $\OMS/c
+msy/m/n/10.95 ^^X$\OT1/cmtt/m/n/10.95 200 frozen hidden representations
  []
 
 
-Overfull \hbox (21.28711pt too wide) in paragraph at lines 570--575
-\OT1/cmtt/m/n/10.95 Coverage remains stable across all $\OML/cmm/m/it/10.95 ^^U
-$ \OT1/cmtt/m/n/10.95 values (within $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :
-\OT1/cmr/m/n/10.95 4%$\OT1/cmtt/m/n/10.95 ). Width shows minimal
+Overfull \hbox (21.16516pt too wide) in paragraph at lines 547--556
+\OT1/cmtt/m/n/10.95 per type. The learned calibrators (MetaCal, AttentionCal, L
+earnable $\OML/cmm/m/it/10.95 ^^U$\OT1/cmtt/m/n/10.95 ) achieve
  []
 
 
-Overfull \hbox (3.46315pt too wide) in paragraph at lines 570--575
-\OT1/cmtt/m/n/10.95 sensitivity ($\OML/cmm/m/it/10.95 < \OT1/cmr/m/n/10.95 0\OM
-L/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 5%$ \OT1/cmtt/m/n/10.95 variation), which 
-we interpret as practically negligible
+Overfull \hbox (32.02371pt too wide) in paragraph at lines 547--556
+\OT1/cmtt/m/n/10.95 marginally narrower intervals than the baseline CHMP varian
+ts without significant
  []
 
 
-Overfull \hbox (14.77765pt too wide) in paragraph at lines 570--575
-\OT1/cmtt/m/n/10.95 for most deployments. This suggests the normalization signa
-l is weak relative
- []
-
-
-Overfull \hbox (21.16516pt too wide) in paragraph at lines 570--575
-\OT1/cmtt/m/n/10.95 to the conformal quantile correction, limiting the degree t
-o which tuning $\OML/cmm/m/it/10.95 ^^U$ \OT1/cmtt/m/n/10.95 can
- []
-
-LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 578.
-
-Overfull \hbox (14.11266pt too wide) in paragraph at lines 578--581
-\OML/cmm/m/it/10.95 p \OT1/cmr/m/n/10.95 = 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/1
-0.95 93$\OT1/cmtt/m/n/10.95 . We fail to reject the null hypothesis of equal co
-verage performance. 
+Overfull \hbox (20.52634pt too wide) in paragraph at lines 547--556
+\OT1/cmtt/m/n/10.95 coverage degradation, suggesting that data-driven normaliza
+tion offers a viable
  []
 
 [10
@@ -648,10 +634,50 @@ pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.582 \textbf{Friedman test (ECE).}
-                                    $\chi^2 = 34.3$, $p < 10^{-4}$, indicating]
+l.557 \subsection
+                 {Lambda Sensitivity}
+pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has
+ been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.557 \subsection
+                 {Lambda Sensitivity}]
+Overfull \hbox (38.28711pt too wide) in paragraph at lines 576--581
+[]\OT1/cmtt/m/n/10.95 Coverage remains stable across all $\OML/cmm/m/it/10.95 ^
+^U$ \OT1/cmtt/m/n/10.95 values (within $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95
+ :\OT1/cmr/m/n/10.95 4%$\OT1/cmtt/m/n/10.95 ). Width shows minimal
+ []
 
-Overfull \hbox (50.88179pt too wide) in paragraph at lines 582--589
+
+Overfull \hbox (3.46315pt too wide) in paragraph at lines 576--581
+\OT1/cmtt/m/n/10.95 sensitivity ($\OML/cmm/m/it/10.95 < \OT1/cmr/m/n/10.95 0\OM
+L/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 5%$ \OT1/cmtt/m/n/10.95 variation), which 
+we interpret as practically negligible
+ []
+
+
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 576--581
+\OT1/cmtt/m/n/10.95 for most deployments. This suggests the normalization signa
+l is weak relative
+ []
+
+
+Overfull \hbox (21.16516pt too wide) in paragraph at lines 576--581
+\OT1/cmtt/m/n/10.95 to the conformal quantile correction, limiting the degree t
+o which tuning $\OML/cmm/m/it/10.95 ^^U$ \OT1/cmtt/m/n/10.95 can
+ []
+
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10.95> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 584.
+
+Overfull \hbox (14.11266pt too wide) in paragraph at lines 584--587
+\OML/cmm/m/it/10.95 p \OT1/cmr/m/n/10.95 = 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/1
+0.95 93$\OT1/cmtt/m/n/10.95 . We fail to reject the null hypothesis of equal co
+verage performance. 
+ []
+
+
+Overfull \hbox (50.88179pt too wide) in paragraph at lines 588--595
 []\OT1/cmtt/m/n/10.95 Friedman test (ECE). $\OML/cmm/m/it/10.95 ^^_[] \OT1/cmr/
 m/n/10.95 = 34\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 3$\OT1/cmtt/m/n/10.95 , $
 \OML/cmm/m/it/10.95 p < \OT1/cmr/m/n/10.95 10[]$\OT1/cmtt/m/n/10.95 , indicatin
@@ -659,19 +685,19 @@ g highly significant differences
  []
 
 
-Overfull \hbox (32.02371pt too wide) in paragraph at lines 582--589
+Overfull \hbox (32.02371pt too wide) in paragraph at lines 588--595
 \OT1/cmtt/m/n/10.95 in calibration quality. The typical absolute effect sizes a
 re small-to-moderate:
  []
 
 
-Overfull \hbox (3.28027pt too wide) in paragraph at lines 582--589
+Overfull \hbox (3.28027pt too wide) in paragraph at lines 588--595
 \OT1/cmtt/m/n/10.95 for example, the median ECE difference between Mondrian CP 
 and CHMP variants
  []
 
 
-Overfull \hbox (9.57758pt too wide) in paragraph at lines 582--589
+Overfull \hbox (9.57758pt too wide) in paragraph at lines 588--595
 \OT1/cmtt/m/n/10.95 is approximately $\OMS/cmsy/m/n/10.95 ^^X \OT1/cmr/m/n/10.9
 5 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 02$ \OT1/cmtt/m/n/10.95 (Mondrian me
 dian $\OMS/cmsy/m/n/10.95 ^^Y \OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr
@@ -681,7 +707,7 @@ dian $\OMS/cmsy/m/n/10.95 ^^Y \OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr
  []
 
 
-Overfull \hbox (38.68561pt too wide) in paragraph at lines 582--589
+Overfull \hbox (38.68561pt too wide) in paragraph at lines 588--595
 \OT1/cmtt/m/n/10.95 typical median width differences are on the order of $\OMS/
 cmsy/m/n/10.95 ^^X$\OT1/cmtt/m/n/10.95 0.004 (e.g., $\OT1/cmr/m/n/10.95 0\OML/c
 mm/m/it/10.95 :\OT1/cmr/m/n/10.95 794$ \OT1/cmtt/m/n/10.95 vs $\OT1/cmr/m/n/10.
@@ -689,45 +715,45 @@ mm/m/it/10.95 :\OT1/cmr/m/n/10.95 794$ \OT1/cmtt/m/n/10.95 vs $\OT1/cmr/m/n/10.
  []
 
 
-Overfull \hbox (20.52634pt too wide) in paragraph at lines 582--589
+Overfull \hbox (20.52634pt too wide) in paragraph at lines 588--595
 \OT1/cmtt/m/n/10.95 illustrating that the observed statistical differences are 
 modest in magnitude. 
  []
 
 
-Overfull \hbox (49.02371pt too wide) in paragraph at lines 590--596
+Overfull \hbox (49.02371pt too wide) in paragraph at lines 596--602
 []\OT1/cmtt/m/n/10.95 Pairwise Wilcoxon tests (reported in the supplement) iden
 tify several significant
  []
 
 
-Overfull \hbox (60.10216pt too wide) in paragraph at lines 590--596
+Overfull \hbox (60.10216pt too wide) in paragraph at lines 596--602
 \OT1/cmtt/m/n/10.95 pairwise differences at the nominal $\OML/cmm/m/it/10.95 p 
 < \OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 05$ \OT1/cmtt/m/n
 /10.95 level; we treat these pairwise comparisons
  []
 
 
-Overfull \hbox (49.26978pt too wide) in paragraph at lines 590--596
+Overfull \hbox (49.26978pt too wide) in paragraph at lines 596--602
 \OT1/cmtt/m/n/10.95 as exploratory and focus on the most robust patterns. We do
  not apply a family-wise
  []
 
 
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 590--596
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 596--602
 \OT1/cmtt/m/n/10.95 correction across all pairwise tests in the main text, but 
 provide unadjusted
  []
 
 
-Overfull \hbox (25.79608pt too wide) in paragraph at lines 590--596
+Overfull \hbox (25.79608pt too wide) in paragraph at lines 596--602
 \OML/cmm/m/it/10.95 p$\OT1/cmtt/m/n/10.95 -values and recommend interpreting ma
 rginal pairwise $\OML/cmm/m/it/10.95 p$\OT1/cmtt/m/n/10.95 -values with caution
  when
  []
 
 
-Overfull \hbox (12.65424pt too wide) in paragraph at lines 597--599
+Overfull \hbox (12.65424pt too wide) in paragraph at lines 603--605
 []\OT1/cmtt/m/n/10.95 Width. Only CQR ($\OML/cmm/m/it/10.95 p \OT1/cmr/m/n/10.9
 5 = 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 024$\OT1/cmtt/m/n/10.95 , wider) a
 nd Ensemble ($\OML/cmm/m/it/10.95 p \OT1/cmr/m/n/10.95 = 0\OML/cmm/m/it/10.95 :
@@ -735,26 +761,26 @@ nd Ensemble ($\OML/cmm/m/it/10.95 p \OT1/cmr/m/n/10.95 = 0\OML/cmm/m/it/10.95 :
  []
 
 
-Overfull \hbox (32.02371pt too wide) in paragraph at lines 602--612
+Overfull \hbox (32.02371pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 Beyond the main synthetic benchmark, we evaluated Mondrian 
 and CHMP on two public
  []
 
 
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 602--612
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 MATPOWER-derived heterogeneous graphs using three seeds eac
 h. On ACTIVSg200,
  []
 
 
-Overfull \hbox (16.7246pt too wide) in paragraph at lines 602--612
+Overfull \hbox (16.7246pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 both methods achieved average marginal coverage of $\OT1/cm
 r/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 935$\OT1/cmtt/m/n/10.95 ; 
 CHMP slightly reduced
  []
 
 
-Overfull \hbox (1.42548pt too wide) in paragraph at lines 602--612
+Overfull \hbox (1.42548pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 mean width relative to Mondrian ($\OT1/cmr/m/n/10.95 0\OML/
 cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 564$ \OT1/cmtt/m/n/10.95 vs. $\OT1/cmr/m/n/1
 0.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 568$\OT1/cmtt/m/n/10.95 ) but had
@@ -762,7 +788,7 @@ cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 564$ \OT1/cmtt/m/n/10.95 vs. $\OT1/cmr/m/n/1
  []
 
 
-Overfull \hbox (1.42548pt too wide) in paragraph at lines 602--612
+Overfull \hbox (1.42548pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.
 95 073$ \OT1/cmtt/m/n/10.95 vs. $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/
 cmr/m/n/10.95 068$\OT1/cmtt/m/n/10.95 ). On IEEE 118, both methods again achiev
@@ -770,7 +796,7 @@ ed average marginal
  []
 
 
-Overfull \hbox (26.36717pt too wide) in paragraph at lines 602--612
+Overfull \hbox (26.36717pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 coverage of $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/
 cmr/m/n/10.95 898$\OT1/cmtt/m/n/10.95 , while CHMP was marginally wider ($\OT1/
 cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 805$ \OT1/cmtt/m/n/10.95
@@ -779,7 +805,7 @@ cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 805$ \OT1/cmtt/m/n/10.95
  []
 
 
-Overfull \hbox (35.9176pt too wide) in paragraph at lines 602--612
+Overfull \hbox (35.9176pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 calibrated by ECE ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95
  :\OT1/cmr/m/n/10.95 105$ \OT1/cmtt/m/n/10.95 vs. $\OT1/cmr/m/n/10.95 0\OML/cmm
 /m/it/10.95 :\OT1/cmr/m/n/10.95 069$\OT1/cmtt/m/n/10.95 ). The main conclusion 
@@ -787,37 +813,31 @@ from these public-network
  []
 
 
-Overfull \hbox (55.01846pt too wide) in paragraph at lines 602--612
+Overfull \hbox (55.01846pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 runs is therefore conservative: STRATA transfers across mor
 e than one real topology,
  []
 
 
-Overfull \hbox (20.52634pt too wide) in paragraph at lines 602--612
+Overfull \hbox (20.52634pt too wide) in paragraph at lines 608--618
 \OT1/cmtt/m/n/10.95 but CHMP does not yet demonstrate a consistent out-of-sampl
 e advantage over the
  []
 
 [11
-pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has
- been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.612 
-      
 pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.612 
+l.618 
       ]
-Overfull \hbox (14.77765pt too wide) in paragraph at lines 615--624
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 621--630
 \OT1/cmtt/m/n/10.95 The alpha ablation confirms the expected conformal tradeoff
 : average marginal
  []
 
 
-Overfull \hbox (7.17416pt too wide) in paragraph at lines 615--624
+Overfull \hbox (7.17416pt too wide) in paragraph at lines 621--630
 \OT1/cmtt/m/n/10.95 width decreases from $\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.
 95 :\OT1/cmr/m/n/10.95 166$ \OT1/cmtt/m/n/10.95 to $\OT1/cmr/m/n/10.95 0\OML/cm
 m/m/it/10.95 :\OT1/cmr/m/n/10.95 604$\OT1/cmtt/m/n/10.95 . This monotone trend 
@@ -825,19 +845,19 @@ is important because
  []
 
 
-Overfull \hbox (37.7724pt too wide) in paragraph at lines 615--624
+Overfull \hbox (37.7724pt too wide) in paragraph at lines 621--630
 \OT1/cmtt/m/n/10.95 it demonstrates that STRATA's implementation respects the i
 ntended width--coverage
  []
 
 
-Overfull \hbox (78.01321pt too wide) in paragraph at lines 615--624
+Overfull \hbox (78.01321pt too wide) in paragraph at lines 621--630
 \OT1/cmtt/m/n/10.95 control surface rather than producing unstable behavior und
 er retuning. A representative
  []
 
 
-Overfull \hbox (40.5904pt too wide) in paragraph at lines 615--624
+Overfull \hbox (40.5904pt too wide) in paragraph at lines 621--630
 \OT1/cmtt/m/n/10.95 group-wise audit at $\OML/cmm/m/it/10.95  \OT1/cmr/m/n/10.
 95 = 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 10$ \OT1/cmtt/m/n/10.95 produced 
 an overall coverage of $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/1
@@ -845,129 +865,126 @@ an overall coverage of $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/1
  []
 
 
-Overfull \hbox (22.47328pt too wide) in paragraph at lines 615--624
+Overfull \hbox (22.47328pt too wide) in paragraph at lines 621--630
 \OT1/cmtt/m/n/10.95 coverage gap of $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\
 OT1/cmr/m/n/10.95 035$ \OT1/cmtt/m/n/10.95 across the three infrastructure type
 s, suggesting mild but
  []
 
 
-Overfull \hbox (14.77765pt too wide) in paragraph at lines 631--647
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 Because all prior graph conformal methods target classifica
 tion on homogeneous
  []
 
 
-Overfull \hbox (83.67159pt too wide) in paragraph at lines 631--647
+Overfull \hbox (83.67159pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 graphs (\TS1/cmtt/m/n/10.95 §[]\OT1/cmtt/m/n/10.95 2[]), ST
 RATA is, to our knowledge, the first framework to provide distribution-free
  []
 
 
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 631--647
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 prediction intervals for node-level regression on multi-typ
 ed graphs. CHMP's
  []
 
 
-Overfull \hbox (20.52634pt too wide) in paragraph at lines 631--647
+Overfull \hbox (20.52634pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 primary design goal is not to shrink intervals in aggregate
  but to \OT1/cmtt/m/it/10.95 redistribute
  []
 
 
-Overfull \hbox (78.01321pt too wide) in paragraph at lines 631--647
+Overfull \hbox (78.01321pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 interval width according to local graph difficulty: nodes i
 n high-residual neighborhoods
  []
 
 
-Overfull \hbox (32.02371pt too wide) in paragraph at lines 631--647
+Overfull \hbox (32.02371pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 receive wider intervals while low-difficulty nodes receive 
 narrower ones. Across
  []
 
 
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 631--647
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 20 synthetic seeds, CHMP and Mondrian CP produce nearly ide
 ntical mean widths
  []
 
 
-Overfull \hbox (62.77502pt too wide) in paragraph at lines 631--647
+Overfull \hbox (62.77502pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 ($\OMS/cmsy/m/n/10.95 ^^X \OT1/cmr/m/n/10.95 0\OML/cmm/m/it
 /10.95 :\OT1/cmr/m/n/10.95 794$\OT1/cmtt/m/n/10.95 ), but the spatial distribut
 ion differs meaningfully---confirmed by significant
  []
 
 
-Overfull \hbox (42.8561pt too wide) in paragraph at lines 631--647
+Overfull \hbox (42.8561pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 Moran's I autocorrelation ($\OML/cmm/m/it/10.95 p < \OT1/cm
 r/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 01$\OT1/cmtt/m/n/10.95 ) i
 n the residual field under CHMP. The real-data
  []
 
 
-Overfull \hbox (20.52634pt too wide) in paragraph at lines 631--647
+Overfull \hbox (20.52634pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 comparisons make clear that this redistribution is not auto
 matically beneficial
  []
 
 
-Overfull \hbox (26.27502pt too wide) in paragraph at lines 631--647
+Overfull \hbox (26.27502pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 in aggregate: the width effect is slightly favorable on ACT
 IVSg200 and slightly
  []
 
 
-Overfull \hbox (20.52634pt too wide) in paragraph at lines 631--647
+Overfull \hbox (20.52634pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 unfavorable on IEEE 118. The strongest claim supported by t
 he current evidence
  []
 
 
-Overfull \hbox (33.92476pt too wide) in paragraph at lines 631--647
+Overfull \hbox (33.92476pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 is therefore mechanistic: CHMP changes \OT1/cmtt/m/it/10.95
  where \OT1/cmtt/m/n/10.95 interval budget is allocated, which
  []
 
 
-Overfull \hbox (20.52634pt too wide) in paragraph at lines 631--647
+Overfull \hbox (20.52634pt too wide) in paragraph at lines 637--653
 \OT1/cmtt/m/n/10.95 is valuable in infrastructure settings where spatially non-
 uniform risk demands
  []
 
 
-Overfull \hbox (24.90665pt too wide) in paragraph at lines 651--655
+Overfull \hbox (24.90665pt too wide) in paragraph at lines 657--661
 []\OT1/cmtt/m/n/10.95 No significant aggregate width improvement. CHMP does not
  produce narrower
  []
 
 
-Overfull \hbox (6.99559pt too wide) in paragraph at lines 651--655
+Overfull \hbox (6.99559pt too wide) in paragraph at lines 657--661
 \OT1/cmtt/m/n/10.95 intervals than Mondrian CP ($\OML/cmm/m/it/10.95 p > \OT1/c
 mr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 50$\OT1/cmtt/m/n/10.95 ).
  Only the ensemble method achieves
  []
 
 
-Overfull \hbox (47.9014pt too wide) in paragraph at lines 656--659
+Overfull \hbox (47.9014pt too wide) in paragraph at lines 662--665
 \OT1/cmtt/m/n/10.95 the normalization signal is weak relative to the conformal 
 quantile correction. 
  []
 
 
-Underfull \vbox (badness 6995) has occurred while \output is active []
-
- [12]
-Overfull \hbox (21.1049pt too wide) in paragraph at lines 660--662
+Overfull \hbox (21.1049pt too wide) in paragraph at lines 666--668
 []\OT1/cmtt/m/n/10.95 CQR underperformance. CQR produces the widest intervals (
 $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 838$\OT1/cmtt/m/n/
 10.95 ) and lowest
  []
 
-
-Overfull \hbox (40.29791pt too wide) in paragraph at lines 663--665
+[12]
+Overfull \hbox (40.29791pt too wide) in paragraph at lines 669--671
 []\OT1/cmtt/m/n/10.95 ECE trade-off. CHMP variants exhibit higher ECE than Mond
 rian CP ($\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 067$\OT1/
 cmtt/m/n/10.95 --$\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 0
@@ -975,220 +992,294 @@ cmtt/m/n/10.95 --$\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 0
  []
 
 
-Overfull \hbox (13.40927pt too wide) in paragraph at lines 666--671
+Overfull \hbox (13.40927pt too wide) in paragraph at lines 672--677
 []\OT1/cmtt/m/n/10.95 Synthetic data dominance. The water and telecom layers in
  ACTIVSg200 and
  []
 
 
-Overfull \hbox (13.40927pt too wide) in paragraph at lines 666--671
+Overfull \hbox (13.40927pt too wide) in paragraph at lines 672--677
 \OT1/cmtt/m/n/10.95 IEEE 118 are derived from power demand heuristics rather th
 an independent
  []
 
 
-Overfull \hbox (7.66058pt too wide) in paragraph at lines 666--671
+Overfull \hbox (7.66058pt too wide) in paragraph at lines 672--677
 \OT1/cmtt/m/n/10.95 utility datasets. This makes the public real-data evaluatio
 n useful for
  []
 
 
-Overfull \hbox (76.64484pt too wide) in paragraph at lines 666--671
+Overfull \hbox (76.64484pt too wide) in paragraph at lines 672--677
 \OT1/cmtt/m/n/10.95 topology transfer, but not a full validation on independent
 ly measured multi-utility
  []
 
 
-Overfull \hbox (36.40402pt too wide) in paragraph at lines 672--676
+Overfull \hbox (36.40402pt too wide) in paragraph at lines 678--682
 []\OT1/cmtt/m/n/10.95 Mixed real-data evidence. On the two MATPOWER-based bench
 marks, CHMP matches
  []
 
 
-Overfull \hbox (36.40402pt too wide) in paragraph at lines 672--676
+Overfull \hbox (36.40402pt too wide) in paragraph at lines 678--682
 \OT1/cmtt/m/n/10.95 Mondrian coverage but does not produce a consistent width o
 r ECE improvement.
  []
 
 
-Overfull \hbox (13.40927pt too wide) in paragraph at lines 672--676
+Overfull \hbox (13.40927pt too wide) in paragraph at lines 678--682
 \OT1/cmtt/m/n/10.95 The method's empirical advantage over simpler baselines the
 refore remains
  []
 
 
-Overfull \hbox (59.39877pt too wide) in paragraph at lines 679--682
+Overfull \hbox (59.39877pt too wide) in paragraph at lines 685--688
 []\OT1/cmtt/m/n/10.95 Static analysis. STRATA provides static risk intervals; s
 treaming infrastructure
  []
 
 
-Overfull \hbox (19.15796pt too wide) in paragraph at lines 683--690
+Overfull \hbox (19.15796pt too wide) in paragraph at lines 689--696
 []\OT1/cmtt/m/n/10.95 Residual group disparity. The fairness audit shows a wors
 t-group coverage
  []
 
 
-Overfull \hbox (3.85884pt too wide) in paragraph at lines 683--690
+Overfull \hbox (3.85884pt too wide) in paragraph at lines 689--696
 \OT1/cmtt/m/n/10.95 gap of roughly $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\O
 T1/cmr/m/n/10.95 035$ \OT1/cmtt/m/n/10.95 in a representative run. This is not 
 catastrophic,
  []
 
 
-Overfull \hbox (1.9119pt too wide) in paragraph at lines 683--690
+Overfull \hbox (1.9119pt too wide) in paragraph at lines 689--696
 \OT1/cmtt/m/n/10.95 but it indicates that type-conditional monitoring should re
 main part of
  []
 
 
-Overfull \hbox (30.65533pt too wide) in paragraph at lines 683--690
+Overfull \hbox (30.65533pt too wide) in paragraph at lines 689--696
 \OT1/cmtt/m/n/10.95 the evaluation and deployment workflow. Operationally, prac
 titioners should
  []
 
 
-Overfull \hbox (30.65533pt too wide) in paragraph at lines 683--690
+Overfull \hbox (30.65533pt too wide) in paragraph at lines 689--696
 \OT1/cmtt/m/n/10.95 monitor per-type coverage and configure recalibration trigg
 ers (for example,
  []
 
 
-Overfull \hbox (7.66058pt too wide) in paragraph at lines 683--690
+Overfull \hbox (7.66058pt too wide) in paragraph at lines 689--696
 \OT1/cmtt/m/n/10.95 when worst-group coverage falls by more than 0.02--0.05 fro
 m nominal) or
  []
 
 
-Overfull \hbox (83.7619pt too wide) in paragraph at lines 696--708
+Overfull \hbox (36.40402pt too wide) in paragraph at lines 702--704
+[]\OT1/cmtt/m/n/10.95 Mondrian CP: prefer when simplicity, low compute, and low
+ ECE are priorities.
+ []
+
+
+Overfull \hbox (13.40927pt too wide) in paragraph at lines 704--708
+[]\OT1/cmtt/m/n/10.95 CHMP (propagation-aware): prefer when spatial redistribut
+ion of interval
+ []
+
+
+Overfull \hbox (19.15796pt too wide) in paragraph at lines 704--708
+\OT1/cmtt/m/n/10.95 budget is desired (e.g., to allocate wider intervals near k
+nown high-error
+ []
+
+
+Overfull \hbox (65.14746pt too wide) in paragraph at lines 708--712
+[]\OT1/cmtt/m/n/10.95 Ensemble Calibrator: use when interval sharpness is criti
+cal and the practitioner
+ []
+
+
+Overfull \hbox (79.13916pt too wide) in paragraph at lines 708--712
+\OT1/cmtt/m/n/10.95 can afford $\OT1/cmr/m/n/10.95 3\OMS/cmsy/m/n/10.95 ^^B$ \O
+T1/cmtt/m/n/10.95 training cost; this was the only variant that produced a stat
+istically
+ []
+
+
+Overfull \hbox (18.34123pt too wide) in paragraph at lines 708--712
+\OT1/cmtt/m/n/10.95 significant aggregate width reduction in our experiments ($
+\OT1/cmr/m/n/10.95 6\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 4%$\OT1/cmtt/m/n/10
+.95 , $\OML/cmm/m/it/10.95 p \OT1/cmr/m/n/10.95 = 0\OML/cmm/m/it/10.95 :\OT1/cm
+r/m/n/10.95 019$\OT1/cmtt/m/n/10.95 ). 
+ []
+
+
+Overfull \hbox (66.51584pt too wide) in paragraph at lines 714--721
+\OT1/cmtt/m/n/10.95 ensure critical locations receive adequate interval budget.
+ In multi-type deployments,
+ []
+
+
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 714--721
+\OT1/cmtt/m/n/10.95 monitor per-type coverage and the worst-group gap; triggers
+ for recalibration
+ []
+
+
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 714--721
+\OT1/cmtt/m/n/10.95 might be set when worst-group coverage drops more than 0.02
+--0.05 from nominal
+ []
+
+
+Overfull \hbox (83.7619pt too wide) in paragraph at lines 726--736
 \OT1/cmtt/m/n/10.95 We introduced STRATA, the first framework for distribution-
 free uncertainty quantification
  []
 
 
-Overfull \hbox (14.77765pt too wide) in paragraph at lines 696--708
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 726--736
 \OT1/cmtt/m/n/10.95 via conformal prediction on heterogeneous graph regression.
  While prior graph
  []
 
 
-Overfull \hbox (28.17607pt too wide) in paragraph at lines 696--708
+Overfull \hbox (28.17607pt too wide) in paragraph at lines 726--736
 \OT1/cmtt/m/n/10.95 conformal methods address node \OT1/cmtt/m/it/10.95 classif
 ication \OT1/cmtt/m/n/10.95 on homogeneous graphs (DAPS, NAPS,
  []
 
 
-Overfull \hbox (51.17082pt too wide) in paragraph at lines 696--708
+Overfull \hbox (51.17082pt too wide) in paragraph at lines 726--736
 \OT1/cmtt/m/n/10.95 SNAPS, CF-GNN), STRATA targets node-level \OT1/cmtt/m/it/10
 .95 regression \OT1/cmtt/m/n/10.95 with per-type Mondrian coverage
  []
 
 
-Overfull \hbox (66.51584pt too wide) in paragraph at lines 696--708
-\OT1/cmtt/m/n/10.95 guarantees. The core contribution---Conformal Heterogeneous
- Message Passing---provides
+Overfull \hbox (3.28027pt too wide) in paragraph at lines 726--736
+\OT1/cmtt/m/n/10.95 guarantees---a setting with no prior work. The core contrib
+ution, Conformal
  []
 
 
-Overfull \hbox (43.52109pt too wide) in paragraph at lines 696--708
-\OT1/cmtt/m/n/10.95 locally adaptive prediction intervals by propagating frozen
- training-set difficulty
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 726--736
+\OT1/cmtt/m/n/10.95 Heterogeneous Message Passing, provides locally adaptive pr
+ediction intervals
  []
 
 
-Overfull \hbox (14.77765pt too wide) in paragraph at lines 696--708
-\OT1/cmtt/m/n/10.95 signals through the infrastructure coupling topology, prese
-rving finite-sample
+Overfull \hbox (26.27502pt too wide) in paragraph at lines 726--736
+\OT1/cmtt/m/n/10.95 by propagating frozen training-set difficulty signals throu
+gh the infrastructure
  []
 
 
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 696--708
-\OT1/cmtt/m/n/10.95 coverage guarantees. Experiments across 20 random seeds dem
-onstrate that all
- []
-
-
-Overfull \hbox (43.52109pt too wide) in paragraph at lines 696--708
-\OT1/cmtt/m/n/10.95 calibrator variants maintain valid marginal and type-condit
-ional coverage (Friedman
- []
-
-
-Overfull \hbox (3.03421pt too wide) in paragraph at lines 709--719
-[]\OT1/cmtt/m/n/10.95 CHMP's primary effect is spatial redistribution of interv
-al widths rather
- []
-
-
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 709--719
-\OT1/cmtt/m/n/10.95 than aggregate width reduction. Among all calibrators, the 
-ensemble approach
- []
-
-
-Overfull \hbox (19.70961pt too wide) in paragraph at lines 709--719
-\OT1/cmtt/m/n/10.95 achieves the only statistically significant width improveme
-nt ($\OT1/cmr/m/n/10.95 6\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 4%$\OT1/cmtt/m
-/n/10.95 , $\OML/cmm/m/it/10.95 p \OT1/cmr/m/n/10.95 = 0\OML/cmm/m/it/10.95 :\O
-T1/cmr/m/n/10.95 019$\OT1/cmtt/m/n/10.95 ).
- []
-
-
-Overfull \hbox (14.77765pt too wide) in paragraph at lines 709--719
-\OT1/cmtt/m/n/10.95 STRATA establishes a principled framework for applying conf
-ormal prediction to
- []
-
-
-Overfull \hbox (14.77765pt too wide) in paragraph at lines 709--719
-\OT1/cmtt/m/n/10.95 heterogeneous graph-structured data with per-type coverage 
-guarantees, spatial
- []
-
-
-Overfull \hbox (3.28027pt too wide) in paragraph at lines 709--719
-\OT1/cmtt/m/n/10.95 diagnostics, and a family of normalization strategies. The 
-current evidence
- []
-
-
-Overfull \hbox (32.02371pt too wide) in paragraph at lines 709--719
-\OT1/cmtt/m/n/10.95 supports CHMP as a plausible mechanism for difficulty-aware
- width redistribution,
- []
-
-
-Overfull \hbox (43.52109pt too wide) in paragraph at lines 709--719
-\OT1/cmtt/m/n/10.95 while also indicating that simpler baselines remain competi
-tive on public real-data
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 726--736
+\OT1/cmtt/m/n/10.95 coupling topology, with a formal proof (Theorem []1[]) that
+ finite-sample coverage
  []
 
 [13]
-Overfull \hbox (49.26978pt too wide) in paragraph at lines 725--726
+Overfull \hbox (20.28027pt too wide) in paragraph at lines 737--744
+[]\OT1/cmtt/m/n/10.95 Across 20 random seeds, all nine calibrator variants main
+tain valid marginal
+ []
+
+
+Overfull \hbox (25.61003pt too wide) in paragraph at lines 737--744
+\OT1/cmtt/m/n/10.95 and type-conditional coverage (Friedman $\OML/cmm/m/it/10.9
+5 p \OT1/cmr/m/n/10.95 = 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 93$\OT1/cmtt/
+m/n/10.95 ), confirming the theory. CHMP's
+ []
+
+
+Overfull \hbox (26.27502pt too wide) in paragraph at lines 737--744
+\OT1/cmtt/m/n/10.95 primary effect is spatial redistribution of interval width 
+rather than aggregate
+ []
+
+
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 737--744
+\OT1/cmtt/m/n/10.95 width reduction: nodes in high-difficulty neighborhoods rec
+eive appropriately
+ []
+
+
+Overfull \hbox (66.51584pt too wide) in paragraph at lines 737--744
+\OT1/cmtt/m/n/10.95 wider intervals, while the ensemble variant achieves the on
+ly statistically significant
+ []
+
+
+Overfull \hbox (60.52109pt too wide) in paragraph at lines 745--754
+[]\OT1/cmtt/m/n/10.95 STRATA establishes a principled framework for conformal p
+rediction on heterogeneous
+ []
+
+
+Overfull \hbox (37.7724pt too wide) in paragraph at lines 745--754
+\OT1/cmtt/m/n/10.95 graph-structured data, providing per-type coverage guarante
+es, spatial diagnostics
+ []
+
+
+Overfull \hbox (28.13713pt too wide) in paragraph at lines 745--754
+\OT1/cmtt/m/n/10.95 (Moran's I, Getis-Ord $\OML/cmm/m/it/10.95 G[]$\OT1/cmtt/m/
+n/10.95 ), and a family of normalization strategies ranging from
+ []
+
+
+Overfull \hbox (32.02371pt too wide) in paragraph at lines 745--754
+\OT1/cmtt/m/n/10.95 simple (Mondrian) to learned (MetaCal, Attention) to ensemb
+le-based. The current
+ []
+
+
+Overfull \hbox (60.76715pt too wide) in paragraph at lines 745--754
+\OT1/cmtt/m/n/10.95 evidence supports CHMP as a sound mechanism for difficulty-
+aware width redistribution,
+ []
+
+
+Overfull \hbox (26.27502pt too wide) in paragraph at lines 745--754
+\OT1/cmtt/m/n/10.95 while honestly acknowledging that simpler baselines remain 
+competitive on public
+ []
+
+
+Overfull \hbox (14.77765pt too wide) in paragraph at lines 745--754
+\OT1/cmtt/m/n/10.95 real-data benchmarks---an important finding for practitione
+rs deciding between
+ []
+
+
+Overfull \hbox (49.26978pt too wide) in paragraph at lines 760--761
 \OT1/cmtt/m/n/10.95 This work was conducted independently without external fund
 ing. The author declares
  []
 
 
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 725--726
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 760--761
 \OT1/cmtt/m/n/10.95 no competing interests. The author consents to publication 
 and confirms that
  []
 
 
-Overfull \hbox (43.52109pt too wide) in paragraph at lines 725--726
+Overfull \hbox (43.52109pt too wide) in paragraph at lines 760--761
 \OT1/cmtt/m/n/10.95 this manuscript is not under simultaneous review elsewhere.
  Code, tests, examples,
  []
 
 
-Overfull \hbox (9.02896pt too wide) in paragraph at lines 725--726
+Overfull \hbox (9.02896pt too wide) in paragraph at lines 760--761
 \OT1/cmtt/m/n/10.95 benchmark scripts, and a supplementary reproducibility bund
 le are provided at
  []
 
 (manuscript_draft.bbl
-Overfull \hbox (14.5479pt too wide) in paragraph at lines 727--1
+Overfull \hbox (14.5479pt too wide) in paragraph at lines 762--1
  \OT1/cmr/bx/n/10.95 Soft-ware.[] \OT1/cmtt/m/n/10.95 Code is available at []$h
 ttps : / / github . com / matthew-[]lottly / strata$[] under
  []
@@ -1229,7 +1320,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 24--29
 teria for
  []
 
-
+[14]
 Underfull \hbox (badness 10000) in paragraph at lines 32--36
 []\OT1/cmtt/m/n/10.95 Sergey V Buldyrev, Roni Parshani, Gerald Paul, H Eugene S
 tanley, and Shlomo
@@ -1265,7 +1356,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 62--66
  inference under
  []
 
-[14]
+
 Underfull \hbox (badness 10000) in paragraph at lines 69--74
 []\OT1/cmtt/m/n/10.95 Justin Gilmer, Samuel S Schoenholz, Patrick F Riley, Orio
 l Vinyals, and
@@ -1331,7 +1422,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 109--112
 rnational Conference on Learning
  []
 
-
+[15]
 Underfull \hbox (badness 10000) in paragraph at lines 120--125
 []\OT1/cmtt/m/n/10.95 Balaji Lakshminarayanan, Alexander Pritzel, and Charles B
 lundell.  Simple
@@ -1373,7 +1464,7 @@ Underfull \hbox (badness 4254) in paragraph at lines 148--152
 /m/it/10.95 European Conference on
  []
 
-[15]
+
 Underfull \hbox (badness 10000) in paragraph at lines 155--160
 []\OT1/cmtt/m/n/10.95 Steven M Rinaldi, James P Peerenboom, and Terrence K Kell
 y.  Identifying,
@@ -1439,7 +1530,7 @@ Underfull \hbox (badness 2961) in paragraph at lines 200--204
 T1/cmtt/m/it/10.95 The World Wide
  []
 
-
+[16]
 Underfull \hbox (badness 10000) in paragraph at lines 206--209
 []\OT1/cmtt/m/n/10.95 Frank Wilcoxon.  Individual comparisons by ranking method
 s.  \OT1/cmtt/m/it/10.95 Biometrics
@@ -1457,7 +1548,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 212--216
 T1/cmtt/m/it/10.95 International
  []
 
-) [16] 
+) [17] 
 enddocument/afterlastpage (AED): lastpage setting LastPage.
 (manuscript_draft.aux)
  ***********
@@ -1465,23 +1556,23 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `manuscript_draft.out' has not changed.
-(rerunfilecheck)             Checksum: 978D8B9A39FEE4F5CA5C94CDC001A1B2;5510.
+(rerunfilecheck)             Checksum: 0FF28C170198A1200494D104C4F7B1E5;5510.
  )
 (\end occurred inside a group at level 1)
 
-### simple group (level 1) entered at line 492 ({)
+### simple group (level 1) entered at line 494 ({)
 ### bottom level 
 Here is how much of TeX's memory you used:
- 11002 strings out of 467871
- 171706 string characters out of 5418376
- 585613 words of memory out of 5000000
+ 11004 strings out of 467871
+ 171723 string characters out of 5418376
+ 585610 words of memory out of 5000000
  39613 multiletter control sequences out of 15000+600000
  639858 words of font info for 86 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 90i,10n,96p,364b,720s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 90i,10n,96p,364b,737s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\mapow\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/
-ec/dpi600\tctt1095.pk> <C:\Users\mapow\AppData\Local\MiKTeX\fonts/pk/ljfour/jkn
-appen/ec/dpi600\tcrm1095.pk> <C:\Users\mapow\AppData\Local\MiKTeX\fonts/pk/ljfo
+ec/dpi600\tcrm1095.pk> <C:\Users\mapow\AppData\Local\MiKTeX\fonts/pk/ljfour/jkn
+appen/ec/dpi600\tctt1095.pk> <C:\Users\mapow\AppData\Local\MiKTeX\fonts/pk/ljfo
 ur/jknappen/ec/dpi600\tcrm0800.pk><C:/Users/mapow/AppData/Local/Programs/MiKTeX
 /fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Users/mapow/AppData/Local/Progra
 ms/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx12.pfb><C:/Users/mapow/AppData/Loc
@@ -1503,9 +1594,9 @@ pfb><C:/Users/mapow/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/c
 m/cmtt10.pfb><C:/Users/mapow/AppData/Local/Programs/MiKTeX/fonts/type1/public/a
 msfonts/cm/cmtt8.pfb><C:/Users/mapow/AppData/Local/Programs/MiKTeX/fonts/type1/
 public/amsfonts/symbols/msbm10.pfb>
-Output written on manuscript_draft.pdf (16 pages, 619871 bytes).
+Output written on manuscript_draft.pdf (17 pages, 768787 bytes).
 PDF statistics:
- 496 PDF objects out of 1000 (max. 8388607)
- 109 named destinations out of 1000 (max. 500000)
+ 500 PDF objects out of 1000 (max. 8388607)
+ 111 named destinations out of 1000 (max. 500000)
  266 words of extra memory for PDF output out of 10000 (max. 10000000)
 
