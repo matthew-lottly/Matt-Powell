@@ -45,22 +45,25 @@ class TSUAN(nn.Module):
             dropout=cfg.attention.dropout,
             gamma=cfg.attention.physical_penalty_weight,
         )
+        # Ensure decoder / uncertainty / cloud head use the attention embedding
+        # dimension so channel sizes match the attention output `z`.
+        att_dim = cfg.attention.embed_dim
 
         # Decoder
         self.decoder = Decoder(
-            embed_dim=cfg.decoder.embed_dim,
+            embed_dim=att_dim,
             out_channels=cfg.decoder.out_channels,
             num_blocks=cfg.decoder.num_upsample_blocks,
         )
 
         # Hierarchical uncertainty
         self.uncertainty = HierarchicalUncertainty(
-            embed_dim=cfg.uncertainty.embed_dim,
+            embed_dim=att_dim,
             patch_kernel=cfg.uncertainty.patch_kernel,
         )
 
         # Auxiliary cloud segmentation head (optional)
-        self.cloud_head = nn.Conv2d(cfg.encoder.embed_dim, 1, kernel_size=1)
+        self.cloud_head = nn.Conv2d(att_dim, 1, kernel_size=1)
 
     def forward(
         self,

@@ -40,7 +40,8 @@ class PatchUncertaintyHead(nn.Module):
     def __init__(self, embed_dim: int, kernel_size: int = 3, pool_size: int = 4):
         super().__init__()
         self.conv = nn.Conv2d(embed_dim, 1, kernel_size=kernel_size, padding=kernel_size // 2)
-        self.pool = nn.AvgPool2d(pool_size)
+        self.pool_size = pool_size
+        self.pool = None
         self.activation = nn.Softplus()
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
@@ -53,7 +54,14 @@ class PatchUncertaintyHead(nn.Module):
         -------
         sigma_patch : Tensor (B*T, 1, H'//pool, W'//pool)
         """
-        return self.activation(self.pool(self.conv(z)))
+        conv_out = self.conv(z)
+        H, W = conv_out.shape[-2:]
+        k = min(self.pool_size, H, W)
+        if k <= 1:
+            pooled = F.adaptive_avg_pool2d(conv_out, 1)
+        else:
+            pooled = F.avg_pool2d(conv_out, kernel_size=k)
+        return self.activation(pooled)
 
 
 class RegionUncertaintyHead(nn.Module):

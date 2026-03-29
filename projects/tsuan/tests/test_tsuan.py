@@ -224,3 +224,29 @@ class TestModel:
         assert cfg.encoder.optical_in_channels == 13
         assert cfg.encoder.sar_in_channels == 2
         assert cfg.attention.num_heads == 8
+
+    def test_mismatched_config_alignment(self):
+        # Encoder embed_dim differs from attention; config should align them
+        cfg = TSUANConfig()
+        cfg.encoder.embed_dim = 32
+        cfg.encoder.optical_in_channels = 4
+        cfg.encoder.sar_in_channels = 2
+        cfg.attention.embed_dim = 16
+
+        # Re-run post-init alignment by creating a new TSUANConfig instance
+        cfg2 = TSUANConfig(
+            encoder=cfg.encoder,
+            attention=cfg.attention,
+            uncertainty=cfg.uncertainty,
+            decoder=cfg.decoder,
+        )
+
+        assert cfg2.attention.embed_dim == cfg2.encoder.embed_dim
+
+        # Model should build and forward without channel mismatch
+        model = TSUAN(cfg2)
+        x_opt = torch.randn(B, T, 4, H, W)
+        x_sar = torch.randn(B, T, 2, H, W)
+        u_mask = torch.rand(B, T, 1, H, W)
+        out = model(x_opt, x_sar, u_mask)
+        assert out["x_hat"].shape[0] == B
