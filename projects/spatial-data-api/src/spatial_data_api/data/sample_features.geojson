@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "station-001",
+        "name": "Mississippi River Gauge",
+        "category": "hydrology",
+        "region": "Midwest",
+        "status": "normal",
+        "lastObservationAt": "2026-03-18T12:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-93.265, 44.977]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "station-002",
+        "name": "Sierra Air Quality Node",
+        "category": "air_quality",
+        "region": "West",
+        "status": "alert",
+        "lastObservationAt": "2026-03-18T12:05:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-121.494, 38.581]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "station-003",
+        "name": "Boston Harbor Buoy",
+        "category": "water_quality",
+        "region": "Northeast",
+        "status": "offline",
+        "lastObservationAt": "2026-03-17T22:30:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-71.0589, 42.3601]
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" fill="none">
+  <rect width="1200" height="720" rx="32" fill="#F5F1EA"/>
+  <rect x="60" y="48" width="1080" height="624" rx="28" fill="#FFFDF9" stroke="#D5CEC4"/>
+  <text x="98" y="110" fill="#1F2A25" font-family="Georgia, serif" font-size="40">Monitoring Data Warehouse</text>
+  <text x="98" y="144" fill="#5F6D66" font-family="Arial, sans-serif" font-size="18">Dimension and fact modeling preview for monitoring observations.</text>
+  <rect x="120" y="214" width="230" height="110" rx="22" fill="#E9EFEF" stroke="#B6C2C3"/>
+  <rect x="120" y="374" width="230" height="110" rx="22" fill="#E9EFEF" stroke="#B6C2C3"/>
+  <rect x="120" y="534" width="230" height="110" rx="22" fill="#E9EFEF" stroke="#B6C2C3"/>
+  <rect x="470" y="298" width="270" height="150" rx="22" fill="#F4E6C7" stroke="#D4B06E"/>
+  <rect x="860" y="298" width="230" height="150" rx="22" fill="#E3E7D7" stroke="#9AAA78"/>
+  <text x="156" y="258" fill="#1F2A25" font-family="Georgia, serif" font-size="24">dim_station</text>
+  <text x="156" y="418" fill="#1F2A25" font-family="Georgia, serif" font-size="24">dim_region</text>
+  <text x="156" y="578" fill="#1F2A25" font-family="Georgia, serif" font-size="24">dim_category</text>
+  <text x="522" y="352" fill="#1F2A25" font-family="Georgia, serif" font-size="28">fact_observation</text>
+  <text x="890" y="352" fill="#1F2A25" font-family="Georgia, serif" font-size="22">mart_alert_station_daily</text>
+  <path d="M350 268 H470" stroke="#8A988F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M350 428 H470" stroke="#8A988F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M350 588 H470" stroke="#8A988F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M740 372 H860" stroke="#8A988F" stroke-width="4" stroke-linecap="round"/>
+  <text x="502" y="390" fill="#5F6D66" font-family="Arial, sans-serif" font-size="18">7 observations</text>
+  <text x="886" y="390" fill="#5F6D66" font-family="Arial, sans-serif" font-size="18">3 grouped alert rows</text>
+</svg>

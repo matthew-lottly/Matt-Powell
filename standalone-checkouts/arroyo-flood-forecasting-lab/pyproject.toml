@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arroyo-flood-forecasting-lab"
+version = "0.1.0"
+description = "Flood forecasting lab for wavelet-denoised autoregressive modeling and Monte Carlo review."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.9,<4.0",
+    "numpy>=2.0,<3.0",
+    "PyWavelets>=1.6,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9.0",
+]
+
+[project.scripts]
+arroyo-flood-lab = "arroyo_flood_forecasting_lab.lab:main"
+refresh-arroyo-flood-data = "arroyo_flood_forecasting_lab.refresh_data:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Raster monitoring pipeline preview</title>
+  <desc id="desc">Concept preview showing raster hotspots, cell-delta metrics, and tile manifest planning.</desc>
+  <rect width="1200" height="720" fill="#f1ede7"/>
+  <rect x="48" y="40" width="1104" height="128" rx="28" fill="#fcfaf7" stroke="#ddd1bf"/>
+  <text x="84" y="84" fill="#6f6658" font-family="Georgia, serif" font-size="16" letter-spacing="3">RASTER ANALYSIS PIPELINE</text>
+  <text x="84" y="134" fill="#2b241d" font-family="Georgia, serif" font-size="42">Raster Monitoring Pipeline</text>
+  <text x="84" y="168" fill="#71675b" font-family="Georgia, serif" font-size="18">Public-safe concept for raster change detection, hotspot ranking, and tile planning.</text>
+  <rect x="48" y="206" width="248" height="108" rx="24" fill="#fcfaf7" stroke="#ddd1bf"/>
+  <rect x="316" y="206" width="248" height="108" rx="24" fill="#fcfaf7" stroke="#ddd1bf"/>
+  <rect x="584" y="206" width="248" height="108" rx="24" fill="#fcfaf7" stroke="#ddd1bf"/>
+  <text x="78" y="240" fill="#7b7064" font-family="Georgia, serif" font-size="14" letter-spacing="2">CELLS</text>
+  <text x="78" y="286" fill="#2b241d" font-family="Georgia, serif" font-size="38">16</text>
+  <text x="346" y="240" fill="#7b7064" font-family="Georgia, serif" font-size="14" letter-spacing="2">HOTSPOTS</text>
+  <text x="346" y="286" fill="#2b241d" font-family="Georgia, serif" font-size="38">3</text>
+  <text x="614" y="240" fill="#7b7064" font-family="Georgia, serif" font-size="14" letter-spacing="2">TILES</text>
+  <text x="614" y="286" fill="#2b241d" font-family="Georgia, serif" font-size="38">4</text>
+  <rect x="48" y="346" width="520" height="326" rx="28" fill="#fcfaf7" stroke="#ddd1bf"/>
+  <rect x="600" y="346" width="552" height="326" rx="28" fill="#fcfaf7" stroke="#ddd1bf"/>
+  <text x="80" y="388" fill="#7b7064" font-family="Georgia, serif" font-size="14" letter-spacing="2">GRID CHANGE</text>
+  <text x="80" y="420" fill="#2b241d" font-family="Georgia, serif" font-size="28">Hotspot Surface</text>
+  <rect x="100" y="454" width="90" height="90" fill="#d6e0d0"/>
+  <rect x="196" y="454" width="90" height="90" fill="#c6d9be"/>
+  <rect x="292" y="454" width="90" height="90" fill="#d9cf9f"/>
+  <rect x="388" y="454" width="90" height="90" fill="#cf8664"/>
+  <rect x="100" y="550" width="90" height="90" fill="#c8d6c1"/>
+  <rect x="196" y="550" width="90" height="90" fill="#d4c790"/>
+  <rect x="292" y="550" width="90" height="90" fill="#c97955"/>
+  <rect x="388" y="550" width="90" height="90" fill="#b85b48"/>
+  <text x="632" y="388" fill="#7b7064" font-family="Georgia, serif" font-size="14" letter-spacing="2">TOP CHANGES</text>
+  <text x="632" y="420" fill="#2b241d" font-family="Georgia, serif" font-size="28">Delta Ranking</text>
+  <rect x="632" y="452" width="488" height="72" rx="18" fill="#f2e7db" stroke="#ddd1bf"/>
+  <text x="658" y="488" fill="#2b241d" font-family="Georgia, serif" font-size="20">row 1 · col 3 · delta +5</text>
+  <text x="658" y="510" fill="#7b7064" font-family="Georgia, serif" font-size="14">Escalated heat signal in the northeast tile</text>
+  <rect x="632" y="540" width="488" height="72" rx="18" fill="#f2e7db" stroke="#ddd1bf"/>
+  <text x="658" y="576" fill="#2b241d" font-family="Georgia, serif" font-size="20">row 2 · col 3 · delta +6</text>
+  <text x="658" y="598" fill="#7b7064" font-family="Georgia, serif" font-size="14">Highest hotspot concentration in the southeast tile</text>
+</svg>

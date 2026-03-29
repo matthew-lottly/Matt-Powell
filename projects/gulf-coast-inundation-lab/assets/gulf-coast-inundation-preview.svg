@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Gulf Coast inundation lab preview</title>
+  <desc id="desc">Preview showing a Gulf Coast map, inundation heat surface, and gauge-validation panels.</desc>
+  <rect width="960" height="540" fill="#eef0e6" />
+  <rect x="44" y="44" width="872" height="452" rx="28" fill="#173642" />
+  <rect x="78" y="84" width="804" height="250" rx="20" fill="#f7f4ea" />
+  <path d="M158 140 C226 116 282 118 328 142 C372 164 414 186 452 190 C498 196 540 184 594 168 C652 150 712 146 788 170 L788 286 L156 286 Z" fill="#d9e3d7" />
+  <path d="M188 154 C234 142 282 146 318 162 C354 178 398 204 446 210 C500 216 560 202 612 184 C664 166 714 166 774 182" fill="none" stroke="#6e8d86" stroke-width="5" stroke-linecap="round" />
+  <ellipse cx="310" cy="188" rx="52" ry="28" fill="#1d8b8a" opacity="0.70" />
+  <ellipse cx="418" cy="214" rx="72" ry="32" fill="#e0a126" opacity="0.70" />
+  <ellipse cx="560" cy="190" rx="64" ry="30" fill="#d4573f" opacity="0.78" />
+  <ellipse cx="684" cy="210" rx="56" ry="26" fill="#ebb748" opacity="0.72" />
+  <rect x="94" y="360" width="356" height="104" rx="18" fill="#f7f4ea" />
+  <rect x="474" y="360" width="392" height="104" rx="18" fill="#f7f4ea" />
+  <polyline points="122,426 172,404 222,392 272,382 322,366 372,352 422,338" fill="none" stroke="#1d8b8a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="122" y1="426" x2="422" y2="426" stroke="#adb8b0" stroke-width="2" />
+  <line x1="122" y1="338" x2="122" y2="426" stroke="#adb8b0" stroke-width="2" />
+  <circle cx="170" cy="412" r="7" fill="#d4573f" />
+  <circle cx="254" cy="388" r="7" fill="#d4573f" />
+  <circle cx="338" cy="362" r="7" fill="#d4573f" />
+  <rect x="504" y="382" width="70" height="52" rx="12" fill="#1d8b8a" opacity="0.90" />
+  <rect x="596" y="370" width="70" height="64" rx="12" fill="#ebb748" opacity="0.88" />
+  <rect x="688" y="350" width="70" height="84" rx="12" fill="#d4573f" opacity="0.88" />
+  <text x="92" y="312" fill="#173642" font-family="Arial, sans-serif" font-size="17">AWEIsh water classification and observation-support review</text>
+  <text x="96" y="392" fill="#173642" font-family="Georgia, serif" font-size="24">Gauge correlation</text>
+  <text x="96" y="420" fill="#5d6d7e" font-family="Arial, sans-serif" font-size="16">Inundated area vs. stage height over exported AOIs</text>
+  <text x="474" y="392" fill="#173642" font-family="Georgia, serif" font-size="24">Validation ranks</text>
+  <text x="474" y="420" fill="#5d6d7e" font-family="Arial, sans-serif" font-size="16">$R^2$ summaries for article-style review output</text>
+  <text x="82" y="490" fill="#f7f4ea" font-family="Georgia, serif" font-size="30">Gulf Coast Inundation Lab</text>
+  <text x="82" y="518" fill="#d9e3d7" font-family="Arial, sans-serif" font-size="18">Google Earth Engine Landsat stacks, flood frequency, and gauge-validation summaries</text>
+</svg>

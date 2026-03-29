@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="860" viewBox="0 0 1440 860" role="img" aria-labelledby="title desc">
+  <title id="title">Station brief widget prototype interaction walkthrough</title>
+  <desc id="desc">Three conceptual storyboard panels showing region filtering, synchronized selection, and detail panel updates in the station brief widget demo.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5efe1" />
+      <stop offset="100%" stop-color="#dce7e0" />
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbfaf6" />
+      <stop offset="100%" stop-color="#f0ede5" />
+    </linearGradient>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #1f2a2e; }
+      .kicker { font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; fill: #7a5c2e; }
+      .title { font-size: 42px; font-weight: 700; }
+      .body { font-size: 20px; }
+      .small { font-size: 16px; fill: #546268; }
+      .panel-title { font-size: 24px; font-weight: 700; }
+      .chip { font-size: 17px; font-weight: 700; }
+      .metric { font-size: 32px; font-weight: 700; }
+      .label { font-size: 15px; fill: #6a767b; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+  </defs>
+  <rect width="1440" height="860" fill="url(#bg)" />
+  <text x="84" y="84" class="kicker">Interaction Walkthrough</text>
+  <text x="84" y="132" class="title">Station Brief Widget Demo Flow</text>
+  <text x="84" y="170" class="body">A lightweight conceptual storyboard for reviewers who want to see filter, map, and detail-panel behavior without launching the app.</text>
+
+  <g transform="translate(72,220)">
+    <rect width="412" height="560" rx="28" fill="url(#panel)" stroke="#cdbf9b" />
+    <text x="30" y="46" class="panel-title">1. Filter to West</text>
+    <text x="30" y="78" class="small">The runtime region selector narrows the list, coverage panel, and summary counts.</text>
+    <rect x="30" y="110" width="352" height="56" rx="16" fill="#dfe8df" stroke="#8ea095" />
+    <text x="52" y="145" class="chip">Region: West</text>
+    <rect x="30" y="196" width="102" height="92" rx="18" fill="#efe0b5" />
+    <rect x="154" y="196" width="102" height="92" rx="18" fill="#efc0aa" />
+    <rect x="278" y="196" width="102" height="92" rx="18" fill="#cad6d8" />
+    <text x="50" y="224" class="label">Stations</text>
+    <text x="70" y="262" class="metric">3</text>
+    <text x="174" y="224" class="label">Alert</text>
+    <text x="194" y="262" class="metric">2</text>
+    <text x="296" y="224" class="label">Offline</text>
+    <text x="318" y="262" class="metric">0</text>
+    <rect x="30" y="324" width="352" height="196" rx="22" fill="#f7f3e8" stroke="#d3c7aa" />
+    <text x="48" y="358" class="label">Visible Stations</text>
+    <rect x="48" y="380" width="316" height="42" rx="12" fill="#ffffff" stroke="#d8d2c2" />
+    <text x="64" y="406" class="body">Sierra Air Quality Node</text>
+    <rect x="48" y="432" width="316" height="42" rx="12" fill="#ffffff" stroke="#d8d2c2" />
+    <text x="64" y="458" class="body">Columbia River Gauge</text>
+    <rect x="48" y="484" width="316" height="42" rx="12" fill="#ffffff" stroke="#d8d2c2" />
+    <text x="64" y="510" class="body">Cascade Fuel Sensor</text>
+  </g>
+
+  <g transform="translate(514,220)">
+    <rect width="412" height="560" rx="28" fill="url(#panel)" stroke="#cdbf9b" />
+    <text x="30" y="46" class="panel-title">2. Select from map or list</text>
+    <text x="30" y="78" class="small">Selection stays synchronized across the coverage surface and the station list.</text>
+    <rect x="30" y="112" width="352" height="250" rx="24" fill="#d8e3dd" stroke="#9bb0a5" />
+    <text x="48" y="148" class="label">Coverage View</text>
+    <text x="68" y="198" class="small">West</text>
+    <text x="176" y="198" class="small">Central</text>
+    <text x="298" y="198" class="small">East</text>
+    <circle cx="112" cy="250" r="18" fill="#a83b32" />
+    <circle cx="112" cy="250" r="34" fill="none" stroke="#a83b32" stroke-width="4" stroke-dasharray="8 8" />
+    <circle cx="152" cy="296" r="14" fill="#c27f32" />
+    <circle cx="96" cy="322" r="14" fill="#2f6c6a" />
+    <text x="150" y="250" class="body">Active marker</text>
+    <rect x="30" y="392" width="352" height="120" rx="22" fill="#f7f3e8" stroke="#d3c7aa" />
+    <text x="48" y="426" class="label">Station List</text>
+    <rect x="48" y="444" width="316" height="46" rx="12" fill="#dfe8df" stroke="#6d8a80" />
+    <text x="64" y="472" class="body">Sierra Air Quality Node selected</text>
+    <text x="48" y="538" class="small">The same station highlights whether the reviewer clicks the row or the map marker.</text>
+  </g>
+
+  <g transform="translate(956,220)">
+    <rect width="412" height="560" rx="28" fill="url(#panel)" stroke="#cdbf9b" />
+    <text x="30" y="46" class="panel-title">3. Detail panel updates</text>
+    <text x="30" y="78" class="small">The selected station drives the operational context reviewers care about most.</text>
+    <rect x="30" y="116" width="352" height="372" rx="24" fill="#f7f3e8" stroke="#d3c7aa" />
+    <text x="48" y="152" class="label">Station Detail</text>
+    <text x="48" y="190" class="panel-title">Sierra Air Quality Node</text>
+    <rect x="258" y="156" width="96" height="34" rx="17" fill="#f1c3b2" />
+    <text x="286" y="178" class="chip">alert</text>
+    <text x="48" y="238" class="label">Region</text>
+    <text x="48" y="268" class="body">West</text>
+    <text x="208" y="238" class="label">Category</text>
+    <text x="208" y="268" class="body">air quality</text>
+    <text x="48" y="320" class="label">Last Observed</text>
+    <text x="48" y="350" class="body">2025-02-14 10:30 UTC</text>
+    <text x="48" y="402" class="label">Reading</text>
+    <text x="48" y="432" class="body">84 AQI</text>
+    <text x="208" y="402" class="label">Alert Score</text>
+    <text x="208" y="432" class="body">0.84</text>
+    <text x="48" y="530" class="small">Saved config remains in browser local storage, so the walkthrough still holds after refresh.</text>
+  </g>
+</svg>

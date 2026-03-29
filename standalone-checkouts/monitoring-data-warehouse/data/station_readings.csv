@@ -1,0 +1,8 @@
+station_id,station_name,category,region,observed_at,status,alert_score,reading_value
+station-001,Mississippi River Gauge,hydrology,Midwest,2026-03-18T12:00:00Z,normal,0.22,5.4
+station-001,Mississippi River Gauge,hydrology,Midwest,2026-03-18T13:00:00Z,alert,0.81,7.2
+station-002,Sierra Air Quality Node,air_quality,West,2026-03-18T12:05:00Z,alert,0.91,83.5
+station-002,Sierra Air Quality Node,air_quality,West,2026-03-18T13:05:00Z,alert,0.88,79.3
+station-003,Boston Harbor Buoy,water_quality,Northeast,2026-03-17T22:30:00Z,offline,0.15,2.1
+station-004,Columbia Basin Sensor,hydrology,West,2026-03-18T11:15:00Z,normal,0.34,4.9
+station-005,Gulf Wetlands Monitor,water_quality,South,2026-03-18T10:40:00Z,alert,0.76,6.8

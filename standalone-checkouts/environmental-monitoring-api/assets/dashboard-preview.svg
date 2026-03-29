@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" fill="none">
+  <rect width="1200" height="720" rx="32" fill="#F4EFE5"/>
+  <rect x="40" y="40" width="1120" height="640" rx="28" fill="#FFF9F0" stroke="#D7CCBB"/>
+  <text x="80" y="110" fill="#1F2A25" font-family="Georgia, serif" font-size="42">Environmental Monitoring Dashboard</text>
+  <text x="82" y="146" fill="#5F6D66" font-family="Georgia, serif" font-size="20">Portfolio demo preview with operational metrics, map overview, and active alerts.</text>
+  <rect x="82" y="188" width="250" height="120" rx="24" fill="#F2E4C6"/>
+  <rect x="350" y="188" width="250" height="120" rx="24" fill="#DDE3E6"/>
+  <rect x="618" y="188" width="250" height="120" rx="24" fill="#DDE3CF"/>
+  <text x="106" y="228" fill="#5F6D66" font-family="Arial, sans-serif" font-size="16">Stations</text>
+  <text x="376" y="228" fill="#5F6D66" font-family="Arial, sans-serif" font-size="16">Active Alerts</text>
+  <text x="644" y="228" fill="#5F6D66" font-family="Arial, sans-serif" font-size="16">Coverage</text>
+  <text x="106" y="280" fill="#1F2A25" font-family="Georgia, serif" font-size="44">3</text>
+  <text x="376" y="280" fill="#1F2A25" font-family="Georgia, serif" font-size="44">1</text>
+  <text x="644" y="280" fill="#1F2A25" font-family="Georgia, serif" font-size="44">3</text>
+  <rect x="82" y="340" width="620" height="290" rx="24" fill="#F7F1E6" stroke="#D7CCBB"/>
+  <text x="108" y="382" fill="#1F2A25" font-family="Georgia, serif" font-size="28">Station Map</text>
+  <path d="M132 548 L168 470 L240 430 L340 414 L444 422 L548 416 L624 448 L610 518 L548 546 L478 582 L372 590 L272 578 L196 570 Z" fill="#DCE3E5" stroke="#A6B4BB"/>
+  <circle cx="355" cy="468" r="10" fill="#667B45" stroke="#FFF9F0" stroke-width="4"/>
+  <circle cx="542" cy="503" r="10" fill="#B44A3F" stroke="#FFF9F0" stroke-width="4"/>
+  <circle cx="610" cy="456" r="10" fill="#49616D" stroke="#FFF9F0" stroke-width="4"/>
+  <text x="370" y="458" fill="#1F2A25" font-family="Arial, sans-serif" font-size="14">River Gauge</text>
+  <text x="557" y="493" fill="#1F2A25" font-family="Arial, sans-serif" font-size="14">Air Quality Node</text>
+  <text x="625" y="446" fill="#1F2A25" font-family="Arial, sans-serif" font-size="14">Harbor Buoy</text>
+  <rect x="726" y="340" width="352" height="140" rx="24" fill="#FFFDF7" stroke="#D7CCBB"/>
+  <text x="752" y="382" fill="#1F2A25" font-family="Georgia, serif" font-size="28">Alert Stations</text>
+  <text x="752" y="420" fill="#5F6D66" font-family="Arial, sans-serif" font-size="16">Sierra Air Quality Node</text>
+  <text x="752" y="446" fill="#B44A3F" font-family="Arial, sans-serif" font-size="16">alert · West · observed 2026-03-18T13:05:00Z</text>
+  <rect x="726" y="490" width="170" height="140" rx="24" fill="#FFFDF7" stroke="#D7CCBB"/>
+  <rect x="908" y="490" width="170" height="140" rx="24" fill="#FFFDF7" stroke="#D7CCBB"/>
+  <text x="748" y="530" fill="#1F2A25" font-family="Georgia, serif" font-size="24">Status Mix</text>
+  <text x="748" y="564" fill="#5F6D66" font-family="Arial, sans-serif" font-size="15">alert: 1</text>
+  <text x="748" y="588" fill="#5F6D66" font-family="Arial, sans-serif" font-size="15">normal: 1</text>
+  <text x="748" y="612" fill="#5F6D66" font-family="Arial, sans-serif" font-size="15">offline: 1</text>
+  <text x="930" y="530" fill="#1F2A25" font-family="Georgia, serif" font-size="24">Categories</text>
+  <text x="930" y="564" fill="#5F6D66" font-family="Arial, sans-serif" font-size="15">hydrology: 1</text>
+  <text x="930" y="588" fill="#5F6D66" font-family="Arial, sans-serif" font-size="15">air_quality: 1</text>
+  <text x="930" y="612" fill="#5F6D66" font-family="Arial, sans-serif" font-size="15">water_quality: 1</text>
+</svg>

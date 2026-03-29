@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Arroyo flood forecasting preview</title>
+  <desc id="desc">Preview showing raw and denoised stage curves with forecast bands and a flood threshold.</desc>
+  <rect width="960" height="540" fill="#eef1ea" />
+  <rect x="48" y="48" width="864" height="444" rx="28" fill="#183a37" />
+  <rect x="86" y="92" width="788" height="292" rx="18" fill="#f8f6ee" />
+  <line x1="118" y1="312" x2="840" y2="312" stroke="#b04a2d" stroke-width="3" stroke-dasharray="10 8" />
+  <path d="M118 268 C154 250 192 224 226 232 C262 240 296 122 332 134 C366 146 404 286 438 308 C474 330 510 288 546 256 C582 224 616 168 650 178 C686 188 720 314 754 320 C790 326 816 292 840 286" fill="none" stroke="#5d6d7e" stroke-width="5" stroke-linecap="round" />
+  <path d="M118 260 C154 246 192 232 226 230 C262 228 296 144 332 150 C366 156 404 280 438 296 C474 312 510 286 546 250 C582 214 616 188 650 190 C686 192 720 292 754 302 C790 312 816 290 840 288" fill="none" stroke="#1e6f5c" stroke-width="6" stroke-linecap="round" />
+  <path d="M734 286 C758 278 782 272 806 270 C818 270 828 272 840 274" fill="none" stroke="#d8a21d" stroke-width="5" stroke-linecap="round" />
+  <path d="M734 266 C758 250 782 244 806 244 C818 246 828 248 840 252" fill="none" stroke="#d8a21d" stroke-width="2" opacity="0.55" />
+  <path d="M734 306 C758 292 782 286 806 286 C818 288 828 292 840 296" fill="none" stroke="#d8a21d" stroke-width="2" opacity="0.55" />
+  <text x="92" y="430" fill="#f8f6ee" font-family="Georgia, serif" font-size="30">Arroyo Flood Forecasting Lab</text>
+  <text x="92" y="460" fill="#d9e6db" font-family="Arial, sans-serif" font-size="18">Wavelet denoising + autoregressive order review + Monte Carlo flood bands</text>
+  <circle cx="124" cy="109" r="7" fill="#5d6d7e" />
+  <text x="140" y="115" fill="#183a37" font-family="Arial, sans-serif" font-size="16">Raw stage</text>
+  <circle cx="246" cy="109" r="7" fill="#1e6f5c" />
+  <text x="262" y="115" fill="#183a37" font-family="Arial, sans-serif" font-size="16">Denoised stage</text>
+  <circle cx="408" cy="109" r="7" fill="#d8a21d" />
+  <text x="424" y="115" fill="#183a37" font-family="Arial, sans-serif" font-size="16">Forecast band</text>
+  <text x="726" y="304" fill="#b04a2d" font-family="Arial, sans-serif" font-size="16">Flood threshold</text>
+</svg>

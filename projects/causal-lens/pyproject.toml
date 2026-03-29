@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "causal-lens"
+version = "0.3.0"
+description = "Causal inference toolkit for observational data and treatment-effect diagnostics."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.9,<4.0",
+    "numpy>=1.26,<3.0",
+    "pandas>=2.2,<4.0",
+    "scikit-learn>=1.5,<2.0",
+    "scipy>=1.13,<2.0",
+    "statsmodels>=0.14,<0.15",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9.0",
+]
+
+[project.scripts]
+causal-lens = "causal_lens.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+causal_lens = ["py.typed"]
+"causal_lens.datasets" = ["*.csv"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

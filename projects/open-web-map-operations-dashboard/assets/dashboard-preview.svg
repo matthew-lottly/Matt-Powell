@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Open web map operations dashboard preview</title>
+  <desc id="desc">Concept preview showing a filterable operations dashboard with an open web map surface and layer panel.</desc>
+  <rect width="1200" height="720" fill="#ebf1ef"/>
+  <rect x="48" y="40" width="1104" height="128" rx="28" fill="#fbfdfc" stroke="#cad8d3"/>
+  <text x="84" y="84" fill="#556a63" font-family="Georgia, serif" font-size="16" letter-spacing="3">OPEN WEB MAP CLIENT</text>
+  <text x="84" y="134" fill="#1f2926" font-family="Georgia, serif" font-size="42">Operations Dashboard</text>
+  <text x="84" y="168" fill="#60746d" font-family="Georgia, serif" font-size="18">Public-safe concept for layer filters, operational map review, and open-stack GIS frontend patterns.</text>
+  <rect x="48" y="206" width="220" height="96" rx="22" fill="#fbfdfc" stroke="#cad8d3"/>
+  <rect x="286" y="206" width="220" height="96" rx="22" fill="#fbfdfc" stroke="#cad8d3"/>
+  <rect x="524" y="206" width="220" height="96" rx="22" fill="#fbfdfc" stroke="#cad8d3"/>
+  <text x="74" y="238" fill="#61746d" font-family="Georgia, serif" font-size="14" letter-spacing="2">VISIBLE LAYERS</text>
+  <text x="74" y="280" fill="#1f2926" font-family="Georgia, serif" font-size="34">3</text>
+  <text x="312" y="238" fill="#61746d" font-family="Georgia, serif" font-size="14" letter-spacing="2">FEATURES</text>
+  <text x="312" y="280" fill="#1f2926" font-family="Georgia, serif" font-size="34">71</text>
+  <text x="550" y="238" fill="#61746d" font-family="Georgia, serif" font-size="14" letter-spacing="2">REGIONS</text>
+  <text x="550" y="280" fill="#1f2926" font-family="Georgia, serif" font-size="34">3</text>
+  <rect x="48" y="332" width="690" height="340" rx="28" fill="#fbfdfc" stroke="#cad8d3"/>
+  <rect x="770" y="332" width="382" height="340" rx="28" fill="#fbfdfc" stroke="#cad8d3"/>
+  <text x="80" y="374" fill="#61746d" font-family="Georgia, serif" font-size="14" letter-spacing="2">MAP SURFACE</text>
+  <text x="80" y="406" fill="#1f2926" font-family="Georgia, serif" font-size="28">Open Operations View</text>
+  <rect x="80" y="434" width="626" height="206" rx="24" fill="#dce8e2" stroke="#bfd0ca"/>
+  <text x="124" y="496" fill="#6d7f78" font-family="Georgia, serif" font-size="20">West</text>
+  <text x="340" y="520" fill="#6d7f78" font-family="Georgia, serif" font-size="20">Central</text>
+  <text x="566" y="492" fill="#6d7f78" font-family="Georgia, serif" font-size="20">East</text>
+  <circle cx="216" cy="518" r="16" fill="#2d7f70"/>
+  <circle cx="410" cy="552" r="16" fill="#bf7c2c"/>
+  <circle cx="604" cy="502" r="16" fill="#99504a"/>
+  <text x="802" y="374" fill="#61746d" font-family="Georgia, serif" font-size="14" letter-spacing="2">LAYER STACK</text>
+  <text x="802" y="406" fill="#1f2926" font-family="Georgia, serif" font-size="28">Operational Layers</text>
+  <rect x="802" y="438" width="318" height="66" rx="18" fill="#eef4f1" stroke="#cad8d3"/>
+  <text x="826" y="474" fill="#1f2926" font-family="Georgia, serif" font-size="20">Monitoring Sites</text>
+  <text x="826" y="496" fill="#60746d" font-family="Georgia, serif" font-size="14">West · GeoJSON · 42 features</text>
+  <rect x="802" y="520" width="318" height="66" rx="18" fill="#eef4f1" stroke="#cad8d3"/>
+  <text x="826" y="556" fill="#1f2926" font-family="Georgia, serif" font-size="20">Smoke Operations</text>
+  <text x="826" y="578" fill="#60746d" font-family="Georgia, serif" font-size="14">Central · Vector Tiles · 18 features</text>
+</svg>

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geoprompt"
+version = "0.1.6"
+description = "Custom spatial analysis package with GeoPandas-style frame workflows and GeoPrompt equations."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+keywords = ["spatial-analysis", "gis", "geojson", "geometry"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Typing :: Typed",
+]
+dependencies = [
+    "matplotlib>=3.9,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9.0",
+]
+compare = [
+    "geopandas>=1.0,<2.0",
+    "pyproj>=3.6,<4.0",
+    "shapely>=2.0,<3.0",
+]
+overlay = [
+    "shapely>=2.0,<3.0",
+]
+projection = [
+    "pyproj>=3.6,<4.0",
+]
+
+[project.scripts]
+geoprompt-demo = "geoprompt.demo:main"
+geoprompt-compare = "geoprompt.compare:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

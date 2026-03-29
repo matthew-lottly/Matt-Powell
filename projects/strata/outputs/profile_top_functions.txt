@@ -1,0 +1,33 @@
+         1194583 function calls (1173572 primitive calls) in 2.972 seconds
+
+   Ordered by: cumulative time
+   List reduced from 4867 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.001    0.001    2.974    2.974 D:\GitHub\projects\strata\src\hetero_conformal\experiment.py:183(run_experiment)
+        1    0.005    0.005    2.941    2.941 D:\GitHub\projects\strata\src\hetero_conformal\experiment.py:105(train_model)
+       11    0.000    0.000    2.775    0.252 D:\GitHub\.venv\Lib\site-packages\torch\_compile.py:42(inner)
+        1    0.000    0.000    2.773    2.773 D:\GitHub\.venv\Lib\site-packages\torch\optim\adam.py:35(__init__)
+        1    0.000    0.000    2.773    2.773 D:\GitHub\.venv\Lib\site-packages\torch\optim\optimizer.py:380(__init__)
+   3574/1    0.010    0.000    2.773    2.773 <frozen importlib._bootstrap>:1360(_find_and_load)
+    815/1    0.008    0.000    2.773    2.773 <frozen importlib._bootstrap>:1308(_find_and_load_unlocked)
+    786/1    0.005    0.000    2.772    2.772 <frozen importlib._bootstrap>:914(_load_unlocked)
+    784/1    0.004    0.000    2.772    2.772 <frozen importlib._bootstrap_external>:756(exec_module)
+   2352/2    0.003    0.000    2.771    1.386 <frozen importlib._bootstrap>:483(_call_with_frames_removed)
+   1120/1    0.182    0.000    2.771    2.771 {built-in method builtins.exec}
+        1    0.000    0.000    2.771    2.771 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\__init__.py:1(<module>)
+    891/2    0.002    0.000    2.771    1.386 <frozen importlib._bootstrap>:1401(_handle_fromlist)
+    758/3    0.002    0.000    2.771    0.924 {built-in method builtins.__import__}
+        1    0.000    0.000    2.608    2.608 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\aot_compile.py:1(<module>)
+        1    0.000    0.000    2.589    2.589 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\convert_frame.py:1(<module>)
+        1    0.000    0.000    2.555    2.555 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\symbolic_convert.py:1(<module>)
+        1    0.000    0.000    1.498    1.498 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\trace_rules.py:1(<module>)
+      784    0.011    0.000    1.090    0.001 <frozen importlib._bootstrap_external>:829(get_code)
+        1    0.000    0.000    1.012    1.012 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\exc.py:1(<module>)
+        1    0.001    0.001    1.007    1.007 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\utils.py:1(<module>)
+        1    0.000    0.000    0.953    0.953 D:\GitHub\.venv\Lib\site-packages\torch\fx\experimental\symbolic_shapes.py:1(<module>)
+        1    0.000    0.000    0.918    0.918 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\variables\__init__.py:1(<module>)
+        1    0.000    0.000    0.915    0.915 D:\GitHub\.venv\Lib\site-packages\torch\_dynamo\variables\base.py:1(<module>)
+        1    0.000    0.000    0.888    0.888 D:\GitHub\.venv\Lib\site-packages\sympy\__init__.py:1(<module>)
+
+

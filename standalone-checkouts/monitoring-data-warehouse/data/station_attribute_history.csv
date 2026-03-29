@@ -1,0 +1,7 @@
+station_id,station_name,owner_team,response_tier,effective_from,effective_to,is_current
+station-001,Mississippi River Gauge,River Operations,tier_1,2025-01-01T00:00:00Z,,true
+station-002,Sierra Air Quality Node,Air Program,tier_2,2025-01-01T00:00:00Z,2026-02-28T23:59:59Z,false
+station-002,Sierra Air Quality Node,Air Program,tier_1,2026-03-01T00:00:00Z,,true
+station-003,Boston Harbor Buoy,Coastal Monitoring,tier_3,2025-01-01T00:00:00Z,,true
+station-004,Columbia Basin Sensor,River Operations,tier_2,2025-01-01T00:00:00Z,,true
+station-005,Gulf Wetlands Monitor,Habitat Program,tier_1,2025-01-01T00:00:00Z,,true

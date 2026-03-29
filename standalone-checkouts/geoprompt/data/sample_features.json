@@ -1,0 +1,62 @@
+[
+  {
+    "site_id": "north-hub-point",
+    "name": "North Intake Hub",
+    "geometry": {"type": "Point", "coordinates": [-111.92, 40.78]},
+    "demand_index": 0.94,
+    "capacity_index": 0.71,
+    "priority_index": 1.22
+  },
+  {
+    "site_id": "central-yard-point",
+    "name": "Central Field Yard",
+    "geometry": {"type": "Point", "coordinates": [-111.96, 40.71]},
+    "demand_index": 0.88,
+    "capacity_index": 0.83,
+    "priority_index": 1.08
+  },
+  {
+    "site_id": "west-corridor-line",
+    "name": "West Maintenance Corridor",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [[-112.09, 40.73], [-112.02, 40.69], [-111.98, 40.63]]
+    },
+    "demand_index": 0.79,
+    "capacity_index": 0.92,
+    "priority_index": 0.97
+  },
+  {
+    "site_id": "south-corridor-line",
+    "name": "South Distribution Corridor",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [[-111.97, 40.61], [-111.91, 40.58], [-111.84, 40.55]]
+    },
+    "demand_index": 0.81,
+    "capacity_index": 0.95,
+    "priority_index": 1.16
+  },
+  {
+    "site_id": "east-service-zone",
+    "name": "East Service Zone",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-111.83, 40.71], [-111.74, 40.71], [-111.74, 40.62], [-111.83, 40.62]]]
+    },
+    "demand_index": 0.69,
+    "capacity_index": 0.77,
+    "priority_index": 0.86
+  },
+  {
+    "site_id": "central-service-zone",
+    "name": "Central Service Zone",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-112.0, 40.74], [-111.9, 40.74], [-111.9, 40.65], [-112.0, 40.65]]]
+    },
+    "demand_index": 0.9,
+    "capacity_index": 0.8,
+    "priority_index": 1.12
+  }
+]

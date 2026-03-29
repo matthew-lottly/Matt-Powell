@@ -1,0 +1,175 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "02358000",
+        "gaugeName": "APALACHICOLA RIVER AT CHATTAHOOCHEE FLA",
+        "state": "FL",
+        "huc2": "03",
+        "suggestedBufferMeters": 4000,
+        "priorityRank": 1,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/02358000",
+        "validationNote": "Large inland Gulf-connected river with strong stage signal."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-84.8590871, 30.7010251]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "02375500",
+        "gaugeName": "ESCAMBIA RIVER NEAR CENTURY, FL",
+        "state": "FL",
+        "huc2": "03",
+        "suggestedBufferMeters": 3000,
+        "priorityRank": 2,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/02375500",
+        "validationNote": "Florida panhandle reach for the cloud-heavy eastern edge of the study area."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-87.2341395, 30.96518304]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "02469761",
+        "gaugeName": "TOMBIGBEE R AT COFFEEVILLE L&D NR COFFEEVILLE, AL.",
+        "state": "AL",
+        "huc2": "08",
+        "suggestedBufferMeters": 3500,
+        "priorityRank": 3,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/02469761",
+        "validationNote": "Large lower-basin reach with broad floodplain context."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-88.1291763, 31.75849066]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "02479000",
+        "gaugeName": "PASCAGOULA RIVER AT MERRILL, MS",
+        "state": "MS",
+        "huc2": "08",
+        "suggestedBufferMeters": 3000,
+        "priorityRank": 4,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/02479000",
+        "validationNote": "Mississippi coastal river candidate for non-delta validation behavior."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-88.7269444, 30.97805556]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "02489500",
+        "gaugeName": "Pearl River near Bogalusa, LA",
+        "state": "LA",
+        "huc2": "08",
+        "suggestedBufferMeters": 3000,
+        "priorityRank": 5,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/02489500",
+        "validationNote": "Intermediate lower Mississippi Gulf tributary with broad wetland adjacency."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-89.8209117, 30.7932614]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "07374000",
+        "gaugeName": "Mississippi River at Baton Rouge, LA",
+        "state": "LA",
+        "huc2": "08",
+        "suggestedBufferMeters": 5000,
+        "priorityRank": 6,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/07374000",
+        "validationNote": "High-signal benchmark gauge with prior validation precedent in large-river studies."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-91.1915556, 30.44566667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "08030500",
+        "gaugeName": "Sabine Rv nr Ruliff, TX",
+        "state": "TX",
+        "huc2": "12",
+        "suggestedBufferMeters": 3000,
+        "priorityRank": 7,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/08030500",
+        "validationNote": "Eastern Texas reach near the Louisiana border for transition-zone testing."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-93.7437784, 30.30381684]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "08041000",
+        "gaugeName": "Neches Rv at Evadale, TX",
+        "state": "TX",
+        "huc2": "12",
+        "suggestedBufferMeters": 3000,
+        "priorityRank": 8,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/08041000",
+        "validationNote": "Texas river-wetland system with substantial floodplain connectivity."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-94.0932566, 30.35576944]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "08067000",
+        "gaugeName": "Trinity Rv at Liberty, TX",
+        "state": "TX",
+        "huc2": "12",
+        "suggestedBufferMeters": 3500,
+        "priorityRank": 9,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/08067000",
+        "validationNote": "Large lower Trinity reach with floodplain development pressure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-94.8182567, 30.05771539]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "gaugeId": "08162000",
+        "gaugeName": "Colorado Rv at Wharton, TX",
+        "state": "TX",
+        "huc2": "12",
+        "suggestedBufferMeters": 3000,
+        "priorityRank": 10,
+        "nwisUrl": "https://waterdata.usgs.gov/monitoring-location/08162000",
+        "validationNote": "Mid-coast Texas reach that broadens validation outside the eastern estuarine systems."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-96.1038482, 29.30913668]
+      }
+    }
+  ]
+}

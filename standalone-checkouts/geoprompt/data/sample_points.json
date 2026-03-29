@@ -1,0 +1,42 @@
+[
+  {
+    "site_id": "north-hub",
+    "name": "North Intake Hub",
+    "geometry": [-111.92, 40.78],
+    "demand_index": 0.94,
+    "capacity_index": 0.71,
+    "priority_index": 1.22
+  },
+  {
+    "site_id": "central-yard",
+    "name": "Central Field Yard",
+    "geometry": [-111.96, 40.71],
+    "demand_index": 0.88,
+    "capacity_index": 0.83,
+    "priority_index": 1.08
+  },
+  {
+    "site_id": "west-lab",
+    "name": "West Basin Lab",
+    "geometry": [-112.08, 40.69],
+    "demand_index": 0.73,
+    "capacity_index": 0.64,
+    "priority_index": 0.91
+  },
+  {
+    "site_id": "south-node",
+    "name": "South Distribution Node",
+    "geometry": [-111.9, 40.58],
+    "demand_index": 0.81,
+    "capacity_index": 0.58,
+    "priority_index": 1.16
+  },
+  {
+    "site_id": "east-reserve",
+    "name": "East Reserve Yard",
+    "geometry": [-111.78, 40.66],
+    "demand_index": 0.69,
+    "capacity_index": 0.77,
+    "priority_index": 0.86
+  }
+]

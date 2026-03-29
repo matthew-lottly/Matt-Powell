@@ -1,0 +1,215 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "site_id": "north-hub-point",
+        "name": "North Intake Hub",
+        "demand_index": 0.94,
+        "capacity_index": 0.71,
+        "priority_index": 1.22,
+        "neighborhood_pressure": 1.4673515879283083,
+        "anchor_influence": 1.22,
+        "corridor_accessibility": 0.0,
+        "geometry_type": "Point",
+        "geometry_length": 0.0,
+        "geometry_area": 0.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -111.92,
+          40.78
+        ]
+      },
+      "id": "north-hub-point"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "site_id": "central-yard-point",
+        "name": "Central Field Yard",
+        "demand_index": 0.88,
+        "capacity_index": 0.83,
+        "priority_index": 1.08,
+        "neighborhood_pressure": 2.0468488692584192,
+        "anchor_influence": 0.5713379468397393,
+        "corridor_accessibility": 0.0,
+        "geometry_type": "Point",
+        "geometry_length": 0.0,
+        "geometry_area": 0.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -111.96,
+          40.71
+        ]
+      },
+      "id": "central-yard-point"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "site_id": "west-corridor-line",
+        "name": "West Maintenance Corridor",
+        "demand_index": 0.79,
+        "capacity_index": 0.92,
+        "priority_index": 0.97,
+        "neighborhood_pressure": 1.5631087177911434,
+        "anchor_influence": 0.3608636934364569,
+        "corridor_accessibility": 0.057500287573715426,
+        "geometry_type": "LineString",
+        "geometry_length": 0.15273360299226285,
+        "geometry_area": 0.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -112.09,
+            40.73
+          ],
+          [
+            -112.02,
+            40.69
+          ],
+          [
+            -111.98,
+            40.63
+          ]
+        ]
+      },
+      "id": "west-corridor-line"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "site_id": "south-corridor-line",
+        "name": "South Distribution Corridor",
+        "demand_index": 0.81,
+        "capacity_index": 0.95,
+        "priority_index": 1.16,
+        "neighborhood_pressure": 1.285170850343911,
+        "anchor_influence": 0.3329131612433781,
+        "corridor_accessibility": 0.04443446212994783,
+        "geometry_type": "LineString",
+        "geometry_length": 0.1432397703836295,
+        "geometry_area": 0.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -111.97,
+            40.61
+          ],
+          [
+            -111.91,
+            40.58
+          ],
+          [
+            -111.84,
+            40.55
+          ]
+        ]
+      },
+      "id": "south-corridor-line"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "site_id": "east-service-zone",
+        "name": "East Service Zone",
+        "demand_index": 0.69,
+        "capacity_index": 0.77,
+        "priority_index": 0.86,
+        "neighborhood_pressure": 1.1547863762472539,
+        "anchor_influence": 0.2734891692043723,
+        "corridor_accessibility": 0.09065232513773275,
+        "geometry_type": "Polygon",
+        "geometry_length": 0.36000000000001364,
+        "geometry_area": 0.008099999999103602
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -111.83,
+              40.71
+            ],
+            [
+              -111.74,
+              40.71
+            ],
+            [
+              -111.74,
+              40.62
+            ],
+            [
+              -111.83,
+              40.62
+            ],
+            [
+              -111.83,
+              40.71
+            ]
+          ]
+        ]
+      },
+      "id": "east-service-zone"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "site_id": "central-service-zone",
+        "name": "Central Service Zone",
+        "demand_index": 0.9,
+        "capacity_index": 0.8,
+        "priority_index": 1.12,
+        "neighborhood_pressure": 2.0229605842277705,
+        "anchor_influence": 0.5584850327517641,
+        "corridor_accessibility": 0.14595475825928939,
+        "geometry_type": "Polygon",
+        "geometry_length": 0.37999999999999545,
+        "geometry_area": 0.008999999999105057
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -112.0,
+              40.74
+            ],
+            [
+              -111.9,
+              40.74
+            ],
+            [
+              -111.9,
+              40.65
+            ],
+            [
+              -112.0,
+              40.65
+            ],
+            [
+              -112.0,
+              40.74
+            ]
+          ]
+        ]
+      },
+      "id": "central-service-zone"
+    }
+  ],
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  }
+}

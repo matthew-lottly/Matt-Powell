@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Station Risk Classification Lab Preview</title>
+  <desc id="desc">Dashboard-style preview showing a classifier leaderboard, risk driver chips, and holdout station predictions.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f4efe4" />
+      <stop offset="100%" stop-color="#d8e6dd" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="700" fill="url(#bg)" rx="28" />
+  <rect x="48" y="44" width="1104" height="612" rx="28" fill="#17313a" opacity="0.94" />
+  <text x="84" y="108" fill="#f6f2e9" font-size="34" font-family="Georgia, serif">Station Risk Classification Lab</text>
+  <text x="84" y="142" fill="#bed3ca" font-size="18" font-family="Verdana, sans-serif">Classifier leaderboard, holdout review, and explainable risk drivers</text>
+  <rect x="84" y="184" width="456" height="220" rx="22" fill="#f6f2e9" />
+  <text x="114" y="228" fill="#17313a" font-size="24" font-family="Verdana, sans-serif">Classifier Leaderboard</text>
+  <text x="114" y="272" fill="#4e675f" font-size="18" font-family="Verdana, sans-serif">centroid_classifier  F1 1.00  Accuracy 1.00</text>
+  <text x="114" y="308" fill="#4e675f" font-size="18" font-family="Verdana, sans-serif">scorecard_classifier F1 0.80  Accuracy 0.67</text>
+  <text x="114" y="344" fill="#4e675f" font-size="18" font-family="Verdana, sans-serif">profile_rules        F1 0.80  Accuracy 0.67</text>
+  <rect x="574" y="184" width="494" height="220" rx="22" fill="#244a56" />
+  <text x="606" y="228" fill="#f6f2e9" font-size="24" font-family="Verdana, sans-serif">Selected Holdout Predictions</text>
+  <text x="606" y="272" fill="#d2e5de" font-size="18" font-family="Verdana, sans-serif">station-south-river-015  predicted high  actual high</text>
+  <text x="606" y="308" fill="#d2e5de" font-size="18" font-family="Verdana, sans-serif">station-east-air-004     predicted low   actual low</text>
+  <text x="606" y="344" fill="#d2e5de" font-size="18" font-family="Verdana, sans-serif">station-north-flow-021   predicted high  actual high</text>
+  <rect x="84" y="438" width="984" height="164" rx="22" fill="#d7a748" />
+  <text x="116" y="484" fill="#17313a" font-size="24" font-family="Verdana, sans-serif">Top Risk Drivers</text>
+  <rect x="116" y="510" width="154" height="44" rx="20" fill="#17313a" />
+  <text x="145" y="538" fill="#f6f2e9" font-size="18" font-family="Verdana, sans-serif">anomaly_rate</text>
+  <rect x="290" y="510" width="170" height="44" rx="20" fill="#17313a" />
+  <text x="326" y="538" fill="#f6f2e9" font-size="18" font-family="Verdana, sans-serif">maintenance_lag</text>
+  <rect x="480" y="510" width="160" height="44" rx="20" fill="#17313a" />
+  <text x="531" y="538" fill="#f6f2e9" font-size="18" font-family="Verdana, sans-serif">variability</text>
+  <text x="116" y="584" fill="#17313a" font-size="18" font-family="Verdana, sans-serif">Public-safe classification lane that rounds out the time-series, forecasting, and anomaly workflow family.</text>
+</svg>

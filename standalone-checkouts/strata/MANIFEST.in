@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include CITATION.cff
+recursive-include data *.m
+recursive-include paper *.md *.tex *.bib *.txt
+recursive-include examples *.py *.ipynb
+recursive-include dashboard *.py *.md
+prune paper/submission_jmlr/supplementary_bundle
+prune build
+prune dist
+global-exclude __pycache__ *.py[cod] *.egg-info

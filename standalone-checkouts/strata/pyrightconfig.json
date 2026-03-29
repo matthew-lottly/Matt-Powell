@@ -1,0 +1,9 @@
+{
+    "include": ["src", "tests"],
+    "pythonVersion": "3.13",
+    "pythonPlatform": "Windows",
+    "typeCheckingMode": "basic",
+    "extraPaths": ["src"],
+    "venvPath": "D:/GitHub",
+    "venv": ".venv"
+}

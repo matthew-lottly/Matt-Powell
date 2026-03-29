@@ -1,0 +1,70 @@
+{
+  "type": "FeatureCollection",
+  "name": "station_review_points",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "station-west-air-001",
+        "name": "Sierra Air Quality Node",
+        "category": "air_quality",
+        "region": "West",
+        "priority": "high",
+        "status": "alert",
+        "owner": "Air Program"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-121.4944, 38.5816]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "station-west-hydro-002",
+        "name": "Columbia River Gauge",
+        "category": "hydrology",
+        "region": "West",
+        "priority": "medium",
+        "status": "normal",
+        "owner": "Surface Water Team"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.6765, 45.5231]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "station-central-fire-003",
+        "name": "Cascade Smoke Watch",
+        "category": "wildfire",
+        "region": "Central",
+        "priority": "high",
+        "status": "alert",
+        "owner": "Wildfire Operations"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-121.3153, 44.0582]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "featureId": "station-east-infra-004",
+        "name": "Plains Infrastructure Monitor",
+        "category": "infrastructure",
+        "region": "East",
+        "priority": "medium",
+        "status": "offline",
+        "owner": "Field Engineering"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-104.9903, 39.7392]
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+outputs/*.json
+!outputs/.gitkeep
+outputs/charts/*.pdf
+outputs/charts/*.svg
+
+# Local manuscript drafting stays off the published repo until submission.
+.private-drafts/
+paper.md
+paper.bib
+paper-draft*.md
+paper-final*.md
+submission*.md
+
+# Also exclude PUBLISHING plan (monorepo-specific)
+PUBLISHING.md

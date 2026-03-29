@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: spatial
+      POSTGRES_USER: spatial
+      POSTGRES_PASSWORD: spatial
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spatial -d spatial"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./sql/postgis_schema.sql:/docker-entrypoint-initdb.d/10-postgis_schema.sql:ro
+      - ./sql/sample_seed.sql:/docker-entrypoint-initdb.d/20-sample_seed.sql:ro

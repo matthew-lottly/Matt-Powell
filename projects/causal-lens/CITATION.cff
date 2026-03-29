@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "CausalLens"
+abstract: >-
+  A Python toolkit for causal inference on observational tabular data,
+  providing regression adjustment, propensity matching, inverse probability
+  weighting, doubly robust estimation with cross-fitting, heterogeneous
+  treatment effect meta-learners, and integrated diagnostics including
+  balance checks, sensitivity analysis, E-values, and Rosenbaum bounds.
+authors:
+  - family-names: Powell
+    given-names: Matthew
+    orcid: ""
+version: "0.3.0"
+date-released: "2026-03-25"
+license: MIT
+repository-code: "https://github.com/matthew-lottly/causal-lens"
+keywords:
+  - causal inference
+  - treatment effects
+  - observational studies
+  - doubly robust estimation
+  - propensity score
+  - Python

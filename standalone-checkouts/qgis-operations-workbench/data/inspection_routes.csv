@@ -1,0 +1,4 @@
+routeId,region,mapScale,layoutName,stationIds
+route-west-01,West,24000,West Daily Review,station-west-air-001|station-west-hydro-002
+route-central-01,Central,35000,Central Smoke Ops,station-central-fire-003
+route-east-01,East,48000,East Asset Triage,station-east-infra-004

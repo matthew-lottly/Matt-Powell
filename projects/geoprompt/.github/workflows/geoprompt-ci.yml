@@ -1,0 +1,58 @@
+name: Geoprompt CI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/geoprompt-ci.yml"
+      - "pyproject.toml"
+      - "README.md"
+      - "PUBLISHING.md"
+      - "src/**"
+      - "tests/**"
+      - "data/**"
+  pull_request:
+    paths:
+      - ".github/workflows/geoprompt-ci.yml"
+      - "pyproject.toml"
+      - "README.md"
+      - "PUBLISHING.md"
+      - "src/**"
+      - "tests/**"
+      - "data/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade packaging tools
+        run: python -m pip install --upgrade pip build twine
+
+      - name: Install Geoprompt with validation extras
+        run: python -m pip install -e ".[dev,compare,overlay,projection]"
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Generate demo outputs
+        run: python -m geoprompt.demo
+
+      - name: Run comparison corpus
+        run: python -m geoprompt.compare
+
+      - name: Build distribution artifacts
+        run: python -m build
+
+      - name: Check distribution metadata
+        run: python -m twine check dist/*

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Environmental time series lab preview</title>
+  <desc id="desc">Concept preview of rolling averages, trend summaries, and station histories.</desc>
+  <rect width="1200" height="720" fill="#edf2ee"/>
+  <rect x="48" y="40" width="1104" height="132" rx="28" fill="#fbfcfa" stroke="#c7d5cb"/>
+  <text x="84" y="84" fill="#5f6e64" font-family="Georgia, serif" font-size="16" letter-spacing="3">DATA SCIENCE LANE</text>
+  <text x="84" y="134" fill="#17211c" font-family="Georgia, serif" font-size="42">Environmental Time Series Lab</text>
+  <text x="84" y="170" fill="#617067" font-family="Georgia, serif" font-size="18">Trend profiling, rolling summaries, and temporal signal review.</text>
+  <rect x="48" y="212" width="340" height="112" rx="24" fill="#fbfcfa" stroke="#c7d5cb"/>
+  <rect x="410" y="212" width="340" height="112" rx="24" fill="#fbfcfa" stroke="#c7d5cb"/>
+  <rect x="772" y="212" width="340" height="112" rx="24" fill="#fbfcfa" stroke="#c7d5cb"/>
+  <text x="78" y="248" fill="#69776d" font-family="Georgia, serif" font-size="14" letter-spacing="2">SERIES</text>
+  <text x="78" y="294" fill="#17211c" font-family="Georgia, serif" font-size="38">3</text>
+  <text x="440" y="248" fill="#69776d" font-family="Georgia, serif" font-size="14" letter-spacing="2">WINDOW</text>
+  <text x="440" y="294" fill="#17211c" font-family="Georgia, serif" font-size="38">3 day</text>
+  <text x="802" y="248" fill="#69776d" font-family="Georgia, serif" font-size="14" letter-spacing="2">TRENDS</text>
+  <text x="802" y="294" fill="#17211c" font-family="Georgia, serif" font-size="38">mixed</text>
+  <rect x="48" y="356" width="1104" height="316" rx="28" fill="#fbfcfa" stroke="#c7d5cb"/>
+  <polyline points="92,586 188,560 284,508 380,470 476,436 572,402" fill="none" stroke="#487e60" stroke-width="8"/>
+  <polyline points="92,616 188,598 284,606 380,570 476,566 572,544" fill="none" stroke="#9d6d42" stroke-width="8"/>
+  <polyline points="92,522 188,536 284,520 380,510 476,496 572,482" fill="none" stroke="#4d688f" stroke-width="8"/>
+  <text x="640" y="410" fill="#69776d" font-family="Georgia, serif" font-size="14" letter-spacing="2">TEMPORAL NOTES</text>
+  <text x="640" y="444" fill="#17211c" font-family="Georgia, serif" font-size="28">Rolling Mean Review</text>
+  <text x="640" y="500" fill="#17211c" font-family="Georgia, serif" font-size="20">West air series trends upward after day 4</text>
+  <text x="640" y="536" fill="#17211c" font-family="Georgia, serif" font-size="20">Central flow dips mid-window before recovery</text>
+  <text x="640" y="572" fill="#17211c" font-family="Georgia, serif" font-size="20">East temperature remains the most stable signal</text>
+</svg>

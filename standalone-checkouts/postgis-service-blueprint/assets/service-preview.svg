@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">PostGIS service blueprint preview</title>
+  <desc id="desc">Concept preview showing collections, publication views, endpoint patterns, and PostGIS deployment notes.</desc>
+  <rect width="1200" height="720" fill="#edf0f4"/>
+  <rect x="48" y="40" width="1104" height="128" rx="28" fill="#fbfcfe" stroke="#ccd4df"/>
+  <text x="84" y="84" fill="#5a6473" font-family="Georgia, serif" font-size="16" letter-spacing="3">OPEN SPATIAL SERVICE</text>
+  <text x="84" y="134" fill="#1d2430" font-family="Georgia, serif" font-size="42">PostGIS Service Blueprint</text>
+  <text x="84" y="168" fill="#5e6877" font-family="Georgia, serif" font-size="18">Public-safe concept for publishable PostGIS collections, service views, and endpoint planning.</text>
+  <rect x="48" y="206" width="248" height="108" rx="24" fill="#fbfcfe" stroke="#ccd4df"/>
+  <rect x="316" y="206" width="248" height="108" rx="24" fill="#fbfcfe" stroke="#ccd4df"/>
+  <rect x="584" y="206" width="248" height="108" rx="24" fill="#fbfcfe" stroke="#ccd4df"/>
+  <rect x="852" y="206" width="300" height="108" rx="24" fill="#fbfcfe" stroke="#ccd4df"/>
+  <text x="78" y="240" fill="#667181" font-family="Georgia, serif" font-size="14" letter-spacing="2">COLLECTIONS</text>
+  <text x="78" y="286" fill="#1d2430" font-family="Georgia, serif" font-size="38">2</text>
+  <text x="346" y="240" fill="#667181" font-family="Georgia, serif" font-size="14" letter-spacing="2">ENDPOINTS</text>
+  <text x="346" y="286" fill="#1d2430" font-family="Georgia, serif" font-size="38">5</text>
+  <text x="614" y="240" fill="#667181" font-family="Georgia, serif" font-size="14" letter-spacing="2">INDEXES</text>
+  <text x="614" y="286" fill="#1d2430" font-family="Georgia, serif" font-size="38">3</text>
+  <text x="882" y="240" fill="#667181" font-family="Georgia, serif" font-size="14" letter-spacing="2">DELIVERY</text>
+  <text x="882" y="286" fill="#1d2430" font-family="Georgia, serif" font-size="30">FastAPI · PostgREST</text>
+  <rect x="48" y="346" width="520" height="326" rx="28" fill="#fbfcfe" stroke="#ccd4df"/>
+  <rect x="600" y="346" width="552" height="326" rx="28" fill="#fbfcfe" stroke="#ccd4df"/>
+  <text x="80" y="388" fill="#667181" font-family="Georgia, serif" font-size="14" letter-spacing="2">PUBLICATION VIEWS</text>
+  <text x="80" y="420" fill="#1d2430" font-family="Georgia, serif" font-size="28">Published Collections</text>
+  <rect x="80" y="450" width="456" height="62" rx="16" fill="#eef2f8" stroke="#ccd4df"/>
+  <text x="104" y="487" fill="#1d2430" font-family="Georgia, serif" font-size="22">published_monitoring_sites</text>
+  <text x="104" y="511" fill="#627080" font-family="Georgia, serif" font-size="15">bbox, region, status filters · GIST geometry index</text>
+  <rect x="80" y="528" width="456" height="62" rx="16" fill="#eef2f8" stroke="#ccd4df"/>
+  <text x="104" y="565" fill="#1d2430" font-family="Georgia, serif" font-size="22">published_maintenance_zones</text>
+  <text x="104" y="589" fill="#627080" font-family="Georgia, serif" font-size="15">review and triage workflow collection</text>
+  <text x="632" y="388" fill="#667181" font-family="Georgia, serif" font-size="14" letter-spacing="2">SERVICE CONTRACT</text>
+  <text x="632" y="420" fill="#1d2430" font-family="Georgia, serif" font-size="28">Endpoint Patterns</text>
+  <rect x="632" y="450" width="488" height="74" rx="18" fill="#eef2f8" stroke="#ccd4df"/>
+  <text x="658" y="485" fill="#1d2430" font-family="Georgia, serif" font-size="22">/collections/monitoring_sites/items</text>
+  <text x="658" y="510" fill="#627080" font-family="Georgia, serif" font-size="15">bbox + region + status + updated-since query support</text>
+  <rect x="632" y="542" width="488" height="74" rx="18" fill="#eef2f8" stroke="#ccd4df"/>
+  <text x="658" y="577" fill="#1d2430" font-family="Georgia, serif" font-size="22">/collections/maintenance_zones/items</text>
+  <text x="658" y="602" fill="#627080" font-family="Georgia, serif" font-size="15">publication-ready view for field engineering review</text>
+</svg>

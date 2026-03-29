@@ -1,0 +1,27 @@
+{
+  "title": "STRATA: Conformal Prediction with Heterogeneous Message-Passing Calibration for Infrastructure Risk Assessment",
+  "upload_type": "software",
+  "description": "STRATA is a Python framework for distribution-free uncertainty quantification on heterogeneous infrastructure graphs. It introduces Conformal Heterogeneous Message Passing (CHMP), which rescales conformal scores using frozen training residuals aggregated over typed graph neighborhoods, preserving split-conformal validity while adapting interval width to local graph difficulty.",
+  "creators": [
+    {
+      "name": "Powell, Matthew",
+      "orcid": ""
+    }
+  ],
+  "keywords": [
+    "conformal prediction",
+    "graph neural networks",
+    "heterogeneous graphs",
+    "uncertainty quantification",
+    "calibration"
+  ],
+  "license": "MIT",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/matthew-lottly/strata",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ],
+  "access_right": "open"
+}

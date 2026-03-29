@@ -1,0 +1,103 @@
+{
+  "samples": [
+    {
+      "stationId": "station-west-air-001",
+      "metric": "pm25",
+      "recentMean": 11.8,
+      "variability": 0.6,
+      "trend": 0.08,
+      "anomalyRate": 0.05,
+      "maintenanceLag": 1,
+      "exceedanceDays": 0,
+      "riskLabel": "low"
+    },
+    {
+      "stationId": "station-central-flow-010",
+      "metric": "flow",
+      "recentMean": 12.3,
+      "variability": 0.8,
+      "trend": 0.04,
+      "anomalyRate": 0.08,
+      "maintenanceLag": 2,
+      "exceedanceDays": 0,
+      "riskLabel": "low"
+    },
+    {
+      "stationId": "station-east-temp-002",
+      "metric": "temperature",
+      "recentMean": 13.7,
+      "variability": 1.1,
+      "trend": 0.14,
+      "anomalyRate": 0.11,
+      "maintenanceLag": 3,
+      "exceedanceDays": 1,
+      "riskLabel": "low"
+    },
+    {
+      "stationId": "station-ridge-air-018",
+      "metric": "ozone",
+      "recentMean": 14.1,
+      "variability": 1.0,
+      "trend": 0.18,
+      "anomalyRate": 0.12,
+      "maintenanceLag": 2,
+      "exceedanceDays": 1,
+      "riskLabel": "low"
+    },
+    {
+      "stationId": "station-canyon-flow-012",
+      "metric": "flow",
+      "recentMean": 18.4,
+      "variability": 2.5,
+      "trend": 0.51,
+      "anomalyRate": 0.31,
+      "maintenanceLag": 7,
+      "exceedanceDays": 4,
+      "riskLabel": "high"
+    },
+    {
+      "stationId": "station-lake-air-008",
+      "metric": "pm25",
+      "recentMean": 17.9,
+      "variability": 2.3,
+      "trend": 0.46,
+      "anomalyRate": 0.28,
+      "maintenanceLag": 6,
+      "exceedanceDays": 3,
+      "riskLabel": "high"
+    },
+    {
+      "stationId": "station-east-air-004",
+      "metric": "pm25",
+      "recentMean": 12.9,
+      "variability": 0.9,
+      "trend": 0.09,
+      "anomalyRate": 0.07,
+      "maintenanceLag": 2,
+      "exceedanceDays": 0,
+      "riskLabel": "low"
+    },
+    {
+      "stationId": "station-south-river-015",
+      "metric": "flow",
+      "recentMean": 19.2,
+      "variability": 2.9,
+      "trend": 0.62,
+      "anomalyRate": 0.37,
+      "maintenanceLag": 8,
+      "exceedanceDays": 5,
+      "riskLabel": "high"
+    },
+    {
+      "stationId": "station-north-flow-021",
+      "metric": "flow",
+      "recentMean": 18.7,
+      "variability": 2.6,
+      "trend": 0.54,
+      "anomalyRate": 0.33,
+      "maintenanceLag": 7,
+      "exceedanceDays": 4,
+      "riskLabel": "high"
+    }
+  ]
+}
