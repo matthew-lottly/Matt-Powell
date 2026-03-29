@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tsuan"
+version = "0.1.0"
+description = "Temporal-Spatial Uncertainty-Aware Attention Network for geospatial time series reconstruction"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Matthew Powell"},
+]
+keywords = [
+    "remote-sensing",
+    "uncertainty-quantification",
+    "attention-network",
+    "cloud-removal",
+    "satellite-imagery",
+    "geospatial",
+    "deep-learning",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "rasterio>=1.3",
+    "xarray>=2023.6",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+]
+train = [
+    "mlflow>=2.10",
+    "seaborn>=0.13",
+    "plotly>=5.18",
+]
+deploy = [
+    "onnx>=1.15",
+    "onnxruntime>=1.17",
+]
+
+[project.urls]
+Homepage = "https://github.com/matthew-lottly/TSUAN"
+Repository = "https://github.com/matthew-lottly/TSUAN"
+Issues = "https://github.com/matthew-lottly/TSUAN/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+.venv/
+*.onnx
+checkpoints/
+logs/
+data/
+outputs/
+.pytest_cache/
