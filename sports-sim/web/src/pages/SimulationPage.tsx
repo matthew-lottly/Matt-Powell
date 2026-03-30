@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ConfigPanel from '../components/ConfigPanel.tsx';
 import Scoreboard from '../components/Scoreboard.tsx';
@@ -8,15 +8,36 @@ import MomentumBar from '../components/MomentumBar.tsx';
 import { streamSimulation } from '../api';
 import { DEFAULT_CONFIG, type SimConfig, type SportType, type StreamTick } from '../types';
 
+const STORAGE_KEY = 'sports-sim-config';
+
+function loadSavedConfig(sportParam: SportType): SimConfig {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw) as SimConfig;
+      // Override sport if query param provided
+      return { ...DEFAULT_CONFIG, ...saved, sport: sportParam };
+    }
+  } catch { /* ignore corrupt storage */ }
+  return { ...DEFAULT_CONFIG, sport: sportParam };
+}
+
 export default function SimulationPage() {
   const [params] = useSearchParams();
   const sportParam = (params.get('sport') ?? 'soccer') as SportType;
 
-  const [config, setConfig] = useState<SimConfig>({ ...DEFAULT_CONFIG, sport: sportParam });
+  const [config, setConfig] = useState<SimConfig>(() => loadSavedConfig(sportParam));
   const [running, setRunning] = useState(false);
   const [finished, setFinished] = useState(false);
   const [ticks, setTicks] = useState<StreamTick[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Persist config to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    } catch { /* quota exceeded — ignore */ }
+  }, [config]);
 
   const latestTick = ticks[ticks.length - 1] ?? null;
 

@@ -82,6 +82,30 @@ export interface VenueOption {
   weather_exposed: boolean;
 }
 
+export interface SportCapabilities {
+  sport: string;
+  is_outdoor: boolean;
+  weather_affected: boolean;
+  temperature_affected: boolean;
+  wind_affected: boolean;
+  humidity_affected: boolean;
+  altitude_affected: boolean;
+  surface_affected: boolean;
+  uses_teams: boolean;
+  players_per_side: number;
+  has_bench: boolean;
+  max_substitutions: number;
+  has_timeouts: boolean;
+  has_overtime: boolean;
+  has_shootout: boolean;
+  has_penalty: boolean;
+  has_cards: boolean;
+  valid_surfaces: string[];
+  valid_venue_types: string[];
+  default_surface: string;
+  default_venue_type: string;
+}
+
 export interface SimEvent {
   type: string;
   time: number;

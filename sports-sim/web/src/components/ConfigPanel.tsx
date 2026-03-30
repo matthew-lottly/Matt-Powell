@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SimConfig, SportType, TeamOption, TeamSliders } from '../types';
+import type { SimConfig, SportCapabilities, SportType, TeamOption, TeamSliders } from '../types';
 import * as api from '../api';
 import { DEFAULT_SLIDERS } from '../types';
 
@@ -95,10 +95,16 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
   const [teams, setTeams] = useState<TeamOption[]>([]);
   const [leagues, setLeagues] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
+  const [caps, setCaps] = useState<SportCapabilities | null>(null);
   const [showSliders, setShowSliders] = useState(false);
 
   const set = <K extends keyof SimConfig>(key: K, val: SimConfig[K]) =>
     onChange({ ...config, [key]: val });
+
+  // Load sport capabilities when sport changes
+  useEffect(() => {
+    api.fetchSportCapabilities(config.sport).then(setCaps).catch(() => setCaps(null));
+  }, [config.sport]);
 
   // Load available leagues and teams when sport or league changes
   useEffect(() => {
@@ -308,57 +314,74 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
         />
       </label>
 
-      {/* Weather */}
-      <label className="block">
-        <span className="text-gray-400 text-xs">Weather</span>
-        <select
-          value={config.weather}
-          onChange={(e) => set('weather', e.target.value)}
-          disabled={disabled}
-          className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
-        >
-          {WEATHERS.map((w) => (
-            <option key={w} value={w}>{w.replace(/_/g, ' ')}</option>
-          ))}
-        </select>
-      </label>
+      {/* Weather — only show for weather-affected sports */}
+      {(!caps || caps.weather_affected) && (
+        <label className="block">
+          <span className="text-gray-400 text-xs">Weather</span>
+          <select
+            value={config.weather}
+            onChange={(e) => set('weather', e.target.value)}
+            disabled={disabled}
+            className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
+          >
+            {WEATHERS.map((w) => (
+              <option key={w} value={w}>{w.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+        </label>
+      )}
 
-      {/* Temp + Wind + Humidity */}
-      <div className="grid grid-cols-3 gap-2">
-        <label className="block">
-          <span className="text-gray-400 text-xs">Temp °C</span>
-          <input
-            type="number"
-            value={config.temperature_c}
-            onChange={(e) => set('temperature_c', Number(e.target.value))}
-            disabled={disabled}
-            className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
-          />
-        </label>
-        <label className="block">
-          <span className="text-gray-400 text-xs">Wind kph</span>
-          <input
-            type="number"
-            value={config.wind_speed_kph}
-            onChange={(e) => set('wind_speed_kph', Number(e.target.value))}
-            disabled={disabled}
-            className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
-          />
-        </label>
-        <label className="block">
-          <span className="text-gray-400 text-xs">Humidity</span>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="1"
-            value={config.humidity}
-            onChange={(e) => set('humidity', Number(e.target.value))}
-            disabled={disabled}
-            className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
-          />
-        </label>
-      </div>
+      {/* Temp + Wind + Humidity — conditional per capability */}
+      {(!caps || caps.temperature_affected || caps.wind_affected || caps.humidity_affected) && (
+        <div className="grid grid-cols-3 gap-2">
+          {(!caps || caps.temperature_affected) && (
+            <label className="block">
+              <span className="text-gray-400 text-xs">Temp °C</span>
+              <input
+                type="number"
+                value={config.temperature_c}
+                onChange={(e) => set('temperature_c', Number(e.target.value))}
+                disabled={disabled}
+                className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
+              />
+            </label>
+          )}
+          {(!caps || caps.wind_affected) && (
+            <label className="block">
+              <span className="text-gray-400 text-xs">Wind kph</span>
+              <input
+                type="number"
+                value={config.wind_speed_kph}
+                onChange={(e) => set('wind_speed_kph', Number(e.target.value))}
+                disabled={disabled}
+                className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
+              />
+            </label>
+          )}
+          {(!caps || caps.humidity_affected) && (
+            <label className="block">
+              <span className="text-gray-400 text-xs">Humidity</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="1"
+                value={config.humidity}
+                onChange={(e) => set('humidity', Number(e.target.value))}
+                disabled={disabled}
+                className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200"
+              />
+            </label>
+          )}
+        </div>
+      )}
+
+      {/* Indoor sport indicator */}
+      {caps && !caps.is_outdoor && (
+        <div className="text-xs text-gray-500 italic">
+          Indoor sport — weather conditions do not apply
+        </div>
+      )}
 
       {/* Toggles */}
       <div className="space-y-2">

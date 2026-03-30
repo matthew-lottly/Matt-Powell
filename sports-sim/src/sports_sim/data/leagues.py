@@ -4,7 +4,7 @@ from typing import Dict, List
 LEAGUES: Dict[str, List[Dict[str, object]]] = {
     "soccer": [
         {"id": "mls", "name": "MLS", "roster_available": True, "venues": True, "source": "public"},
-        {"id": "epl", "name": "English Premier League", "roster_available": False, "venues": True, "source": "public"},
+        {"id": "epl", "name": "English Premier League", "roster_available": True, "venues": True, "source": "public"},
         {"id": "la_liga", "name": "La Liga", "roster_available": False, "venues": True, "source": "public"},
         {"id": "ncaasoc", "name": "NCAA Soccer", "roster_available": False, "venues": False, "source": "public"},
         {"id": "overseas", "name": "Overseas/Other", "roster_available": False, "venues": False, "source": "mixed"},

@@ -354,12 +354,63 @@ class PlayerAttributes(BaseModel):
     durability: float = Field(default=0.7, ge=0.0, le=1.0)
 
 
+class PlayerStats(BaseModel):
+    """Accumulated in-game statistics for a player (per simulation or career)."""
+    games_played: int = 0
+    minutes_played: float = 0.0
+    goals: int = 0
+    assists: int = 0
+    shots: int = 0
+    shots_on_target: int = 0
+    passes_completed: int = 0
+    passes_attempted: int = 0
+    tackles: int = 0
+    fouls_committed: int = 0
+    fouls_drawn: int = 0
+    yellow_cards: int = 0
+    red_cards: int = 0
+    saves: int = 0
+    interceptions: int = 0
+    turnovers: int = 0
+    # Basketball / general
+    points: int = 0
+    rebounds: int = 0
+    steals: int = 0
+    blocks: int = 0
+    three_pointers_made: int = 0
+    free_throws_made: int = 0
+    free_throws_attempted: int = 0
+    # Baseball
+    at_bats: int = 0
+    hits: int = 0
+    home_runs: int = 0
+    rbis: int = 0
+    strikeouts: int = 0
+    walks: int = 0
+    batting_average: float = 0.0
+    era: float = 0.0
+    # Football
+    passing_yards: int = 0
+    rushing_yards: int = 0
+    receiving_yards: int = 0
+    touchdowns: int = 0
+    sacks: int = 0
+    # Tennis / individual
+    aces: int = 0
+    double_faults: int = 0
+    winners: int = 0
+    unforced_errors: int = 0
+    # General rating
+    match_rating: float = Field(default=6.0, ge=0.0, le=10.0)
+
+
 class Player(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str
     number: int
     position: str
     attributes: PlayerAttributes = Field(default_factory=PlayerAttributes)
+    stats: PlayerStats = Field(default_factory=PlayerStats)
     stamina: float = Field(default=1.0, ge=0.0, le=1.0, description="Current stamina 0-1")
     morale: float = Field(default=0.7, ge=0.0, le=1.0)
     is_injured: bool = False
@@ -373,6 +424,8 @@ class Player(BaseModel):
     age: int = 25
     height_cm: int = 183
     weight_kg: int = 84
+    # Form (rolling average of recent match ratings, 0-1)
+    form: float = Field(default=0.6, ge=0.0, le=1.0)
 
     @property
     def effective_skill(self) -> float:
@@ -384,6 +437,34 @@ class Player(BaseModel):
 # ---------------------------------------------------------------------------
 # Team
 # ---------------------------------------------------------------------------
+
+
+class TeamStats(BaseModel):
+    """Accumulated team-level statistics across games."""
+    wins: int = 0
+    losses: int = 0
+    draws: int = 0
+    goals_for: int = 0
+    goals_against: int = 0
+    points_for: int = 0
+    points_against: int = 0
+    home_wins: int = 0
+    away_wins: int = 0
+    streak: int = 0  # positive = win streak, negative = loss streak
+    last_5: list[str] = Field(default_factory=list)  # ["W","W","L","D","W"]
+
+    @property
+    def games_played(self) -> int:
+        return self.wins + self.losses + self.draws
+
+    @property
+    def win_pct(self) -> float:
+        gp = self.games_played
+        return self.wins / gp if gp > 0 else 0.0
+
+    @property
+    def goal_difference(self) -> int:
+        return self.goals_for - self.goals_against
 
 
 class Team(BaseModel):
@@ -401,10 +482,18 @@ class Team(BaseModel):
     coach: Coach = Field(default_factory=Coach)
     venue: Venue = Field(default_factory=Venue)
     sliders: TeamSliders = Field(default_factory=TeamSliders)
+    stats: TeamStats = Field(default_factory=TeamStats)
     # Overall team ratings (auto-computed or set)
     overall_offense: float = Field(default=0.5, ge=0.0, le=1.0)
     overall_defense: float = Field(default=0.5, ge=0.0, le=1.0)
     overall_special_teams: float = Field(default=0.5, ge=0.0, le=1.0)
+    # ELO / Glicko rating
+    elo_rating: float = Field(default=1500.0, ge=0.0)
+    elo_k_factor: float = Field(default=32.0, ge=1.0)
+    # Form (rolling window of recent results)
+    form_rating: float = Field(default=0.5, ge=0.0, le=1.0)
+    # Depth rating (bench quality)
+    depth_rating: float = Field(default=0.5, ge=0.0, le=1.0)
 
     @property
     def active_players(self) -> list[Player]:

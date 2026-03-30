@@ -17,10 +17,21 @@ from sports_sim.core.models import (
     VenueType,
 )
 from sports_sim.core.sport import Sport
+from sports_sim.core.sport_capabilities import get_capabilities
 from sports_sim.realism.fatigue import apply_fatigue
 from sports_sim.realism.injuries import check_injuries
 from sports_sim.realism.momentum import update_momentum
 from sports_sim.realism.weather import apply_weather_effects
+from sports_sim.realism.ratings import update_elo_from_state, update_team_stats_from_state
+from sports_sim.realism.referee import RefereeProfile, apply_referee_variability, create_referee
+from sports_sim.realism.home_advantage import apply_home_advantage
+from sports_sim.realism.surface import apply_surface_effects
+from sports_sim.realism.travel import apply_travel_fatigue
+from sports_sim.realism.substitutions import (
+    create_sub_tracker,
+    check_auto_substitutions,
+    check_hockey_line_changes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +102,13 @@ class Simulation:
         self.sport = _get_sport(config.sport)
         self.rng = np.random.default_rng(config.seed)
         self.sport._rng = self.rng
+        self.caps = get_capabilities(config.sport)
+
+        # Create referee for this game
+        self.referee = create_referee(self.rng)
+
+        # Create substitution tracker
+        self.sub_tracker = create_sub_tracker(config.sport)
 
         if home_team and away_team:
             h, a = home_team, away_team
@@ -143,6 +161,9 @@ class Simulation:
         """Yield (state, events) after each tick — useful for realtime / WebSocket streaming."""
         self.state.is_running = True
 
+        # Apply pre-game travel fatigue to away team
+        self.state = apply_travel_fatigue(self.state, self.config)
+
         # Apply home-field advantage via crowd intensity
         home_adv = self.config.home_advantage
         if self.state.environment.is_home_game and home_adv > 0:
@@ -180,16 +201,40 @@ class Simulation:
                 # --- sport-specific tick ---
                 self.state, events = self.sport.tick(self.state, self.config)
 
+                # --- referee variability ---
+                if self.config.enable_referee_errors:
+                    events = apply_referee_variability(
+                        self.state, events, self.referee, self.rng, self.config
+                    )
+
                 # --- realism layers ---
                 if self.config.enable_fatigue:
                     self.state = apply_fatigue(self.state, dt)
                 if self.config.enable_injuries:
                     self.state, inj_events = check_injuries(self.state, self.rng)
                     events.extend(inj_events)
-                if self.config.enable_weather:
+                if self.config.enable_weather and self.caps.weather_affected:
                     self.state = apply_weather_effects(self.state, self.config)
                 if self.config.enable_momentum:
                     self.state = update_momentum(self.state, events)
+
+                # --- surface & altitude effects ---
+                if self.config.enable_surface_effects:
+                    self.state = apply_surface_effects(self.state, self.config)
+
+                # --- home advantage (continuous) ---
+                if self.config.enable_venue_effects:
+                    self.state = apply_home_advantage(self.state, self.config)
+
+                # --- auto-substitutions ---
+                sub_events = check_auto_substitutions(
+                    self.state, self.sub_tracker, self.rng, self.config
+                )
+                if self.config.sport == SportType.HOCKEY:
+                    sub_events.extend(
+                        check_hockey_line_changes(self.state, self.sub_tracker, self.rng)
+                    )
+                events.extend(sub_events)
 
                 # --- coach tactical adjustments (periodic) ---
                 if self.config.enable_coach_effects and self.state.tick % 100 == 0:
@@ -216,6 +261,11 @@ class Simulation:
                       period=self.state.total_periods,
                       description=f"Final: {self.state.score_summary}")
         )
+
+        # Post-game: update ELO ratings and team stats
+        update_elo_from_state(self.state)
+        update_team_stats_from_state(self.state)
+
         yield self.state, self.state.events[-1:]
         logger.info("Simulation complete: %s", self.state.score_summary)
 

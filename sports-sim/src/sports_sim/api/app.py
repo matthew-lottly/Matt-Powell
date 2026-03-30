@@ -6,9 +6,12 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
+import os
 from typing import Any
+from src.sports_sim.cache.cache import get_cache
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header
+from sports_sim.auth.auth import get_current_user, role_required
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -38,7 +41,19 @@ _registry_cache: dict[tuple[str, str | None], dict[str, object]] = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Sports-sim API starting")
+    # Configure cache from environment (REDIS_URL) if provided
+    try:
+        from src.sports_sim.cache.cache import configure_cache_from_env
+        configure_cache_from_env()
+    except Exception:
+        logger.debug("Cache configuration skipped or failed; using in-memory cache")
     yield
+    # Close cache if needed
+    try:
+        from src.sports_sim.cache.cache import close_global_cache
+        await close_global_cache()
+    except Exception:
+        logger.debug("Cache close skipped or failed")
     _simulations.clear()
     logger.info("Sports-sim API shut down")
 
@@ -249,44 +264,38 @@ def _available_teams(sport: str, league: str | None = None) -> list[dict[str, st
         if league is None or league == "nba":
             from sports_sim.data.rosters_nba import get_all_nba_teams
             teams = get_all_nba_teams()
+        elif league == "euro":
+            try:
+                from sports_sim.data.rosters_eurobasket import get_all_euro_teams
+                teams = get_all_euro_teams()
+            except Exception:
+                return []
         else:
             return []
-            if league == "euro":
-                try:
-                    from sports_sim.data.rosters_eurobasket import get_all_euro_teams
-                    teams = get_all_euro_teams()
-                except Exception:
-                    return []
-            else:
-                return []
     elif sport == "baseball":
         if league is None or league == "mlb":
             from sports_sim.data.rosters_mlb import get_all_mlb_teams
             teams = get_all_mlb_teams()
+        elif league == "npb":
+            try:
+                from sports_sim.data.rosters_npb import get_all_npb_teams
+                teams = get_all_npb_teams()
+            except Exception:
+                return []
         else:
             return []
-            if league == "npb":
-                try:
-                    from sports_sim.data.rosters_npb import get_all_npb_teams
-                    teams = get_all_npb_teams()
-                except Exception:
-                    return []
-            else:
-                return []
     elif sport == "hockey":
         if league is None or league == "nhl":
             from sports_sim.data.rosters_nhl import get_all_nhl_teams
             teams = get_all_nhl_teams()
+        elif league == "khl":
+            try:
+                from sports_sim.data.rosters_khl import get_all_khl_teams
+                teams = get_all_khl_teams()
+            except Exception:
+                return []
         else:
             return []
-            if league == "khl":
-                try:
-                    from sports_sim.data.rosters_khl import get_all_khl_teams
-                    teams = get_all_khl_teams()
-                except Exception:
-                    return []
-            else:
-                return []
     else:
         if league is None or league == "ipl":
             try:
@@ -308,6 +317,64 @@ async def list_sports():
     return {"sports": [s.value for s in SportType]}
 
 
+@app.get("/api/sports/{sport}/capabilities")
+async def sport_capabilities(sport: str):
+    """Return environment/gameplay capability profile for a sport."""
+    cache = get_cache()
+    key = f"caps:{sport}"
+    cached_val = await cache.get(key)
+    if cached_val is not None:
+        return cached_val
+    from sports_sim.core.sport_capabilities import get_capabilities
+    try:
+        caps = get_capabilities(SportType(sport))
+    except (ValueError, KeyError):
+        raise HTTPException(404, f"Unknown sport: {sport}")
+    payload = {
+        "sport": sport,
+        "is_outdoor": caps.is_outdoor,
+        "weather_affected": caps.weather_affected,
+        "temperature_affected": caps.temperature_affected,
+        "wind_affected": caps.wind_affected,
+        "humidity_affected": caps.humidity_affected,
+        "altitude_affected": caps.altitude_affected,
+        "surface_affected": caps.surface_affected,
+        "uses_teams": caps.uses_teams,
+        "players_per_side": caps.players_per_side,
+        "has_bench": caps.has_bench,
+        "max_substitutions": caps.max_substitutions,
+        "has_timeouts": caps.has_timeouts,
+        "has_overtime": caps.has_overtime,
+        "has_shootout": caps.has_shootout,
+        "has_penalty": caps.has_penalty,
+        "has_cards": caps.has_cards,
+        "valid_surfaces": [s.value for s in caps.valid_surfaces],
+        "valid_venue_types": [v.value for v in caps.valid_venue_types],
+        "default_surface": caps.default_surface.value,
+        "default_venue_type": caps.default_venue_type.value,
+    }
+    await cache.set(key, payload, ttl=300)
+    return payload
+
+
+@app.post("/api/auth/token")
+async def issue_token(credentials: dict):
+    """Issue a token for valid username/password. Disabled by default in dev unless
+    `SPORTS_SIM_AUTH_ENABLED` is set to "1".
+    """
+    from sports_sim.auth.auth import authenticate, create_token
+
+    username = credentials.get("username")
+    password = credentials.get("password")
+    if not username or not password:
+        raise HTTPException(400, "username and password required")
+    user = authenticate(username, password)
+    if not user:
+        raise HTTPException(401, "invalid credentials")
+    token = create_token(user["username"], user["role"])
+    return {"access_token": token, "token_type": "bearer", "role": user["role"]}
+
+
 @app.get("/api/leagues")
 async def list_leagues(sport: str | None = None):
     """List known leagues for a given sport (or all leagues if sport omitted)."""
@@ -320,6 +387,11 @@ async def list_leagues(sport: str | None = None):
 @app.get("/api/teams/{sport}")
 async def list_teams(sport: str, league: str | None = None, page: int = 1, per_page: int = 200):
     """List all available real teams for a given sport, optionally filtered by league."""
+    cache = get_cache()
+    key = f"teams:{sport}:{league}:{page}:{per_page}"
+    cached_val = await cache.get(key)
+    if cached_val is not None:
+        return cached_val
     teams = _available_teams(sport, league)
     # pagination
     total = len(teams)
@@ -328,16 +400,23 @@ async def list_teams(sport: str, league: str | None = None, page: int = 1, per_p
     start = (max(1, page) - 1) * per_page
     end = start + per_page
     paged = teams[start:end]
-    return {"sport": sport, "league": league, "total": total, "page": page, "per_page": per_page, "teams": paged}
+    payload = {"sport": sport, "league": league, "total": total, "page": page, "per_page": per_page, "teams": paged}
+    await cache.set(key, payload, ttl=300)
+    return payload
 
 
 @app.get("/api/teams/{sport}/{abbr}")
 async def get_team_detail(sport: str, abbr: str, league: str | None = None):
     """Get full roster and venue info for a specific team."""
+    cache = get_cache()
+    key = f"team_detail:{sport}:{abbr}:{league}"
+    cached_val = await cache.get(key)
+    if cached_val is not None:
+        return cached_val
     h, _ = _load_teams(sport, abbr, None, league)
     if not h:
         raise HTTPException(404, f"Team {abbr} not found for {sport}")
-    return {
+    payload = {
         "abbreviation": abbr,
         "name": h.name,
         "city": h.city,
@@ -362,11 +441,18 @@ async def get_team_detail(sport: str, abbr: str, league: str | None = None):
             for p in h.bench
         ],
     }
+    await cache.set(key, payload, ttl=300)
+    return payload
 
 
 @app.get("/api/venues/{sport}")
 async def list_venues(sport: str, league: str | None = None, page: int = 1, per_page: int = 200):
     """List known venues for a sport. If `league` is provided, return venues for that league when available."""
+    cache = get_cache()
+    key = f"venues:{sport}:{league}:{page}:{per_page}"
+    cached_val = await cache.get(key)
+    if cached_val is not None:
+        return cached_val
     # Import base registries
     from sports_sim.data.venues import NFL_VENUES, NBA_VENUES, MLB_VENUES, NHL_VENUES
 
@@ -385,6 +471,11 @@ async def list_venues(sport: str, league: str | None = None, page: int = 1, per_
     try:
         from sports_sim.data.venues_epl import EPL_VENUES
         registries.setdefault("soccer", {}).update(EPL_VENUES)
+    except Exception:
+        pass
+    try:
+        from sports_sim.data.venues_mls import MLS_VENUES
+        registries.setdefault("soccer", {}).update(MLS_VENUES)
     except Exception:
         pass
     try:
@@ -409,6 +500,9 @@ async def list_venues(sport: str, league: str | None = None, page: int = 1, per_
         try:
             if league == "epl":
                 from sports_sim.data.venues_epl import EPL_VENUES as _lv
+                reg = _lv
+            elif league == "mls":
+                from sports_sim.data.venues_mls import MLS_VENUES as _lv
                 reg = _lv
             elif league == "npb":
                 from sports_sim.data.venues_npb import NPB_VENUES as _lv
@@ -440,11 +534,13 @@ async def list_venues(sport: str, league: str | None = None, page: int = 1, per_
     start = (max(1, page) - 1) * per_page
     end = start + per_page
     paged = items[start:end]
-    return {"sport": sport, "league": league, "total": total, "page": page, "per_page": per_page, "venues": paged}
+    payload = {"sport": sport, "league": league, "total": total, "page": page, "per_page": per_page, "venues": paged}
+    await cache.set(key, payload, ttl=300)
+    return payload
 
 
 @app.post("/api/simulations", response_model=SimSummary)
-async def create_simulation(req: CreateSimRequest):
+async def create_simulation(req: CreateSimRequest, current_user: dict = Depends(get_current_user)):
     # Load teams (pass requested league if provided)
     home_team, away_team = _load_teams(req.sport, req.home_team, req.away_team, req.league)
 
@@ -492,6 +588,24 @@ async def create_simulation(req: CreateSimRequest):
 
     _simulations[gid] = {"sim": sim, "config": config}
 
+    # Cache initial simulation snapshot
+    try:
+        cache = get_cache()
+        # build a lightweight serializable snapshot
+        snapshot = {
+            "game_id": gid,
+            "sport": req.sport,
+            "home_team": sim.state.home_team.name,
+            "away_team": sim.state.away_team.name,
+            "home_score": 0,
+            "away_score": 0,
+            "is_finished": False,
+            "total_events": 0,
+        }
+        await cache.set(f"sim:{gid}:state", snapshot, ttl=3600)
+    except Exception:
+        logger.debug("Failed to write initial sim snapshot to cache")
+
     return SimSummary(
         game_id=gid,
         sport=req.sport,
@@ -505,12 +619,28 @@ async def create_simulation(req: CreateSimRequest):
 
 
 @app.post("/api/simulations/{game_id}/run", response_model=SimSummary)
-async def run_simulation(game_id: str):
+async def run_simulation(game_id: str, current_user: dict = Depends(get_current_user)):
     entry = _simulations.get(game_id)
     if not entry:
         raise HTTPException(404, "Simulation not found")
     sim: Simulation = entry["sim"]
     final = sim.run()
+    # Cache final snapshot
+    try:
+        cache = get_cache()
+        snapshot = {
+            "game_id": game_id,
+            "sport": final.sport.value,
+            "home_team": final.home_team.name,
+            "away_team": final.away_team.name,
+            "home_score": final.home_team.score,
+            "away_score": final.away_team.score,
+            "is_finished": True,
+            "total_events": len(final.events),
+        }
+        await cache.set(f"sim:{game_id}:state", snapshot, ttl=3600)
+    except Exception:
+        logger.debug("Failed to write final sim snapshot to cache")
     return SimSummary(
         game_id=game_id,
         sport=final.sport.value,
@@ -525,6 +655,15 @@ async def run_simulation(game_id: str):
 
 @app.get("/api/simulations/{game_id}")
 async def get_simulation(game_id: str):
+    # Try to return cached snapshot if available
+    try:
+        cache = get_cache()
+        cached = await cache.get(f"sim:{game_id}:state")
+        if cached is not None:
+            return cached
+    except Exception:
+        logger.debug("Cache lookup failed for simulation snapshot")
+
     entry = _simulations.get(game_id)
     if not entry:
         raise HTTPException(404, "Simulation not found")
@@ -605,7 +744,7 @@ async def get_roster(game_id: str, team: str):
 
 
 @app.post("/api/simulations/{game_id}/substitute")
-async def substitute_player(game_id: str, req: SubstitutionRequest):
+async def substitute_player(game_id: str, req: SubstitutionRequest, current_user: dict = Depends(get_current_user)):
     """Substitute a player from bench into the active roster."""
     entry = _simulations.get(game_id)
     if not entry:
@@ -628,11 +767,18 @@ async def substitute_player(game_id: str, req: SubstitutionRequest):
     team.players[out_idx] = in_player
     team.bench.append(out_player)
 
+    # Invalidate cached snapshot for this simulation
+    try:
+        cache = get_cache()
+        await cache.delete(f"sim:{game_id}:state")
+    except Exception:
+        logger.debug("Failed to delete sim snapshot from cache after substitution")
+
     return {"substituted": True, "player_in": in_player.name, "player_out": out_player.name}
 
 
 @app.put("/api/simulations/{game_id}/player")
-async def update_player(game_id: str, req: PlayerUpdateRequest):
+async def update_player(game_id: str, req: PlayerUpdateRequest, current_user: dict = Depends(get_current_user)):
     """Update individual player attributes before or during a game."""
     entry = _simulations.get(game_id)
     if not entry:
@@ -668,10 +814,17 @@ async def update_player(game_id: str, req: PlayerUpdateRequest):
         player.attributes.composure = max(0.0, min(1.0, req.composure))
 
     return {"updated": True, "player": player.name}
+    
+    # invalidate cached snapshot
+    try:
+        cache = get_cache()
+        await cache.delete(f"sim:{game_id}:state")
+    except Exception:
+        logger.debug("Failed to delete sim snapshot from cache after player update")
 
 
 @app.put("/api/simulations/{game_id}/sliders/{team}")
-async def update_sliders(game_id: str, team: str, sliders: SlidersRequest):
+async def update_sliders(game_id: str, team: str, sliders: SlidersRequest, current_user: dict = Depends(get_current_user)):
     """Update team strategy sliders during a simulation."""
     entry = _simulations.get(game_id)
     if not entry:
@@ -680,6 +833,12 @@ async def update_sliders(game_id: str, team: str, sliders: SlidersRequest):
     t = sim.state.home_team if team == "home" else sim.state.away_team
     t.sliders = TeamSliders(**sliders.model_dump())
     return {"updated": True, "team": t.name}
+    # invalidate cached snapshot
+    try:
+        cache = get_cache()
+        await cache.delete(f"sim:{game_id}:state")
+    except Exception:
+        logger.debug("Failed to delete sim snapshot from cache after slider update")
 
 
 @app.get("/api/simulations")
@@ -700,10 +859,16 @@ async def list_simulations():
 
 
 @app.delete("/api/simulations/{game_id}")
-async def delete_simulation(game_id: str):
+async def delete_simulation(game_id: str, current_user: dict = Depends(role_required("admin"))):
     if game_id not in _simulations:
         raise HTTPException(404, "Simulation not found")
+    # remove simulation from registry and invalidate cached snapshot
     del _simulations[game_id]
+    try:
+        cache = get_cache()
+        await cache.delete(f"sim:{game_id}:state")
+    except Exception:
+        logger.debug("Failed to delete sim snapshot from cache")
     return {"deleted": True}
 
 

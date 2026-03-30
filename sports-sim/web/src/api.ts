@@ -1,6 +1,6 @@
 /* API client — REST helpers and WebSocket streaming */
 
-import type { SimConfig, SimSummary, StreamTick, TeamOption, VenueOption } from './types';
+import type { SimConfig, SimSummary, SportCapabilities, StreamTick, TeamOption, VenueOption } from './types';
 
 const BASE = '';  // proxied by Vite in dev
 
@@ -8,6 +8,12 @@ export async function fetchSports(): Promise<string[]> {
   const res = await fetch(`${BASE}/api/sports`);
   const data = await res.json();
   return data.sports;
+}
+
+export async function fetchSportCapabilities(sport: string): Promise<SportCapabilities | null> {
+  const res = await fetch(`${BASE}/api/sports/${encodeURIComponent(sport)}/capabilities`);
+  if (!res.ok) return null;
+  return res.json();
 }
 
 export async function fetchTeams(sport: string, league?: string, page?: number, per_page?: number): Promise<TeamOption[]> {
