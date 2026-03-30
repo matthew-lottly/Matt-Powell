@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import time
 from pathlib import Path
@@ -167,10 +168,11 @@ class Trainer:
             {
                 "epoch": epoch,
                 "model_state_dict": self.model.state_dict(),
+                "ema_state_dict": self.ema.state_dict(),
                 "optimizer_state_dict": self.optimizer.state_dict(),
                 "scheduler_state_dict": self.scheduler.state_dict(),
                 "val_loss": val_loss,
-                "config": self.cfg,
+                "config": dataclasses.asdict(self.cfg),
             },
             path,
         )

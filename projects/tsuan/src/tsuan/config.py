@@ -43,6 +43,13 @@ class DecoderConfig:
 
 
 @dataclass
+class SOVDConfig:
+    void_threshold: float = 0.90
+    temperature: float = 10.0
+    refine: bool = True
+
+
+@dataclass
 class LossConfig:
     alpha_unc: float = 0.1  # alpha_1: NLL uncertainty calibration
     alpha_phys: float = 0.05  # alpha_2: physical consistency (NDVI/EVI)
@@ -96,6 +103,7 @@ class TSUANConfig:
     attention: AttentionConfig = field(default_factory=AttentionConfig)
     uncertainty: UncertaintyConfig = field(default_factory=UncertaintyConfig)
     decoder: DecoderConfig = field(default_factory=DecoderConfig)
+    sovd: SOVDConfig = field(default_factory=SOVDConfig)
     loss: LossConfig = field(default_factory=LossConfig)
     train: TrainConfig = field(default_factory=TrainConfig)
     data: DataConfig = field(default_factory=DataConfig)
@@ -109,6 +117,7 @@ class TSUANConfig:
             ("attention", AttentionConfig),
             ("uncertainty", UncertaintyConfig),
             ("decoder", DecoderConfig),
+            ("sovd", SOVDConfig),
             ("loss", LossConfig),
             ("train", TrainConfig),
             ("data", DataConfig),

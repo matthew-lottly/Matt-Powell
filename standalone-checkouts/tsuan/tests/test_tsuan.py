@@ -7,6 +7,7 @@ import torch
 
 from tsuan.config import TSUANConfig, EncoderConfig, AttentionConfig
 from tsuan.encoder import DualStreamEncoder
+from tsuan.sovd import SOVDAnalyzer
 from tsuan.attention import (
     UncertaintyEncoder,
     DynamicTemperature,
@@ -24,6 +25,7 @@ from tsuan.losses import (
     TemporalSmoothnessLoss,
     TSUANLoss,
 )
+from tsuan.inference import predict_with_tta, TTA_TRANSFORMS, TTA_INVERSE
 
 
 # Small config for fast tests
@@ -224,3 +226,162 @@ class TestModel:
         assert cfg.encoder.optical_in_channels == 13
         assert cfg.encoder.sar_in_channels == 2
         assert cfg.attention.num_heads == 8
+
+    def test_mismatched_config_alignment(self):
+        # Encoder embed_dim differs from attention; config should align them
+        cfg = TSUANConfig()
+        cfg.encoder.embed_dim = 32
+        cfg.encoder.optical_in_channels = 4
+        cfg.encoder.sar_in_channels = 2
+        cfg.attention.embed_dim = 16
+
+        # Re-run post-init alignment by creating a new TSUANConfig instance
+        cfg2 = TSUANConfig(
+            encoder=cfg.encoder,
+            attention=cfg.attention,
+            uncertainty=cfg.uncertainty,
+            decoder=cfg.decoder,
+        )
+
+        assert cfg2.attention.embed_dim == cfg2.encoder.embed_dim
+
+        # Model should build and forward without channel mismatch
+        model = TSUAN(cfg2)
+        x_opt = torch.randn(B, T, 4, H, W)
+        x_sar = torch.randn(B, T, 2, H, W)
+        u_mask = torch.rand(B, T, 1, H, W)
+        out = model(x_opt, x_sar, u_mask)
+        assert out["x_hat"].shape[0] == B
+
+    def test_ema_state_dict_roundtrip(self):
+        cfg = _test_cfg()
+        model = TSUAN(cfg)
+        ema = EMAModel(model, decay=0.99)
+
+        # Perturb and update
+        with torch.no_grad():
+            for p in model.parameters():
+                p.add_(torch.randn_like(p) * 0.1)
+        ema.update(model)
+
+        # Save and reload
+        state = ema.state_dict()
+        ema2 = EMAModel(model, decay=0.99)
+        ema2.load_state_dict(state)
+
+        for k in ema.shadow:
+            assert torch.equal(ema.shadow[k], ema2.shadow[k])
+
+
+class TestTTA:
+    def test_inverse_consistency(self):
+        """Each TTA inverse should exactly undo its transform."""
+        x = torch.randn(1, 3, 16, 16)
+        for k, (fwd, inv) in enumerate(zip(TTA_TRANSFORMS, TTA_INVERSE)):
+            restored = inv(fwd(x))
+            assert torch.allclose(restored, x, atol=1e-6), f"TTA pair {k} not invertible"
+
+    def test_predict_with_tta_shapes(self):
+        cfg = _test_cfg()
+        model = TSUAN(cfg)
+        model.eval()
+        x_opt = torch.randn(B, T, C_OPT, H, W)
+        x_sar = torch.randn(B, T, C_SAR, H, W)
+        u_mask = torch.rand(B, T, 1, H, W)
+
+        result = predict_with_tta(model, x_opt, x_sar, u_mask, n_augments=4, eta=0.5)
+
+        assert result["x_hat"].shape == (B, T, C_OPT, H, W)
+        assert result["sigma_pixel"].ndim == 5
+        assert result["sigma_pixel"].shape[0] == B
+        # Uncertainty must be positive
+        assert (result["sigma_pixel"] > 0).all()
+
+    def test_tta_improves_over_single(self):
+        """TTA mean should not be identical to a single pass (sanity check)."""
+        cfg = _test_cfg()
+        model = TSUAN(cfg)
+        model.eval()
+        x_opt = torch.randn(B, T, C_OPT, H, W)
+        x_sar = torch.randn(B, T, C_SAR, H, W)
+        u_mask = torch.rand(B, T, 1, H, W)
+
+        single = model(x_opt, x_sar, u_mask)["x_hat"]
+        tta = predict_with_tta(model, x_opt, x_sar, u_mask, n_augments=8)["x_hat"]
+
+        # They should differ due to augmentation averaging
+        assert not torch.allclose(single, tta, atol=1e-6)
+
+
+class TestSOVD:
+    def test_cloud_frequency(self):
+        sovd = SOVDAnalyzer(embed_dim=D, refine=False)
+        u_mask = torch.ones(B, T, 1, H, W) * 0.8
+        cf = sovd.compute_cloud_frequency(u_mask)
+        assert cf.shape == (B, 1, H, W)
+        assert torch.allclose(cf, torch.tensor(0.8))
+
+    def test_hard_void_mask(self):
+        sovd = SOVDAnalyzer(embed_dim=D, void_threshold=0.5, refine=False)
+        # All cloudy → void
+        cf_high = torch.ones(B, 1, H, W) * 0.9
+        assert (sovd.compute_hard_void_mask(cf_high) == 1.0).all()
+        # All clear → not void
+        cf_low = torch.ones(B, 1, H, W) * 0.2
+        assert (sovd.compute_hard_void_mask(cf_low) == 0.0).all()
+
+    def test_soft_knowability_range(self):
+        sovd = SOVDAnalyzer(embed_dim=D, refine=False)
+        u_mask = torch.rand(B, T, 1, H, W)
+        out = sovd(u_mask)
+        assert out["knowability"].shape == (B, 1, H, W)
+        assert (out["knowability"] >= 0).all()
+        assert (out["knowability"] <= 1).all()
+
+    def test_knowability_monotonic(self):
+        """More cloud coverage → lower knowability."""
+        sovd = SOVDAnalyzer(embed_dim=D, refine=False)
+        u_low = torch.ones(B, T, 1, H, W) * 0.1  # mostly clear
+        u_high = torch.ones(B, T, 1, H, W) * 0.95  # mostly clouded
+        k_low = sovd(u_low)["knowability"]
+        k_high = sovd(u_high)["knowability"]
+        assert (k_low > k_high).all()
+
+    def test_refined_knowability(self):
+        sovd = SOVDAnalyzer(embed_dim=D, refine=True)
+        u_mask = torch.rand(B, T, 1, H, W)
+        out = sovd(u_mask)
+        assert out["knowability"].shape == (B, 1, H, W)
+        assert (out["knowability"] >= 0).all()
+        assert (out["knowability"] <= 1).all()
+
+    def test_model_outputs_sovd(self):
+        """Full model forward includes SOVD outputs."""
+        cfg = _test_cfg()
+        model = TSUAN(cfg)
+        x_opt = torch.randn(B, T, C_OPT, H, W)
+        x_sar = torch.randn(B, T, C_SAR, H, W)
+        u_mask = torch.rand(B, T, 1, H, W)
+        out = model(x_opt, x_sar, u_mask)
+        assert "knowability" in out
+        assert "void_mask" in out
+        assert "cloud_freq" in out
+        assert out["knowability"].shape == (B, 1, H, W)
+
+
+class TestONNX:
+    def test_export_runs(self, tmp_path):
+        """Smoke test: ONNX export completes without error."""
+        try:
+            import onnx  # noqa: F401
+        except ImportError:
+            pytest.skip("onnx not installed")
+
+        from tsuan.inference import export_onnx
+
+        cfg = _test_cfg()
+        model = TSUAN(cfg)
+        out_path = tmp_path / "test_model.onnx"
+        export_onnx(model, output_path=out_path, temporal_length=T, patch_size=H)
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0

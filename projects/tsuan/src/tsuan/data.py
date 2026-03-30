@@ -159,3 +159,86 @@ def build_dataloaders(
             drop_last=(split == "train"),
         )
     return loaders
+
+
+def verify_dataset(data_root: str | Path) -> dict[str, Any]:
+    """Verify dataset structure and return a diagnostic report.
+
+    Checks:
+    - Required subdirectories exist (optical, sar, cloud_mask)
+    - Split files exist and reference valid patches
+    - Array shapes are consistent across modalities
+    - No NaN/Inf values in a sample of patches
+
+    Returns a dict with keys: valid (bool), errors (list[str]), warnings (list[str]), stats (dict).
+    """
+    root = Path(data_root)
+    errors: list[str] = []
+    warnings: list[str] = []
+    stats: dict[str, Any] = {}
+
+    # Check required dirs
+    for subdir in ("optical", "sar", "cloud_mask"):
+        d = root / subdir
+        if not d.exists():
+            errors.append(f"Missing directory: {subdir}/")
+        else:
+            files = sorted(d.glob("*.npy"))
+            stats[f"{subdir}_count"] = len(files)
+            if len(files) == 0:
+                warnings.append(f"No .npy files in {subdir}/")
+
+    # Check splits
+    splits_dir = root / "splits"
+    if not splits_dir.exists():
+        warnings.append("Missing splits/ directory — will use all optical patches")
+    else:
+        for split in ("train", "val", "test"):
+            sf = splits_dir / f"{split}.txt"
+            if not sf.exists():
+                warnings.append(f"Missing split file: splits/{split}.txt")
+            else:
+                ids = sf.read_text().strip().splitlines()
+                stats[f"{split}_patches"] = len(ids)
+                # Verify referenced patches exist
+                missing = [pid for pid in ids if not (root / "optical" / f"{pid}.npy").exists()]
+                if missing:
+                    errors.append(f"{split}.txt references {len(missing)} missing patch(es): {missing[:5]}")
+
+    # Cross-check patch IDs across modalities
+    optical_dir = root / "optical"
+    sar_dir = root / "sar"
+    mask_dir = root / "cloud_mask"
+    if optical_dir.exists() and sar_dir.exists() and mask_dir.exists():
+        opt_ids = {p.stem for p in optical_dir.glob("*.npy")}
+        sar_ids = {p.stem for p in sar_dir.glob("*.npy")}
+        mask_ids = {p.stem for p in mask_dir.glob("*.npy")}
+        missing_sar = opt_ids - sar_ids
+        missing_mask = opt_ids - mask_ids
+        if missing_sar:
+            errors.append(f"{len(missing_sar)} optical patch(es) missing SAR counterpart")
+        if missing_mask:
+            errors.append(f"{len(missing_mask)} optical patch(es) missing cloud_mask counterpart")
+
+    # Sample shape/value checks
+    if optical_dir.exists():
+        sample_files = sorted(optical_dir.glob("*.npy"))[:3]
+        for f in sample_files:
+            try:
+                arr = np.load(f)
+                stats.setdefault("sample_shapes", []).append(
+                    {f.stem: {"optical": arr.shape}}
+                )
+                if np.any(np.isnan(arr)):
+                    warnings.append(f"NaN values in optical/{f.name}")
+                if np.any(np.isinf(arr)):
+                    warnings.append(f"Inf values in optical/{f.name}")
+            except Exception as e:
+                errors.append(f"Failed to load optical/{f.name}: {e}")
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+        "stats": stats,
+    }

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
+import logging
 
 
 @dataclass
@@ -39,6 +40,13 @@ class DecoderConfig:
     embed_dim: int = 128
     out_channels: int = 13  # reconstruct optical bands
     num_upsample_blocks: int = 4
+
+
+@dataclass
+class SOVDConfig:
+    void_threshold: float = 0.90
+    temperature: float = 10.0
+    refine: bool = True
 
 
 @dataclass
@@ -95,6 +103,7 @@ class TSUANConfig:
     attention: AttentionConfig = field(default_factory=AttentionConfig)
     uncertainty: UncertaintyConfig = field(default_factory=UncertaintyConfig)
     decoder: DecoderConfig = field(default_factory=DecoderConfig)
+    sovd: SOVDConfig = field(default_factory=SOVDConfig)
     loss: LossConfig = field(default_factory=LossConfig)
     train: TrainConfig = field(default_factory=TrainConfig)
     data: DataConfig = field(default_factory=DataConfig)
@@ -108,6 +117,7 @@ class TSUANConfig:
             ("attention", AttentionConfig),
             ("uncertainty", UncertaintyConfig),
             ("decoder", DecoderConfig),
+            ("sovd", SOVDConfig),
             ("loss", LossConfig),
             ("train", TrainConfig),
             ("data", DataConfig),
@@ -116,3 +126,30 @@ class TSUANConfig:
             if section_name in d:
                 setattr(cfg, section_name, section_cls(**d[section_name]))
         return cfg
+
+    def __post_init__(self) -> None:
+        """Validate and align embedding dimensions.
+
+        Rules:
+        - The encoder's `embed_dim` is the canonical latent dimensionality produced by
+          the encoder. Align `attention.embed_dim`, `decoder.embed_dim`, and
+          `uncertainty.embed_dim` to this value to avoid downstream channel mismatches.
+        """
+        logger = logging.getLogger(__name__)
+        enc_dim = getattr(self.encoder, "embed_dim", None)
+        att_dim = getattr(self.attention, "embed_dim", None)
+
+        if enc_dim is None:
+            return
+
+        if att_dim != enc_dim:
+            logger.warning(
+                "TSUANConfig: aligning attention.embed_dim (%s) to encoder.embed_dim (%s)",
+                att_dim,
+                enc_dim,
+            )
+            self.attention.embed_dim = enc_dim
+
+        # Propagate canonical dimension to decoder and uncertainty
+        self.decoder.embed_dim = enc_dim
+        self.uncertainty.embed_dim = enc_dim

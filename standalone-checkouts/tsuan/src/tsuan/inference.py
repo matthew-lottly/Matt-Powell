@@ -39,7 +39,7 @@ TTA_INVERSE = [
     lambda x: torch.rot90(x, -1, [-2, -1]),
     lambda x: torch.rot90(x, -2, [-2, -1]),
     lambda x: torch.rot90(x, -3, [-2, -1]),
-    lambda x: torch.flip(torch.rot90(x, -1, [-2, -1]), [-1]),
+    lambda x: torch.rot90(torch.flip(x, [-1]), -1, [-2, -1]),
 ]
 
 
@@ -88,10 +88,11 @@ def predict_with_tta(
 
         out = model(x_opt_aug, x_sar_aug, u_mask_aug)
 
-        # Inverse-transform predictions back
+        # Inverse-transform predictions AND uncertainty back
         x_hat_k = inv_fn(out["x_hat"].reshape(-1, *out["x_hat"].shape[2:])).reshape(B, T, *out["x_hat"].shape[2:])
+        sigma_k = inv_fn(out["sigma_pixel"].reshape(-1, *out["sigma_pixel"].shape[2:])).reshape(B, T, *out["sigma_pixel"].shape[2:])
         predictions.append(x_hat_k)
-        uncertainties.append(out["sigma_pixel"])
+        uncertainties.append(sigma_k)
 
     # Stack and compute statistics (Eq 8)
     preds = torch.stack(predictions, dim=0)  # (K, B, T, C, H, W)
@@ -113,9 +114,16 @@ def load_checkpoint(
     cfg: TSUANConfig | None = None,
 ) -> TSUAN:
     """Load model from checkpoint."""
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=True)
     if cfg is None:
-        cfg = ckpt.get("config", TSUANConfig())
+        raw = ckpt.get("config")
+        if raw is not None and isinstance(raw, dict):
+            cfg = TSUANConfig(**{
+                k: v for k, v in raw.items()
+                if k in {f.name for f in __import__("dataclasses").fields(TSUANConfig)}
+            })
+        else:
+            cfg = TSUANConfig()
     model = TSUAN(cfg)
     model.load_state_dict(ckpt["model_state_dict"])
     model.to(device)
@@ -150,10 +158,14 @@ def export_onnx(
         input_names=["optical", "sar", "cloud_mask"],
         output_names=["x_hat", "sigma_pixel", "sigma_patch", "sigma_region", "cloud_logits"],
         dynamic_axes={
-            "optical": {0: "batch", 1: "time"},
-            "sar": {0: "batch", 1: "time"},
-            "cloud_mask": {0: "batch", 1: "time"},
-            "x_hat": {0: "batch", 1: "time"},
+            "optical": {0: "batch", 1: "time", 3: "height", 4: "width"},
+            "sar": {0: "batch", 1: "time", 3: "height", 4: "width"},
+            "cloud_mask": {0: "batch", 1: "time", 3: "height", 4: "width"},
+            "x_hat": {0: "batch", 1: "time", 3: "height", 4: "width"},
+            "sigma_pixel": {0: "batch", 1: "time"},
+            "sigma_patch": {0: "batch", 1: "time"},
+            "sigma_region": {0: "batch", 1: "time"},
+            "cloud_logits": {0: "batch", 1: "time"},
         },
     )
     logger.info("Exported ONNX model to %s", output_path)

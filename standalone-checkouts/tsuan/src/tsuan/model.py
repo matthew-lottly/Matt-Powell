@@ -10,6 +10,7 @@ from .attention import TSUANAttentionBlock
 from .config import TSUANConfig
 from .decoder import Decoder
 from .encoder import DualStreamEncoder
+from .sovd import SOVDAnalyzer
 from .uncertainty import HierarchicalUncertainty
 
 
@@ -45,22 +46,33 @@ class TSUAN(nn.Module):
             dropout=cfg.attention.dropout,
             gamma=cfg.attention.physical_penalty_weight,
         )
+        # Ensure decoder / uncertainty / cloud head use the attention embedding
+        # dimension so channel sizes match the attention output `z`.
+        att_dim = cfg.attention.embed_dim
 
         # Decoder
         self.decoder = Decoder(
-            embed_dim=cfg.decoder.embed_dim,
+            embed_dim=att_dim,
             out_channels=cfg.decoder.out_channels,
             num_blocks=cfg.decoder.num_upsample_blocks,
         )
 
         # Hierarchical uncertainty
         self.uncertainty = HierarchicalUncertainty(
-            embed_dim=cfg.uncertainty.embed_dim,
+            embed_dim=att_dim,
             patch_kernel=cfg.uncertainty.patch_kernel,
         )
 
         # Auxiliary cloud segmentation head (optional)
-        self.cloud_head = nn.Conv2d(cfg.encoder.embed_dim, 1, kernel_size=1)
+        self.cloud_head = nn.Conv2d(att_dim, 1, kernel_size=1)
+
+        # SOVD — Structural Observational Void Detection
+        self.sovd = SOVDAnalyzer(
+            embed_dim=att_dim,
+            void_threshold=cfg.sovd.void_threshold,
+            temperature=cfg.sovd.temperature,
+            refine=cfg.sovd.refine,
+        )
 
     def forward(
         self,
@@ -84,7 +96,13 @@ class TSUAN(nn.Module):
             sigma_patch : Tensor (B, T, 1, ...)
             sigma_region : Tensor (B, T, 1)
             cloud_logits : Tensor (B, T, 1, H', W')
+            knowability : Tensor (B, 1, H, W) — soft knowability map [0, 1]
+            void_mask : Tensor (B, 1, H, W) — binary persistent void mask
+            cloud_freq : Tensor (B, 1, H, W) — temporal cloud frequency
         """
+        # 0. SOVD — compute knowability from raw cloud masks
+        sovd_out = self.sovd(u_mask)
+
         # 1. Encode
         h_opt, h_sar = self.encoder(x_opt, x_sar)
 
@@ -117,6 +135,9 @@ class TSUAN(nn.Module):
             "sigma_patch": sigma_patch,
             "sigma_region": sigma_region,
             "cloud_logits": cloud_logits,
+            "knowability": sovd_out["knowability"],
+            "void_mask": sovd_out["void_mask"],
+            "cloud_freq": sovd_out["cloud_freq"],
         }
 
 
@@ -140,3 +161,11 @@ class EMAModel:
         for name, param in model.named_parameters():
             if name in self.shadow:
                 param.data.copy_(self.shadow[name])
+
+    def state_dict(self) -> dict[str, torch.Tensor]:
+        return {k: v.clone() for k, v in self.shadow.items()}
+
+    def load_state_dict(self, state: dict[str, torch.Tensor]) -> None:
+        for k, v in state.items():
+            if k in self.shadow:
+                self.shadow[k].copy_(v)
