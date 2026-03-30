@@ -7,7 +7,15 @@ from typing import Generator
 
 import numpy as np
 
-from sports_sim.core.models import EventType, GameEvent, GameState, SimulationConfig, SportType
+from sports_sim.core.models import (
+    EventType,
+    GameEvent,
+    GameState,
+    SimulationConfig,
+    SportType,
+    SurfaceType,
+    VenueType,
+)
 from sports_sim.core.sport import Sport
 from sports_sim.realism.fatigue import apply_fatigue
 from sports_sim.realism.injuries import check_injuries
@@ -27,6 +35,48 @@ def _get_sport(sport_type: SportType) -> Sport:
         SportType.BASKETBALL: BasketballSport,
         SportType.BASEBALL: BaseballSport,
     }
+    # Optional sport imports
+    try:
+        from sports_sim.sports.football import FootballSport
+        registry[SportType.FOOTBALL] = FootballSport
+    except ImportError:
+        pass
+    try:
+        from sports_sim.sports.hockey import HockeySport
+        registry[SportType.HOCKEY] = HockeySport
+    except ImportError:
+        pass
+    try:
+        from sports_sim.sports.tennis import TennisSport
+        registry[SportType.TENNIS] = TennisSport
+    except ImportError:
+        pass
+    try:
+        from sports_sim.sports.golf import GolfSport
+        registry[SportType.GOLF] = GolfSport
+    except ImportError:
+        pass
+    try:
+        from sports_sim.sports.cricket import CricketSport
+        registry[SportType.CRICKET] = CricketSport
+    except ImportError:
+        pass
+    try:
+        from sports_sim.sports.boxing import BoxingSport
+        registry[SportType.BOXING] = BoxingSport
+    except ImportError:
+        pass
+    try:
+        from sports_sim.sports.mma import MMASport
+        registry[SportType.MMA] = MMASport
+    except ImportError:
+        pass
+    try:
+        from sports_sim.sports.racing import RacingSport
+        registry[SportType.RACING] = RacingSport
+    except ImportError:
+        pass
+
     cls = registry.get(sport_type)
     if cls is None:
         raise ValueError(f"Unknown sport: {sport_type}")
@@ -47,11 +97,32 @@ class Simulation:
         else:
             h, a = self.sport.create_default_teams()
 
+        # Apply user sliders if provided
+        if config.home_sliders:
+            h.sliders = config.home_sliders
+        if config.away_sliders:
+            a.sliders = config.away_sliders
+
+        # Determine venue (from config, or home team, or default)
+        venue = config.venue or h.venue
+
+        # Sync environment with venue properties
+        env = config.environment.model_copy()
+        if venue:
+            env.altitude_m = venue.altitude_m
+            env.surface_quality = venue.surface_quality
+            env.surface_type = venue.surface
+            env.venue_type = venue.venue_type
+            env.is_climate_controlled = venue.climate_controlled
+            # If dome/arena, override crowd from venue noise
+            env.crowd_intensity = venue.noise_factor
+
         self.state = GameState(
             sport=config.sport,
             home_team=h,
             away_team=a,
-            environment=config.environment,
+            environment=env,
+            venue=venue,
             total_periods=self.sport.default_periods,
             period_length=self.sport.default_period_length,
             seed=config.seed or int(self.rng.integers(0, 2**31)),
@@ -71,6 +142,20 @@ class Simulation:
     def stream(self) -> Generator[tuple[GameState, list[GameEvent]], None, None]:
         """Yield (state, events) after each tick — useful for realtime / WebSocket streaming."""
         self.state.is_running = True
+
+        # Apply home-field advantage via crowd intensity
+        home_adv = self.config.home_advantage
+        if self.state.environment.is_home_game and home_adv > 0:
+            crowd = self.state.environment.crowd_intensity
+            self.state.home_team.momentum = min(1.0, 0.5 + home_adv * crowd)
+
+        # Coach morale boost at game start
+        if self.config.enable_coach_effects:
+            for team in (self.state.home_team, self.state.away_team):
+                boost = team.coach.morale_boost
+                for p in team.active_players:
+                    p.morale = min(1.0, p.morale + boost)
+
         self.state.events.append(
             GameEvent(type=EventType.GAME_START, time=0.0, period=1, description="Game started")
         )
@@ -102,9 +187,13 @@ class Simulation:
                     self.state, inj_events = check_injuries(self.state, self.rng)
                     events.extend(inj_events)
                 if self.config.enable_weather:
-                    self.state = apply_weather_effects(self.state)
+                    self.state = apply_weather_effects(self.state, self.config)
                 if self.config.enable_momentum:
                     self.state = update_momentum(self.state, events)
+
+                # --- coach tactical adjustments (periodic) ---
+                if self.config.enable_coach_effects and self.state.tick % 100 == 0:
+                    self._apply_coach_effects()
 
                 # --- post-event hooks ---
                 for ev in events:
@@ -129,3 +218,11 @@ class Simulation:
         )
         yield self.state, self.state.events[-1:]
         logger.info("Simulation complete: %s", self.state.score_summary)
+
+    def _apply_coach_effects(self) -> None:
+        """Periodic coach influence — motivation pushes player morale toward team momentum."""
+        for team in (self.state.home_team, self.state.away_team):
+            motivation = team.coach.motivation
+            for p in team.active_players:
+                diff = team.momentum - p.morale
+                p.morale = min(1.0, max(0.0, p.morale + diff * motivation * 0.02))

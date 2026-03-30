@@ -1,4 +1,4 @@
-"""Domain models: Player, Team, Ball, GameState, GameEvent, and configuration."""
+"""Domain models: Player, Team, Ball, GameState, GameEvent, Venue, Coach, and configuration."""
 
 from __future__ import annotations
 
@@ -21,6 +21,32 @@ class SportType(str, Enum):
     SOCCER = "soccer"
     BASKETBALL = "basketball"
     BASEBALL = "baseball"
+    FOOTBALL = "football"
+    HOCKEY = "hockey"
+    TENNIS = "tennis"
+    GOLF = "golf"
+    CRICKET = "cricket"
+    BOXING = "boxing"
+    MMA = "mma"
+    RACING = "racing"
+
+
+class InjuryStatus(str, Enum):
+    HEALTHY = "healthy"
+    DAY_TO_DAY = "day_to_day"
+    QUESTIONABLE = "questionable"
+    PROBABLE = "probable"
+    DOUBTFUL = "doubtful"
+    OUT = "out"
+    IR = "injured_reserve"
+    SUSPENDED = "suspended"
+
+
+class CoachStatus(str, Enum):
+    ACTIVE = "active"
+    SICK = "sick"
+    EJECTED = "ejected"
+    SUSPENDED = "suspended"
 
 
 class EventType(str, Enum):
@@ -55,6 +81,83 @@ class EventType(str, Enum):
     THREE_POINTER = "three_pointer"
     CORNER = "corner"
     OFFSIDE = "offside"
+    # Football-specific
+    TOUCHDOWN = "touchdown"
+    FIELD_GOAL = "field_goal"
+    EXTRA_POINT = "extra_point"
+    TWO_POINT_CONVERSION = "two_point_conversion"
+    SAFETY = "safety"
+    SACK = "sack"
+    INTERCEPTION = "interception"
+    FUMBLE = "fumble"
+    PUNT = "punt"
+    KICKOFF = "kickoff"
+    RUSH = "rush"
+    RECEPTION = "reception"
+    INCOMPLETE_PASS = "incomplete_pass"
+    PENALTY_FLAG = "penalty_flag"
+    # Hockey-specific
+    POWER_PLAY = "power_play"
+    PENALTY_MINUTES = "penalty_minutes"
+    FACE_OFF = "face_off"
+    ICING = "icing"
+    SAVE = "save"
+    HAT_TRICK = "hat_trick"
+    EMPTY_NET = "empty_net"
+    # Tennis-specific
+    ACE = "ace"
+    DOUBLE_FAULT = "double_fault"
+    WINNER = "winner"
+    UNFORCED_ERROR = "unforced_error"
+    BREAK_POINT = "break_point"
+    SET_WON = "set_won"
+    MATCH_POINT = "match_point"
+    SERVE = "serve"
+    RETURN = "return"
+    VOLLEY = "volley"
+    # Golf-specific
+    TEE_SHOT = "tee_shot"
+    FAIRWAY_HIT = "fairway_hit"
+    GREEN_IN_REGULATION = "green_in_regulation"
+    PUTT = "putt"
+    BIRDIE = "birdie"
+    EAGLE = "eagle"
+    BOGEY = "bogey"
+    PAR = "par"
+    HOLE_COMPLETE = "hole_complete"
+    # Cricket-specific
+    WICKET = "wicket"
+    BOUNDARY_FOUR = "boundary_four"
+    SIX = "six"
+    OVER_COMPLETE = "over_complete"
+    MAIDEN_OVER = "maiden_over"
+    LBW = "lbw"
+    CAUGHT = "caught"
+    BOWLED = "bowled"
+    RUN_OUT = "run_out"
+    WIDE = "wide"
+    NO_BALL = "no_ball"
+    # Boxing/MMA-specific
+    PUNCH = "punch"
+    KNOCKOUT = "knockout"
+    TKO = "tko"
+    DECISION = "decision"
+    ROUND_END = "round_end"
+    KNOCKDOWN = "knockdown"
+    CLINCH = "clinch"
+    SUBMISSION = "submission"
+    TAKEDOWN = "takedown"
+    GROUND_STRIKE = "ground_strike"
+    SPLIT_DECISION = "split_decision"
+    # Racing-specific
+    LAP_COMPLETE = "lap_complete"
+    PIT_STOP = "pit_stop"
+    OVERTAKE = "overtake"
+    CRASH = "crash"
+    YELLOW_FLAG = "yellow_flag"
+    CHECKERED_FLAG = "checkered_flag"
+    DNF = "dnf"
+    FASTEST_LAP = "fastest_lap"
 
 
 class Weather(str, Enum):
@@ -64,6 +167,170 @@ class Weather(str, Enum):
     SNOW = "snow"
     WIND = "wind"
     EXTREME_HEAT = "extreme_heat"
+    FOG = "fog"
+    FREEZING = "freezing"
+    HUMID = "humid"
+
+
+class SurfaceType(str, Enum):
+    NATURAL_GRASS = "natural_grass"
+    ARTIFICIAL_TURF = "artificial_turf"
+    FIELDTURF = "fieldturf"
+    HYBRID_GRASS = "hybrid_grass"
+    DIRT = "dirt"          # baseball infield
+    HARDWOOD = "hardwood"  # basketball court
+    ICE = "ice"            # hockey
+    CLAY = "clay"          # tennis
+    HARD_COURT = "hard_court"  # tennis
+    GRASS_COURT = "grass_court"  # tennis (Wimbledon)
+    ASPHALT = "asphalt"    # racing circuits
+    CANVAS = "canvas"      # boxing/MMA ring
+
+
+class VenueType(str, Enum):
+    OPEN_AIR = "open_air"
+    DOME = "dome"
+    RETRACTABLE_ROOF = "retractable_roof"
+    INDOOR_ARENA = "indoor_arena"
+    RINK = "rink"          # hockey
+    TENNIS_CENTER = "tennis_center"
+    GOLF_COURSE = "golf_course"
+    CRICKET_GROUND = "cricket_ground"
+    BOXING_ARENA = "boxing_arena"
+    OCTAGON = "octagon"    # MMA
+    RACE_TRACK = "race_track"
+
+
+# ---------------------------------------------------------------------------
+# Venue / Stadium
+# ---------------------------------------------------------------------------
+
+
+class Venue(BaseModel):
+    """Stadium or arena where the game is played."""
+    name: str = "Default Stadium"
+    city: str = ""
+    state: str = ""
+    capacity: int = 50000
+    venue_type: VenueType = VenueType.OPEN_AIR
+    surface: SurfaceType = SurfaceType.NATURAL_GRASS
+    altitude_m: float = 0.0
+    latitude: float = 0.0
+    longitude: float = 0.0
+    # Dimensions
+    field_length_m: float = 105.0
+    field_width_m: float = 68.0
+    # Ballpark-specific (baseball)
+    left_field_m: float = 100.0
+    center_field_m: float = 122.0
+    right_field_m: float = 100.0
+    # Indoor climate control
+    climate_controlled: bool = False
+    indoor_temp_c: float = 22.0
+    # Surface quality degrades over the season
+    surface_quality: float = Field(default=0.9, ge=0.0, le=1.0)
+    # Fan noise factor (larger/louder venues = more home advantage)
+    noise_factor: float = Field(default=0.7, ge=0.0, le=1.0)
+    # Difficulty ranking (0.0 = easy, 1.0 = very difficult for visitors)
+    difficulty_rating: float = Field(default=0.5, ge=0.0, le=1.0)
+    home_win_pct: float = Field(default=0.55, ge=0.0, le=1.0)
+    visitor_fatigue_factor: float = Field(default=0.0, ge=0.0, le=0.5)
+
+    @property
+    def is_outdoor(self) -> bool:
+        return self.venue_type in (VenueType.OPEN_AIR, VenueType.RETRACTABLE_ROOF)
+
+    @property
+    def weather_exposed(self) -> bool:
+        """Whether weather affects gameplay (domes/arenas are climate-controlled)."""
+        if self.venue_type == VenueType.DOME:
+            return False
+        if self.venue_type == VenueType.INDOOR_ARENA:
+            return False
+        return True
+
+
+# ---------------------------------------------------------------------------
+# Coach
+# ---------------------------------------------------------------------------
+
+
+class CoachStyle(str, Enum):
+    AGGRESSIVE = "aggressive"
+    BALANCED = "balanced"
+    CONSERVATIVE = "conservative"
+    DEFENSIVE = "defensive"
+    UP_TEMPO = "up_tempo"
+    GROUND_AND_POUND = "ground_and_pound"
+    SPREAD = "spread"
+    SMALL_BALL = "small_ball"
+    POWER_HITTING = "power_hitting"
+    CONTACT_HITTING = "contact_hitting"
+
+
+class Coach(BaseModel):
+    """Head coach — influences tactics, substitution patterns, and team morale."""
+    name: str = "Coach"
+    experience_years: int = 10
+    style: CoachStyle = CoachStyle.BALANCED
+    status: CoachStatus = CoachStatus.ACTIVE
+    # 0-1 ratings
+    play_calling: float = Field(default=0.6, ge=0.0, le=1.0)
+    player_development: float = Field(default=0.6, ge=0.0, le=1.0)
+    clock_management: float = Field(default=0.6, ge=0.0, le=1.0)
+    motivation: float = Field(default=0.6, ge=0.0, le=1.0)
+    adaptability: float = Field(default=0.6, ge=0.0, le=1.0)
+    challenge_tendency: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    @property
+    def morale_boost(self) -> float:
+        """How much the coach positively affects team morale each tick."""
+        return self.motivation * 0.005
+
+    @property
+    def tactical_bonus(self) -> float:
+        """Modifier applied to team event probabilities."""
+        return (self.play_calling - 0.5) * 0.1
+
+
+# ---------------------------------------------------------------------------
+# Team Sliders (user-adjustable per-sim)
+# ---------------------------------------------------------------------------
+
+
+class TeamSliders(BaseModel):
+    """User-adjustable strategy sliders for a team, 0.0-1.0."""
+    offensive_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    defensive_intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    pace: float = Field(default=0.5, ge=0.0, le=1.0)
+    pressing: float = Field(default=0.5, ge=0.0, le=1.0)
+    # Sport-specific
+    three_point_tendency: float = Field(default=0.5, ge=0.0, le=1.0)  # basketball
+    run_pass_ratio: float = Field(default=0.5, ge=0.0, le=1.0)       # football
+    steal_attempt_rate: float = Field(default=0.3, ge=0.0, le=1.0)   # baseball
+    bunt_tendency: float = Field(default=0.2, ge=0.0, le=1.0)        # baseball
+    blitz_frequency: float = Field(default=0.3, ge=0.0, le=1.0)      # football
+    substitution_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    # Hockey
+    forecheck_intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    power_play_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    line_change_frequency: float = Field(default=0.5, ge=0.0, le=1.0)
+    # Tennis
+    serve_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    net_approach: float = Field(default=0.3, ge=0.0, le=1.0)
+    # Golf
+    risk_taking: float = Field(default=0.5, ge=0.0, le=1.0)
+    # Cricket
+    batting_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    bowling_variation: float = Field(default=0.5, ge=0.0, le=1.0)
+    # Boxing/MMA
+    aggression_level: float = Field(default=0.5, ge=0.0, le=1.0)
+    counter_tendency: float = Field(default=0.5, ge=0.0, le=1.0)
+    clinch_tendency: float = Field(default=0.3, ge=0.0, le=1.0)
+    # Racing
+    tire_management: float = Field(default=0.5, ge=0.0, le=1.0)
+    pit_strategy: float = Field(default=0.5, ge=0.0, le=1.0)
+    overtake_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +347,11 @@ class PlayerAttributes(BaseModel):
     decision_making: float = Field(default=0.6, ge=0.0, le=1.0)
     aggression: float = Field(default=0.4, ge=0.0, le=1.0)
     composure: float = Field(default=0.6, ge=0.0, le=1.0)
+    # Extended attributes
+    awareness: float = Field(default=0.6, ge=0.0, le=1.0)
+    leadership: float = Field(default=0.5, ge=0.0, le=1.0)
+    clutch: float = Field(default=0.5, ge=0.0, le=1.0)
+    durability: float = Field(default=0.7, ge=0.0, le=1.0)
 
 
 class Player(BaseModel):
@@ -92,9 +364,15 @@ class Player(BaseModel):
     morale: float = Field(default=0.7, ge=0.0, le=1.0)
     is_injured: bool = False
     injury_severity: float = 0.0
+    injury_type: str = ""  # e.g. "hamstring", "concussion", "ACL"
+    injury_status: str = "healthy"  # maps to InjuryStatus values
     x: float = 0.0
     y: float = 0.0
     minutes_played: float = 0.0
+    # Career / season stats reference (not simulated, for display)
+    age: int = 25
+    height_cm: int = 183
+    weight_kg: int = 84
 
     @property
     def effective_skill(self) -> float:
@@ -112,6 +390,7 @@ class Team(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str
     abbreviation: str = ""
+    city: str = ""
     players: list[Player] = Field(default_factory=list)
     bench: list[Player] = Field(default_factory=list)
     formation: str = ""
@@ -119,6 +398,13 @@ class Team(BaseModel):
     score: int = 0
     timeouts_remaining: int = 0
     momentum: float = Field(default=0.5, ge=0.0, le=1.0)
+    coach: Coach = Field(default_factory=Coach)
+    venue: Venue = Field(default_factory=Venue)
+    sliders: TeamSliders = Field(default_factory=TeamSliders)
+    # Overall team ratings (auto-computed or set)
+    overall_offense: float = Field(default=0.5, ge=0.0, le=1.0)
+    overall_defense: float = Field(default=0.5, ge=0.0, le=1.0)
+    overall_special_teams: float = Field(default=0.5, ge=0.0, le=1.0)
 
     @property
     def active_players(self) -> list[Player]:
@@ -182,6 +468,15 @@ class Environment(BaseModel):
     surface_quality: float = Field(default=0.9, ge=0.0, le=1.0)
     is_home_game: bool = True
     crowd_intensity: float = Field(default=0.7, ge=0.0, le=1.0)
+    # New fields derived from venue
+    surface_type: SurfaceType = SurfaceType.NATURAL_GRASS
+    venue_type: VenueType = VenueType.OPEN_AIR
+    is_climate_controlled: bool = False
+    # Precipitation/visibility
+    precipitation_mm_hr: float = 0.0
+    visibility_km: float = 10.0
+    dew_point_c: float = 15.0
+    barometric_pressure_hpa: float = 1013.0
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +491,7 @@ class GameState(BaseModel):
     away_team: Team
     ball: Ball = Field(default_factory=Ball)
     environment: Environment = Field(default_factory=Environment)
+    venue: Venue = Field(default_factory=Venue)
     clock: float = 0.0
     period: int = 1
     total_periods: int = 2
@@ -228,9 +524,15 @@ class SimulationConfig(BaseModel):
     enable_weather: bool = True
     enable_momentum: bool = True
     enable_referee_errors: bool = True
+    enable_venue_effects: bool = True
+    enable_coach_effects: bool = True
+    enable_surface_effects: bool = True
     noise_level: float = Field(default=0.1, ge=0.0, le=1.0)
     home_advantage: float = Field(default=0.05, ge=0.0, le=0.2)
     environment: Environment = Field(default_factory=Environment)
+    venue: Venue | None = None
+    home_sliders: TeamSliders | None = None
+    away_sliders: TeamSliders | None = None
 
     class Config:
         json_schema_extra = {
@@ -241,3 +543,43 @@ class SimulationConfig(BaseModel):
                 "enable_fatigue": True,
             }
         }
+
+
+# ---------------------------------------------------------------------------
+# Home Advantage Sliders
+# ---------------------------------------------------------------------------
+
+
+class HomeAdvantageSliders(BaseModel):
+    """Adjustable home-field advantage parameters."""
+    crowd_involvement: float = Field(default=0.7, ge=0.0, le=1.0)
+    elevation_factor: float = Field(default=0.0, ge=0.0, le=1.0)
+    travel_fatigue: float = Field(default=0.1, ge=0.0, le=1.0)
+    noise_level: float = Field(default=0.7, ge=0.0, le=1.0)
+    weather_harshness: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+# ---------------------------------------------------------------------------
+# Heatmap / Shot Chart
+# ---------------------------------------------------------------------------
+
+
+class HeatmapBin(BaseModel):
+    """A single bin in a spatial heatmap."""
+    x: float
+    y: float
+    count: int = 0
+    success_count: int = 0
+    event_type: str = ""
+
+    @property
+    def success_rate(self) -> float:
+        return self.success_count / max(1, self.count)
+
+
+class TradeRequest(BaseModel):
+    """Request to trade a player between teams."""
+    from_team_abbr: str
+    to_team_abbr: str
+    player_id: str
+    sport: str

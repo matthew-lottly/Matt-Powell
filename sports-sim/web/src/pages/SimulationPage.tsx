@@ -50,14 +50,33 @@ export default function SimulationPage() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">Simulation</h2>
+    <div className="max-w-7xl mx-auto space-y-4 px-2 sm:px-4 lg:px-6">
+      <h2 className="text-xl sm:text-2xl font-bold">Simulation</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Mobile: Start/Stop button on top for easy access */}
+      <div className="flex gap-2 lg:hidden">
+        {!running ? (
+          <button
+            onClick={handleStart}
+            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition text-sm"
+          >
+            {finished ? 'Run Again' : 'Start'}
+          </button>
+        ) : (
+          <button
+            onClick={handleStop}
+            className="flex-1 bg-red-600 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg transition text-sm"
+          >
+            Stop
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
         {/* ── left: config ── */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="lg:col-span-3 space-y-4 order-2 lg:order-1">
           <ConfigPanel config={config} onChange={setConfig} disabled={running} />
-          <div className="flex gap-2">
+          <div className="hidden lg:flex gap-2">
             {!running ? (
               <button
                 onClick={handleStart}
@@ -77,14 +96,14 @@ export default function SimulationPage() {
         </div>
 
         {/* ── center: field + scoreboard ── */}
-        <div className="lg:col-span-6 space-y-4">
+        <div className="lg:col-span-6 space-y-3 sm:space-y-4 order-1 lg:order-2">
           <Scoreboard tick={latestTick} sport={config.sport} />
           <MomentumBar tick={latestTick} />
           <FieldView sport={config.sport} tick={latestTick} />
         </div>
 
         {/* ── right: event log ── */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 order-3">
           <EventLog events={allEvents} sport={config.sport} />
         </div>
       </div>

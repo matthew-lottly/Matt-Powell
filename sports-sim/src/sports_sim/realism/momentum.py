@@ -13,6 +13,14 @@ _POSITIVE_EVENTS = {
     EventType.BLOCK: 0.04,
     EventType.RUN: 0.06,
     EventType.HIT: 0.03,
+    # Football
+    EventType.TOUCHDOWN: 0.18,
+    EventType.FIELD_GOAL: 0.08,
+    EventType.SAFETY: 0.10,
+    EventType.INTERCEPTION: 0.12,
+    EventType.SACK: 0.06,
+    EventType.RECEPTION: 0.03,
+    EventType.RUSH: 0.02,
 }
 
 # Events that reduce the team's momentum
@@ -24,6 +32,10 @@ _NEGATIVE_EVENTS = {
     EventType.INJURY: -0.08,
     EventType.STRIKEOUT: -0.04,
     EventType.OUT: -0.02,
+    # Football
+    EventType.FUMBLE: -0.10,
+    EventType.PENALTY_FLAG: -0.05,
+    EventType.INCOMPLETE_PASS: -0.02,
 }
 
 

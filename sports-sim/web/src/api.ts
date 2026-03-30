@@ -1,6 +1,6 @@
 /* API client — REST helpers and WebSocket streaming */
 
-import type { SimConfig, SimSummary, StreamTick } from './types';
+import type { SimConfig, SimSummary, StreamTick, TeamOption, VenueOption } from './types';
 
 const BASE = '';  // proxied by Vite in dev
 
@@ -8,6 +8,37 @@ export async function fetchSports(): Promise<string[]> {
   const res = await fetch(`${BASE}/api/sports`);
   const data = await res.json();
   return data.sports;
+}
+
+export async function fetchTeams(sport: string, league?: string, page?: number, per_page?: number): Promise<TeamOption[]> {
+  const params = new URLSearchParams();
+  if (league) params.set('league', league);
+  if (page) params.set('page', String(page));
+  if (per_page) params.set('per_page', String(per_page));
+  const q = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${BASE}/api/teams/${encodeURIComponent(sport)}${q}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.teams;
+}
+
+export async function fetchLeagues(sport: string): Promise<any[]> {
+  const res = await fetch(`${BASE}/api/leagues?sport=${encodeURIComponent(sport)}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.leagues ?? [];
+}
+
+export async function fetchVenues(sport: string, league?: string, page?: number, per_page?: number): Promise<VenueOption[]> {
+  const params = new URLSearchParams();
+  if (league) params.set('league', league);
+  if (page) params.set('page', String(page));
+  if (per_page) params.set('per_page', String(per_page));
+  const q = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${BASE}/api/venues/${encodeURIComponent(sport)}${q}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.venues;
 }
 
 export async function createSimulation(config: SimConfig): Promise<SimSummary> {

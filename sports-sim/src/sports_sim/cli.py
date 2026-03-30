@@ -19,7 +19,7 @@ def cli():
 
 
 @cli.command()
-@click.option("--sport", type=click.Choice(["soccer", "basketball", "baseball"]), default="soccer")
+@click.option("--sport", type=click.Choice(["soccer", "basketball", "baseball", "football"]), default="soccer")
 @click.option("--seed", type=int, default=None, help="Random seed for reproducibility.")
 @click.option("--fidelity", type=click.Choice(["fast", "medium", "high"]), default="medium")
 @click.option("--ticks", type=int, default=10, help="Ticks per second.")
@@ -87,7 +87,7 @@ def run(sport, seed, fidelity, ticks, no_fatigue, no_injuries, no_weather, no_mo
 
 
 @cli.command()
-@click.option("--sport", type=click.Choice(["soccer", "basketball", "baseball"]), default="soccer")
+@click.option("--sport", type=click.Choice(["soccer", "basketball", "baseball", "football"]), default="soccer")
 @click.option("--count", "-n", type=int, default=10, help="Number of simulations.")
 @click.option("--seed", type=int, default=None, help="Base seed (incremented per run).")
 @click.option("--fidelity", type=click.Choice(["fast", "medium", "high"]), default="fast")

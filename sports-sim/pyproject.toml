@@ -47,6 +47,7 @@ sports-sim = "sports_sim.cli:main"
 soccer = "sports_sim.sports.soccer:SoccerSport"
 basketball = "sports_sim.sports.basketball:BasketballSport"
 baseball = "sports_sim.sports.baseball:BaseballSport"
+football = "sports_sim.sports.football:FootballSport"
 
 [tool.ruff]
 line-length = 120

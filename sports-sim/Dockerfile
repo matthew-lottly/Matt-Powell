@@ -1,4 +1,4 @@
-FROM python:3.11-bookworm-slim AS base
+FROM python:3.11.15-slim-bookworm AS base
 
 WORKDIR /app
 COPY pyproject.toml ./
@@ -16,14 +16,11 @@ EXPOSE 8000
 CMD ["uvicorn", "sports_sim.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ---------- Frontend build ----------
-FROM node:20-bookworm-slim AS web-build
+FROM node:20.20.2-alpine3.23 AS web-build
 WORKDIR /web
 COPY web/package.json web/package-lock.json* ./
-# Update system packages in the node build image as well
-RUN apt-get update \
-	&& apt-get upgrade -y \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& npm ci --ignore-scripts
+# Use Alpine variant for smaller surface and fewer Debian CVEs; run npm ci
+RUN npm ci --ignore-scripts --no-audit
 COPY web/ ./
 RUN npm run build
 
