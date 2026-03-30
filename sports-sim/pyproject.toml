@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sports-sim"
+version = "0.1.0"
+description = "Realistic multi-sport simulation engine with pluggable sport modules, realism layers, and a real-time dashboard"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [{ name = "Matt Powell" }]
+keywords = ["simulation", "sports", "analytics", "ai", "agents"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.26",
+    "pydantic>=2.5",
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "pytest-asyncio>=0.23",
+    "hypothesis>=6.92",
+    "ruff>=0.3",
+    "black>=24.2",
+    "pyright>=1.1",
+    "pre-commit>=3.6",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+sports-sim = "sports_sim.cli:main"
+
+[project.entry-points."sports_sim.sports"]
+soccer = "sports_sim.sports.soccer:SoccerSport"
+basketball = "sports_sim.sports.basketball:BasketballSport"
+baseball = "sports_sim.sports.baseball:BaseballSport"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests",
+]
