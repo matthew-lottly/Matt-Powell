@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { SPORT_LABELS, SPORT_COLORS, type SportType } from '../types';
+import { SPORT_LABELS, type SportType } from '../types';
 import '../styles/ui.css';
+import '../styles/sport-colors.css';
 
 const SPORTS: SportType[] = ['soccer', 'basketball', 'baseball', 'football', 'hockey', 'tennis', 'golf', 'cricket', 'boxing', 'mma', 'racing'];
 
@@ -45,10 +46,7 @@ export default function HomePage() {
             to={`/simulate?sport=${s}`}
             className="group block rounded-xl border border-gray-800 bg-gray-900 p-4 sm:p-5 hover:border-blue-500 transition"
           >
-            <div
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg mb-3 flex items-center justify-center text-xl sm:text-2xl font-bold text-white"
-              style={{ backgroundColor: SPORT_COLORS[s] }}
-            >
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg mb-3 flex items-center justify-center text-xl sm:text-2xl font-bold text-white sport-bg-${s}`}>
               {s === 'mma' ? 'M' : s[0]!.toUpperCase()}
             </div>
             <h3 className="text-sm sm:text-lg font-semibold group-hover:text-blue-400 transition">

@@ -14,7 +14,7 @@ def test_simple_memory_cache_set_get() -> None:
         v2 = await c.get("k1")
         assert v2 is None
 
-    asyncio.get_event_loop().run_until_complete(run())
+    asyncio.run(run())
 
 
 def test_global_cache_singleton():

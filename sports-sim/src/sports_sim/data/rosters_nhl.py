@@ -6,6 +6,7 @@ from sports_sim.core.models import (
     Coach,
     CoachStyle,
     Player,
+    Venue,
     PlayerAttributes,
     Team,
     TeamSliders,
@@ -28,14 +29,18 @@ def _p(name: str, num: int, pos: str, spd: float, stren: float, acc: float,
 def _nhl_team(name: str, city: str, abbr: str, coach_name: str,
               coach_style: CoachStyle, players: list[Player],
               bench: list[Player] | None = None) -> Team:
-    venue = NHL_VENUES.get(abbr)
+    # Ensure `venue` is a Venue instance (not None) to satisfy strict typing
+    venue = NHL_VENUES.get(abbr) or next(iter(NHL_VENUES.values()), None)
+    if venue is None:
+        venue = Venue()
+
     return Team(
         name=name, city=city, abbreviation=abbr,
         players=players, bench=bench or [],
         formation="standard",
         coach=Coach(name=coach_name, style=coach_style, play_calling=0.65,
                     motivation=0.7, adaptability=0.65),
-        venue=venue or next(iter(NHL_VENUES.values()), None),
+        venue=venue,
     )
 
 

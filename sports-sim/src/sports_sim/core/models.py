@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ---------------------------------------------------------------------------
@@ -623,8 +623,8 @@ class SimulationConfig(BaseModel):
     home_sliders: TeamSliders | None = None
     away_sliders: TeamSliders | None = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sport": "soccer",
                 "seed": 42,
@@ -632,6 +632,7 @@ class SimulationConfig(BaseModel):
                 "enable_fatigue": True,
             }
         }
+    )
 
 
 # ---------------------------------------------------------------------------
