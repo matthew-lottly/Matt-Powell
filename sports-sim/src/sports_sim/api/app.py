@@ -590,6 +590,18 @@ async def list_venues(sport: str, league: str | None = None, page: int = 1, per_
     return payload
 
 
+@app.post("/api/odds/normalize")
+async def normalize_odds(payload: dict):
+    """Accepts JSON payload {'odds': {'home': 1.9, 'draw': 3.4, 'away': 4.2}} and returns normalized probabilities."""
+    odds = payload.get("odds") if isinstance(payload, dict) else None
+    if not odds or not isinstance(odds, dict):
+        raise HTTPException(400, "Invalid odds payload")
+    from sports_sim.odds.odds import normalize_market
+
+    normalized = normalize_market({k: float(v) for k, v in odds.items()})
+    return {"normalized": normalized}
+
+
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint (collects from prometheus_client registry).

@@ -1,0 +1,46 @@
+{
+  "teams": [
+    {
+      "team": "LAFC",
+      "players": [
+        {
+          "name": "Christian Ramirez",
+          "position": "FW",
+          "number": 9,
+          "age": 30,
+          "nationality": "USA",
+          "rating": 78.0
+        },
+        {
+          "name": "Gabriel Torres",
+          "position": "MF",
+          "number": 10,
+          "age": 27,
+          "nationality": "Panama",
+          "rating": 76.0
+        }
+      ]
+    },
+    {
+      "team": "Seattle Sounders",
+      "players": [
+        {
+          "name": "Jordan Morris",
+          "position": "FW",
+          "number": 13,
+          "age": 27,
+          "nationality": "USA",
+          "rating": 81.0
+        },
+        {
+          "name": "Nicolas Lodeiro",
+          "position": "MF",
+          "number": 10,
+          "age": 31,
+          "nationality": "Uruguay",
+          "rating": 82.0
+        }
+      ]
+    }
+  ]
+}
