@@ -86,6 +86,33 @@ sports-sim/
 pytest --tb=short -q
 ```
 
+## Dashboard & Profiling
+
+Start the tuning dashboard (Streamlit):
+
+```bash
+# from project root
+python -m streamlit run scripts/tune_dashboard.py --server.port 8501
+```
+
+Generate a short profiler run and convert to HTML:
+
+```bash
+python scripts/profile_tuner.py
+python scripts/convert_profile.py  # writes outputs/tuner_profile.html
+# or view interactively with SnakeViz:
+python -m pip install snakeviz
+python -m snakeviz -s tuner_profile.prof
+```
+
+If you only need a quick preview, serve the `outputs/` folder and open the HTML:
+
+```bash
+python -m http.server 8000 --directory outputs
+# then open http://localhost:8000/tuner_profile.html
+```
+
+
 ## License
 
 MIT
