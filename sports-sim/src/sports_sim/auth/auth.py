@@ -15,6 +15,7 @@ from fastapi import Depends
 USERS = {
     "admin": {"password": "adminpass", "role": "admin"},
     "user": {"password": "userpass", "role": "user"},
+    "editor": {"password": "editorpass", "role": "editor"},
 }
 
 

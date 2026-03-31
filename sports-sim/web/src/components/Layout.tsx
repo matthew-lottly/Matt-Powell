@@ -4,6 +4,7 @@ const NAV = [
   { path: '/', label: 'Home' },
   { path: '/simulate', label: 'Simulate' },
   { path: '/history', label: 'History' },
+  { path: '/tuning', label: 'Tuning' },
 ];
 
 export default function Layout() {

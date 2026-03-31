@@ -10,8 +10,9 @@ import os
 from typing import Any
 from src.sports_sim.cache.cache import get_cache
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header, Response
 from sports_sim.auth.auth import get_current_user, role_required
+from sports_sim.api.tuning import router as tuning_router
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -47,6 +48,30 @@ async def lifespan(app: FastAPI):
         configure_cache_from_env()
     except Exception:
         logger.debug("Cache configuration skipped or failed; using in-memory cache")
+    # Optionally start an APScheduler job to run tuning periodically
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from sports_sim.mc.integration import EngineEvaluator
+        from sports_sim.metrics import tuning_runs_total, tuning_last_duration_seconds, tuning_best_score
+
+        scheduler = AsyncIOScheduler()
+
+        def _run_tuner():
+            try:
+                tuner = EngineEvaluator()
+                res = tuner.tune({"attack_factor": [0.9, 1.0], "defense_factor": [0.9, 1.0]}, n_iter=2, sims=5, seed=1)
+                tuning_runs_total.inc()
+                # best_score maybe None
+                if res.get("best_score") is not None:
+                    tuning_best_score.set(float(res["best_score"]))
+            except Exception:
+                logger.exception("Scheduled tuner run failed")
+
+        scheduler.add_job(_run_tuner, "interval", seconds=int(os.environ.get("TUNER_INTERVAL", 3600)))
+        scheduler.start()
+        app.state._scheduler = scheduler
+    except Exception:
+        logger.debug("APScheduler not available; scheduled tuning disabled")
     yield
     # Close cache if needed
     try:
@@ -68,6 +93,9 @@ app = FastAPI(
     description="Run and stream multi-sport simulations with full team/player/venue/coach customization.",
     lifespan=lifespan,
 )
+
+# include tuning API router
+app.include_router(tuning_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -375,6 +403,29 @@ async def issue_token(credentials: dict):
     return {"access_token": token, "token_type": "bearer", "role": user["role"]}
 
 
+@app.get("/api/auth/users")
+async def list_users(current_user: dict = Depends(role_required("admin"))):
+    """Admin-only: list known users (no passwords returned)."""
+    from sports_sim.auth.auth import USERS
+    return {k: {"role": v["role"]} for k, v in USERS.items()}
+
+
+@app.post("/api/auth/users")
+async def create_user(payload: dict, current_user: dict = Depends(role_required("admin"))):
+    """Admin-only: create a user. Expects JSON with `username`, `password`, `role`.
+    This stores users in-memory (for demo/testing)."""
+    from sports_sim.auth.auth import USERS
+    username = payload.get("username")
+    password = payload.get("password")
+    role = payload.get("role")
+    if not username or not password or not role:
+        raise HTTPException(400, "username, password and role are required")
+    if username in USERS:
+        raise HTTPException(409, "user already exists")
+    USERS[username] = {"password": password, "role": role}
+    return {"username": username, "role": role}
+
+
 @app.get("/api/leagues")
 async def list_leagues(sport: str | None = None):
     """List known leagues for a given sport (or all leagues if sport omitted)."""
@@ -539,6 +590,21 @@ async def list_venues(sport: str, league: str | None = None, page: int = 1, per_
     return payload
 
 
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint (collects from prometheus_client registry).
+
+    This import is done lazily so tests/dev environments without prometheus
+    don't fail at import time.
+    """
+    try:
+        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    except Exception:
+        return Response(content=b"", media_type="text/plain")
+    data = generate_latest()
+    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+
+
 @app.post("/api/simulations", response_model=SimSummary)
 async def create_simulation(req: CreateSimRequest, current_user: dict = Depends(get_current_user)):
     # Load teams (pass requested league if provided)
@@ -619,7 +685,7 @@ async def create_simulation(req: CreateSimRequest, current_user: dict = Depends(
 
 
 @app.post("/api/simulations/{game_id}/run", response_model=SimSummary)
-async def run_simulation(game_id: str, current_user: dict = Depends(get_current_user)):
+async def run_simulation(game_id: str, current_user: dict = Depends(role_required("admin", "editor"))):
     entry = _simulations.get(game_id)
     if not entry:
         raise HTTPException(404, "Simulation not found")
@@ -744,7 +810,7 @@ async def get_roster(game_id: str, team: str):
 
 
 @app.post("/api/simulations/{game_id}/substitute")
-async def substitute_player(game_id: str, req: SubstitutionRequest, current_user: dict = Depends(get_current_user)):
+async def substitute_player(game_id: str, req: SubstitutionRequest, current_user: dict = Depends(role_required("admin", "editor"))):
     """Substitute a player from bench into the active roster."""
     entry = _simulations.get(game_id)
     if not entry:
@@ -778,7 +844,7 @@ async def substitute_player(game_id: str, req: SubstitutionRequest, current_user
 
 
 @app.put("/api/simulations/{game_id}/player")
-async def update_player(game_id: str, req: PlayerUpdateRequest, current_user: dict = Depends(get_current_user)):
+async def update_player(game_id: str, req: PlayerUpdateRequest, current_user: dict = Depends(role_required("admin", "editor"))):
     """Update individual player attributes before or during a game."""
     entry = _simulations.get(game_id)
     if not entry:
@@ -824,7 +890,7 @@ async def update_player(game_id: str, req: PlayerUpdateRequest, current_user: di
 
 
 @app.put("/api/simulations/{game_id}/sliders/{team}")
-async def update_sliders(game_id: str, team: str, sliders: SlidersRequest, current_user: dict = Depends(get_current_user)):
+async def update_sliders(game_id: str, team: str, sliders: SlidersRequest, current_user: dict = Depends(role_required("admin", "editor"))):
     """Update team strategy sliders during a simulation."""
     entry = _simulations.get(game_id)
     if not entry:
