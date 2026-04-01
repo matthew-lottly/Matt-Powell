@@ -1,5 +1,4 @@
 import type { StreamTick } from '../types';
-import '../styles/ui.css';
 
 interface Props {
   tick: StreamTick | null;
@@ -16,9 +15,15 @@ export default function MomentumBar({ tick }: Props) {
       <span className="text-blue-400 w-20 text-right">Home</span>
       <div className="flex-1 h-3 bg-gray-800 rounded-full overflow-hidden relative">
         {/* Home momentum (left → center) */}
-        <div className={`absolute inset-y-0 left-0 bg-blue-500/60 transition-all w-p-${homeWidth}`} />
+        <div
+          className="absolute inset-y-0 left-0 bg-blue-500/60 transition-all"
+          style={{ width: `${homeWidth}%` }}
+        />
         {/* Away momentum (right → center) */}
-        <div className={`absolute inset-y-0 right-0 bg-red-500/60 transition-all w-p-${awayWidth}`} />
+        <div
+          className="absolute inset-y-0 right-0 bg-red-500/60 transition-all"
+          style={{ width: `${awayWidth}%` }}
+        />
         {/* Center line */}
         <div className="absolute inset-y-0 left-1/2 w-px bg-gray-600" />
       </div>

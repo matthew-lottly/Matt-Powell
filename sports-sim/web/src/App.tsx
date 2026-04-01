@@ -5,6 +5,7 @@ import SimulationPage from './pages/SimulationPage';
 import HistoryPage from './pages/HistoryPage';
 import TuningPage from './pages/TuningPage';
 import LeaguePage from './pages/LeaguePage';
+import LeaguesPage from './pages/LeaguesPage';
 import TeamPage from './pages/TeamPage';
 import PlayerPage from './pages/PlayerPage';
 import TuneDashboard from './pages/TuneDashboard';
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/simulate" element={<SimulationPage />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/leagues" element={<LeaguesPage />} />
         <Route path="/tuning" element={<TuningPage />} />
         <Route path="/dashboard" element={<TuneDashboard />} />
         <Route path="/league/:league" element={<LeaguePage />} />

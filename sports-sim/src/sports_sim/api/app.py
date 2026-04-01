@@ -217,7 +217,22 @@ def _load_teams(sport: str, home_abbr: str | None, away_abbr: str | None, league
 
     loaders: dict[str, Any] = {}
     # Choose loader based on sport and optional league
-    if sport == "football":
+    if sport == "soccer":
+        if league is None or league == "mls":
+            try:
+                from sports_sim.data.rosters_mls import get_mls_team
+                loaders["get"] = get_mls_team
+            except Exception:
+                return None, None
+        elif league == "epl":
+            try:
+                from sports_sim.data.rosters_epl import get_epl_team
+                loaders["get"] = get_epl_team
+            except Exception:
+                return None, None
+        else:
+            return None, None
+    elif sport == "football":
         if league is None or league == "nfl":
             from sports_sim.data.rosters_nfl import get_nfl_team
             loaders["get"] = get_nfl_team
@@ -239,10 +254,25 @@ def _load_teams(sport: str, home_abbr: str | None, away_abbr: str | None, league
         if league is None or league == "nhl":
             from sports_sim.data.rosters_nhl import get_nhl_team
             loaders["get"] = get_nhl_team
+        elif league == "khl":
+            try:
+                from sports_sim.data.rosters_khl import get_khl_team
+                loaders["get"] = get_khl_team
+            except Exception:
+                return None, None
+        else:
+            return None, None
+    elif sport == "cricket":
+        if league is None or league == "ipl":
+            try:
+                from sports_sim.data.rosters_ipl import get_ipl_team
+                loaders["get"] = get_ipl_team
+            except Exception:
+                return None, None
         else:
             return None, None
     else:
-        # Individual sports (tennis, golf, boxing, MMA, racing, cricket) use defaults
+        # Individual sports (tennis, golf, boxing, MMA, racing) use defaults
         return None, None
 
     getter = loaders["get"]
@@ -324,7 +354,7 @@ def _available_teams(sport: str, league: str | None = None) -> list[dict[str, st
                 return []
         else:
             return []
-    else:
+    elif sport == "cricket":
         if league is None or league == "ipl":
             try:
                 from sports_sim.data.rosters_ipl import get_all_ipl_teams
@@ -333,6 +363,8 @@ def _available_teams(sport: str, league: str | None = None) -> list[dict[str, st
                 return []
         else:
             return []
+    else:
+        return []
     return [{"abbreviation": k, "name": t.name, "city": t.city} for k, t in teams.items()]
 
 
@@ -494,6 +526,30 @@ async def get_team_detail(sport: str, abbr: str, league: str | None = None):
     }
     await cache.set(key, payload, ttl=300)
     return payload
+
+
+@app.get("/api/players/{sport}/{team_abbr}/{player_id}")
+async def get_player_detail(sport: str, team_abbr: str, player_id: str, league: str | None = None):
+    """Get detailed info for a specific player on a team."""
+    h, _ = _load_teams(sport, team_abbr, None, league)
+    if not h:
+        raise HTTPException(404, f"Team {team_abbr} not found for {sport}")
+    player = next((p for p in h.players + h.bench if p.id == player_id), None)
+    if not player:
+        raise HTTPException(404, f"Player {player_id} not found on {team_abbr}")
+    is_bench = player not in h.players
+    return {
+        "id": player.id,
+        "name": player.name,
+        "number": player.number,
+        "position": player.position,
+        "age": player.age,
+        "height_cm": player.height_cm,
+        "weight_kg": player.weight_kg,
+        "is_bench": is_bench,
+        "attributes": player.attributes.model_dump(),
+        "team": {"abbreviation": team_abbr, "name": h.name, "city": h.city},
+    }
 
 
 @app.get("/api/venues/{sport}")
@@ -891,14 +947,14 @@ async def update_player(game_id: str, req: PlayerUpdateRequest, current_user: di
     if req.composure is not None:
         player.attributes.composure = max(0.0, min(1.0, req.composure))
 
-    return {"updated": True, "player": player.name}
-    
     # invalidate cached snapshot
     try:
         cache = get_cache()
         await cache.delete(f"sim:{game_id}:state")
     except Exception:
         logger.debug("Failed to delete sim snapshot from cache after player update")
+
+    return {"updated": True, "player": player.name}
 
 
 @app.put("/api/simulations/{game_id}/sliders/{team}")
@@ -910,13 +966,15 @@ async def update_sliders(game_id: str, team: str, sliders: SlidersRequest, curre
     sim: Simulation = entry["sim"]
     t = sim.state.home_team if team == "home" else sim.state.away_team
     t.sliders = TeamSliders(**sliders.model_dump())
-    return {"updated": True, "team": t.name}
+
     # invalidate cached snapshot
     try:
         cache = get_cache()
         await cache.delete(f"sim:{game_id}:state")
     except Exception:
         logger.debug("Failed to delete sim snapshot from cache after slider update")
+
+    return {"updated": True, "team": t.name}
 
 
 @app.get("/api/simulations")
@@ -963,7 +1021,7 @@ async def ws_simulate(ws: WebSocket):
         req = CreateSimRequest(**data)
 
         # Load teams
-        home_team, away_team = _load_teams(req.sport, req.home_team, req.away_team)
+        home_team, away_team = _load_teams(req.sport, req.home_team, req.away_team, req.league)
 
         env = Environment(
             weather=Weather(req.weather),

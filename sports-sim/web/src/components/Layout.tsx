@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 const NAV = [
   { path: '/', label: 'Home' },
   { path: '/simulate', label: 'Simulate' },
+  { path: '/leagues', label: 'Leagues' },
   { path: '/history', label: 'History' },
   { path: '/tuning', label: 'Tuning' },
   { path: '/dashboard', label: 'Dashboard' },

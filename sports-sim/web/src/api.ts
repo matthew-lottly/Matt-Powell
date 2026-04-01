@@ -77,6 +77,24 @@ export async function getSimulation(gameId: string) {
   return res.json();
 }
 
+export async function fetchTeamDetail(sport: string, abbr: string, league?: string) {
+  const params = new URLSearchParams();
+  if (league) params.set('league', league);
+  const q = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${BASE}/api/teams/${encodeURIComponent(sport)}/${encodeURIComponent(abbr)}${q}`);
+  if (!res.ok) throw new Error(`Team not found: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchPlayerDetail(sport: string, teamAbbr: string, playerId: string, league?: string) {
+  const params = new URLSearchParams();
+  if (league) params.set('league', league);
+  const q = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${BASE}/api/players/${encodeURIComponent(sport)}/${encodeURIComponent(teamAbbr)}/${encodeURIComponent(playerId)}${q}`);
+  if (!res.ok) throw new Error(`Player not found: ${res.status}`);
+  return res.json();
+}
+
 /**
  * Open a WebSocket to stream a simulation in real time.
  * Calls `onTick` for every tick message.

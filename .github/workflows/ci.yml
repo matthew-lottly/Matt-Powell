@@ -30,7 +30,11 @@ jobs:
           pip install pytest
           pip install numpy
           pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install -e _strata_temp/src
+          if [ -d "_strata_temp/src" ]; then
+            pip install -e _strata_temp/src
+          else
+            echo "_strata_temp/src not present; skipping editable install"
+          fi
 
       - name: Run tests
         run: pytest -q
