@@ -3,9 +3,9 @@
 These items require GitHub settings, issue management, or automation outside the local working tree.
 
 Now
-- Open issues in the correct standalone repos for the gaps listed in `docs/portfolio-matrix.md`.
+- Open issues in the correct standalone repos from `docs/standalone-issue-checklists.md`.
 - Add triage labels for `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.
-- Review whether PR #2 should be split before merge.
+- Resolve stale PR review threads that still reference deleted sports-sim files.
 
 Next
 - Decide which repos should keep full CI versus lighter validation.

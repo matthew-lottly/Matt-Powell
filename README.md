@@ -65,6 +65,18 @@ This repository is the portfolio hub only. The actual project code lives in stan
 - [geoprompt](https://github.com/matthew-lottly/geoprompt)
 - [environmental-monitoring-analytics](https://github.com/matthew-lottly/environmental-monitoring-analytics)
 
+These are the repositories that should absorb most polish effort first. They best represent the backend, GIS, data, and public-facing portfolio lanes.
+
+| Repository | Why It Is Prioritized | Next High-Value Upgrade |
+| --- | --- | --- |
+| [spatial-data-api](https://github.com/matthew-lottly/spatial-data-api) | Strongest backend and GIS service story. | Add richer request and response examples plus rollback notes. |
+| [environmental-monitoring-api](https://github.com/matthew-lottly/environmental-monitoring-api) | Production-leaning API with dashboard context. | Add stronger operational examples and failure-path validation. |
+| [monitoring-data-warehouse](https://github.com/matthew-lottly/monitoring-data-warehouse) | Best database-engineering evidence in the set. | Add a clearer schema-walkthrough artifact and warehouse narrative. |
+| [qgis-operations-workbench](https://github.com/matthew-lottly/qgis-operations-workbench) | Best desktop GIS representation. | Add screenshots and analyst-facing packaging guidance. |
+| [open-web-map-operations-dashboard](https://github.com/matthew-lottly/open-web-map-operations-dashboard) | Best open-stack frontend and mapping signal. | Add screenshots, accessibility checks, and browser-level flows. |
+| [geoprompt](https://github.com/matthew-lottly/geoprompt) | Best custom spatial package story. | Add CI alignment and cleaner public package framing. |
+| [environmental-monitoring-analytics](https://github.com/matthew-lottly/environmental-monitoring-analytics) | Strong analytics and reporting lane. | Add stronger packaging and report-evaluation framing. |
+
 ## Notes
 
 - This repository should not contain standalone project source trees.
@@ -83,8 +95,11 @@ This repository is the portfolio hub only. The actual project code lives in stan
 - [ROADMAP.md](ROADMAP.md) for the prioritized next 40 actions across repo, standalone repos, and GitHub settings
 - [docs/portfolio-matrix.md](docs/portfolio-matrix.md) for the current project-by-project maturity and coverage snapshot
 - [docs/todo-hub.md](docs/todo-hub.md) for hub-only next actions
+- [docs/todo-showcase.md](docs/todo-showcase.md) for showcase-specific polish priorities
 - [docs/todo-standalone-repos.md](docs/todo-standalone-repos.md) for source-repo follow-up work
+- [docs/standalone-issue-checklists.md](docs/standalone-issue-checklists.md) for repo-by-repo issue-ready checklists
 - [docs/todo-github-ops.md](docs/todo-github-ops.md) for GitHub settings and automation follow-ups
+- [docs/pr2-split-review.md](docs/pr2-split-review.md) for the active backlog-branch split review
 - [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
 - [docs/weekly-maintenance-checklist.md](docs/weekly-maintenance-checklist.md) for recurring portfolio upkeep
 - [CONTRIBUTOR_ONBOARDING.md](CONTRIBUTOR_ONBOARDING.md) for repo workflow and contribution rules

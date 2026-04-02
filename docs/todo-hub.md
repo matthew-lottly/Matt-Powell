@@ -4,8 +4,9 @@ These items belong in the portfolio hub repository.
 
 Now
 - Keep `README.md`, `things-to-do.md`, `ROADMAP.md`, and `docs/portfolio-matrix.md` aligned.
-- Review PR #2 against `main` and split out anything that does not belong in the backlog branch.
+- Keep `docs/pr2-split-review.md` current when branch scope changes.
 - Add a brief note in the README when the showcase set changes.
+- Keep `docs/todo-showcase.md` aligned with the showcase table in `README.md`.
 
 Next
 - Add a small root task alias or VS Code task that runs the portfolio checks script.
