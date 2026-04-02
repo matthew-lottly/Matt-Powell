@@ -4,6 +4,11 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 ![Generated neighborhood pressure plot from the GeoPrompt demo](assets/neighborhood-pressure-review-live.png)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Spatial package design

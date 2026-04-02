@@ -2,6 +2,11 @@
 
 **Structured Type-Aware Risk Assessment Through Adaptive Calibration on Heterogeneous Infrastructure Graphs**
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Abstract
 
 STRATA introduces *Conformalized Heterogeneous Message Passing* (CHMP), a framework that combines heterogeneous graph neural networks with split conformal prediction to produce uncertainty-quantified risk predictions across coupled infrastructure systems (power, water, telecom). Unlike existing conformal prediction methods for graphs—which assume homogeneous node/edge types—CHMP provides Mondrian-style per-type coverage guarantees on heterogeneous graphs, and introduces a suite of propagation-aware calibration schemes that account for multi-hop error propagation across utility boundaries.

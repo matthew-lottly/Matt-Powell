@@ -4,6 +4,11 @@ Desktop GIS portfolio project for packaging repeatable QGIS-oriented review work
 
 ![Workbench preview](assets/workbench-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Desktop GIS and operations workflows

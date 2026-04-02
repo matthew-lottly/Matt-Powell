@@ -4,6 +4,11 @@ Data science portfolio project for temporal diagnostics, baseline comparison, an
 
 ![Environmental time series lab preview](assets/time-series-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and time-series analysis

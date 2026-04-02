@@ -4,6 +4,11 @@ Open-stack GIS analysis project for comparing raster snapshots, flagging hotspot
 
 ![Raster pipeline preview](assets/raster-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Raster analysis and monitoring

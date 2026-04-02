@@ -8,6 +8,11 @@ Public-safe TypeScript and React prototype inspired by ArcGIS Experience Builder
 
 ![Interaction storyboard for the station brief widget prototype](assets/widget-interaction-walkthrough.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: GIS application development

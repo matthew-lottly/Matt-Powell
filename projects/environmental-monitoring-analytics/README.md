@@ -6,6 +6,11 @@ Analytics project for turning monitoring station observations into concise opera
 
 ![HTML report screenshot](assets/report-live-screenshot.png)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Analytics

@@ -4,6 +4,11 @@ Data science portfolio project for station risk scoring, candidate classifier co
 
 ![Station risk classification lab preview](assets/classification-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and classification

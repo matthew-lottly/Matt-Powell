@@ -4,6 +4,11 @@ Database-engineering project for modeling, building, and validating a monitoring
 
 ![Warehouse preview](assets/warehouse-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Database engineering

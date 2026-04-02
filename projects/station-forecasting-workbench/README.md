@@ -4,6 +4,11 @@ Data science portfolio project for experiment-style model comparison, train-vali
 
 ![Station forecasting workbench preview](assets/forecast-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and forecasting

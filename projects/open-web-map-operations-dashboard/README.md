@@ -4,6 +4,11 @@ Open-stack GIS frontend project for reviewing operational layers, regional filte
 
 ![Dashboard preview](assets/dashboard-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Open web mapping

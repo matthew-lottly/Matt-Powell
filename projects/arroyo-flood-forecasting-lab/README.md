@@ -4,6 +4,11 @@ Data science portfolio project recreating the structure of an Arroyo Colorado fl
 
 ![Arroyo flood forecasting preview](assets/flood-forecast-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and flood forecasting

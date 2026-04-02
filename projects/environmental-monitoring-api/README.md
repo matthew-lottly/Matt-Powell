@@ -4,6 +4,11 @@ Production-style backend for monitoring stations, environmental observations, an
 
 ![Dashboard preview](assets/dashboard-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Backend + GIS

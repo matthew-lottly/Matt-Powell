@@ -4,6 +4,11 @@ Open-stack GIS portfolio project for shaping how PostGIS-backed layers become pu
 
 ![Service blueprint preview](assets/service-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Spatial services and data publishing

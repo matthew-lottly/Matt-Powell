@@ -2,6 +2,11 @@
 
 Data science portfolio project for causal effect estimation, observational-study diagnostics, and reviewable treatment-effect outputs.
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and causal inference
