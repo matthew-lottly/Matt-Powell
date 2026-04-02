@@ -1,8 +1,5 @@
 {
   "include": [],
-  "extraPaths": [
-    "sports-sim/src"
-  ],
   "exclude": [
     "projects",
     "standalone-checkouts",
