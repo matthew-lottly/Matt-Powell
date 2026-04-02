@@ -51,6 +51,7 @@ Project-review hardening work under `projects/`:
 1. Resolve the unresolved review threads on deleted sports-sim files as obsolete.
 2. Decide whether to merge PR #2 as-is or close it in favor of smaller follow-up PRs.
 3. If keeping one PR, add a maintainer comment explaining that the old sports-sim review comments are no longer relevant after removal.
+4. Use `docs/pr2-github-cleanup.md` as the exact stale-thread cleanup checklist.
 
 ## Merge Recommendation
 

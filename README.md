@@ -102,11 +102,13 @@ These are the repositories that should absorb most polish effort first. They bes
 - [docs/issue-drafts-supporting.md](docs/issue-drafts-supporting.md) for supporting repo issue drafts
 - [docs/issue-filing-queue.md](docs/issue-filing-queue.md) for the recommended order to open issues
 - [docs/issue-filing-tracker.md](docs/issue-filing-tracker.md) for tracking what has been filed
+- [docs/issue-opening-batches.md](docs/issue-opening-batches.md) for grouped issue-opening waves
 - [docs/issue-bodies-showcase.md](docs/issue-bodies-showcase.md) for copy-paste showcase issue bodies
 - [docs/issue-bodies-supporting.md](docs/issue-bodies-supporting.md) for copy-paste supporting issue bodies
 - [docs/issue-submissions/README.md](docs/issue-submissions/README.md) for individual first-20 issue submission files
 - [docs/todo-github-ops.md](docs/todo-github-ops.md) for GitHub settings and automation follow-ups
 - [docs/pr2-split-review.md](docs/pr2-split-review.md) for the active backlog-branch split review
+- [docs/pr2-github-cleanup.md](docs/pr2-github-cleanup.md) for exact stale-thread cleanup on the active PR
 - [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
 - [docs/weekly-maintenance-checklist.md](docs/weekly-maintenance-checklist.md) for recurring portfolio upkeep
 - [CONTRIBUTOR_ONBOARDING.md](CONTRIBUTOR_ONBOARDING.md) for repo workflow and contribution rules
