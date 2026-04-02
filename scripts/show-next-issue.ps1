@@ -24,6 +24,15 @@ if (-not $pending) {
 }
 
 $next = $pending | Select-Object -First 1
+$submissionFiles = Get-ChildItem -Path "docs/issue-submissions" -File -Filter "*.md" |
+    Where-Object { $_.Name -ne "README.md" }
+$submissionFile = $submissionFiles |
+    Where-Object { $_.BaseName -match '^[0-9]{2}-' -and $_.BaseName -like ("*" + $next.Repository + "*") } |
+    Select-Object -First 1
+
 Write-Host ("Repository: " + $next.Repository)
 Write-Host ("Issue: " + $next.Title)
 Write-Host ("Priority: " + $next.Priority)
+if ($submissionFile) {
+    Write-Host ("Submission file: docs/issue-submissions/" + $submissionFile.Name)
+}

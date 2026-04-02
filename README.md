@@ -104,7 +104,7 @@ These are the repositories that should absorb most polish effort first. They bes
 - [docs/issue-filing-tracker.md](docs/issue-filing-tracker.md) for tracking what has been filed
 - [docs/issue-bodies-showcase.md](docs/issue-bodies-showcase.md) for copy-paste showcase issue bodies
 - [docs/issue-bodies-supporting.md](docs/issue-bodies-supporting.md) for copy-paste supporting issue bodies
-- [docs/issue-submissions/README.md](docs/issue-submissions/README.md) for individual first-10 issue submission files
+- [docs/issue-submissions/README.md](docs/issue-submissions/README.md) for individual first-20 issue submission files
 - [docs/todo-github-ops.md](docs/todo-github-ops.md) for GitHub settings and automation follow-ups
 - [docs/pr2-split-review.md](docs/pr2-split-review.md) for the active backlog-branch split review
 - [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
