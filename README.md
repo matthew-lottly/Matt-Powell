@@ -55,6 +55,16 @@ This repository is the portfolio hub only. The actual project code lives in stan
 | [causal-lens](https://github.com/matthew-lottly/causal-lens) | Data Science | Causal inference toolkit for observational monitoring data with propensity scoring, matching, sensitivity analysis, and treatment-effect estimation. |
 | [strata](https://github.com/matthew-lottly/strata) | Data Science | Conformal prediction framework for heterogeneous infrastructure graphs with GNN-based uncertainty quantification, per-type coverage guarantees, and propagation-aware calibration. |
 
+## Showcase Priority
+
+- [spatial-data-api](https://github.com/matthew-lottly/spatial-data-api)
+- [environmental-monitoring-api](https://github.com/matthew-lottly/environmental-monitoring-api)
+- [monitoring-data-warehouse](https://github.com/matthew-lottly/monitoring-data-warehouse)
+- [qgis-operations-workbench](https://github.com/matthew-lottly/qgis-operations-workbench)
+- [open-web-map-operations-dashboard](https://github.com/matthew-lottly/open-web-map-operations-dashboard)
+- [geoprompt](https://github.com/matthew-lottly/geoprompt)
+- [environmental-monitoring-analytics](https://github.com/matthew-lottly/environmental-monitoring-analytics)
+
 ## Notes
 
 - This repository should not contain standalone project source trees.
@@ -66,6 +76,18 @@ This repository is the portfolio hub only. The actual project code lives in stan
 - [docs/matt-powell-profile.md](docs/matt-powell-profile.md)
 - [docs/next-gis-repo-sequence.md](docs/next-gis-repo-sequence.md)
 - [docs/publishing/repo-split-plan.md](docs/publishing/repo-split-plan.md)
+
+## Portfolio Operations
+
+- [things-to-do.md](things-to-do.md) for the current portfolio-level execution list
+- [ROADMAP.md](ROADMAP.md) for the prioritized next 40 actions across repo, standalone repos, and GitHub settings
+- [docs/portfolio-matrix.md](docs/portfolio-matrix.md) for the current project-by-project maturity and coverage snapshot
+- [docs/todo-hub.md](docs/todo-hub.md) for hub-only next actions
+- [docs/todo-standalone-repos.md](docs/todo-standalone-repos.md) for source-repo follow-up work
+- [docs/todo-github-ops.md](docs/todo-github-ops.md) for GitHub settings and automation follow-ups
+- [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
+- [docs/weekly-maintenance-checklist.md](docs/weekly-maintenance-checklist.md) for recurring portfolio upkeep
+- [CONTRIBUTOR_ONBOARDING.md](CONTRIBUTOR_ONBOARDING.md) for repo workflow and contribution rules
 
 ## Connect
 

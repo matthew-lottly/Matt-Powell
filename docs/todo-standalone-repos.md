@@ -1,0 +1,25 @@
+# Standalone Repo Todo List
+
+These items should be executed in the matching standalone repositories, not in this hub repo.
+
+Service and API repos
+- Add rollback guidance to service runbooks.
+- Add richer sample requests and responses to example artifacts.
+- Add startup-failure and health-check tests.
+- Add environment example files.
+- Standardize Docker health checks, ports, and startup docs.
+
+Frontend repos
+- Add screenshots or short GIFs for visual review.
+- Expand smoke tests into browser-level flows.
+- Add accessibility checks and fixes.
+
+Research and data-science repos
+- Add benchmark tables or comparison summaries.
+- Tighten README summaries around outcomes and evaluation.
+- Add stronger packaging, framing, and reproducibility notes where needed.
+
+Cross-cutting
+- Remove tracked cache artifacts permanently where they still exist.
+- Audit dependency sprawl and Python version support.
+- Standardize README ordering and project maturity positioning.

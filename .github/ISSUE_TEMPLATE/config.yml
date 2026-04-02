@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Portfolio roadmap
+    url: https://github.com/matthew-lottly/Matt-Powell/blob/feat/complete-todos/ROADMAP.md
+    about: Review the current roadmap before opening new portfolio-level work.
