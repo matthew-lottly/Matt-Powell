@@ -98,6 +98,8 @@ These are the repositories that should absorb most polish effort first. They bes
 - [docs/todo-showcase.md](docs/todo-showcase.md) for showcase-specific polish priorities
 - [docs/todo-standalone-repos.md](docs/todo-standalone-repos.md) for source-repo follow-up work
 - [docs/standalone-issue-checklists.md](docs/standalone-issue-checklists.md) for repo-by-repo issue-ready checklists
+- [docs/issue-drafts-showcase.md](docs/issue-drafts-showcase.md) for showcase repo issue drafts
+- [docs/issue-drafts-supporting.md](docs/issue-drafts-supporting.md) for supporting repo issue drafts
 - [docs/todo-github-ops.md](docs/todo-github-ops.md) for GitHub settings and automation follow-ups
 - [docs/pr2-split-review.md](docs/pr2-split-review.md) for the active backlog-branch split review
 - [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
