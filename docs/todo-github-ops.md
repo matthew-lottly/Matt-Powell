@@ -5,6 +5,8 @@ These items require GitHub settings, issue management, or automation outside the
 Now
 - Open issues in the correct standalone repos from `docs/standalone-issue-checklists.md`.
 - Use `docs/issue-drafts-showcase.md` first for the seven priority repos, then use `docs/issue-drafts-supporting.md` for the rest.
+- Follow `docs/issue-filing-queue.md` so the highest-value issues are opened first.
+- Track filed issues in `docs/issue-filing-tracker.md`.
 - Add triage labels for `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.
 - Resolve stale PR review threads that still reference deleted sports-sim files.
 

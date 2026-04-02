@@ -100,6 +100,10 @@ These are the repositories that should absorb most polish effort first. They bes
 - [docs/standalone-issue-checklists.md](docs/standalone-issue-checklists.md) for repo-by-repo issue-ready checklists
 - [docs/issue-drafts-showcase.md](docs/issue-drafts-showcase.md) for showcase repo issue drafts
 - [docs/issue-drafts-supporting.md](docs/issue-drafts-supporting.md) for supporting repo issue drafts
+- [docs/issue-filing-queue.md](docs/issue-filing-queue.md) for the recommended order to open issues
+- [docs/issue-filing-tracker.md](docs/issue-filing-tracker.md) for tracking what has been filed
+- [docs/issue-bodies-showcase.md](docs/issue-bodies-showcase.md) for copy-paste showcase issue bodies
+- [docs/issue-bodies-supporting.md](docs/issue-bodies-supporting.md) for copy-paste supporting issue bodies
 - [docs/todo-github-ops.md](docs/todo-github-ops.md) for GitHub settings and automation follow-ups
 - [docs/pr2-split-review.md](docs/pr2-split-review.md) for the active backlog-branch split review
 - [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
