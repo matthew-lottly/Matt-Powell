@@ -8,6 +8,7 @@ Production-style backend for monitoring stations, environmental observations, an
 
 - Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
 - Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Runbook: [docs/runbook.md](docs/runbook.md)
 
 ## Snapshot
 

@@ -8,6 +8,7 @@ Open-stack GIS frontend project for reviewing operational layers, regional filte
 
 - Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
 - Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Runbook: [docs/runbook.md](docs/runbook.md)
 
 ## Snapshot
 

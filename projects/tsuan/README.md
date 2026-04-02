@@ -8,6 +8,7 @@ TSUAN performs cloud removal on Sentinel-2 L2A multispectral imagery by fusing o
 
 - Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
 - Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Runbook: [docs/runbook.md](docs/runbook.md)
 
 ## Architecture
 
