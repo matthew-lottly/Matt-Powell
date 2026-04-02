@@ -1,5 +1,7 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import type { SportType } from '../types';
+import { getSportPresentation } from '../sportPresentation';
+import { formatSportClock, formatSportPeriod } from '../sportUi';
 
 interface EventItem {
   type: string;
@@ -12,6 +14,15 @@ interface Props {
   events: EventItem[];
   sport: SportType;
 }
+
+/** Event categories for the filter buttons */
+const EVENT_CATEGORIES: Record<string, string[]> = {
+  Scoring: ['goal', 'touchdown', 'field_goal', 'home_run', 'run', 'three_pointer', 'free_throw', 'extra_point', 'two_point_conversion', 'safety', 'birdie', 'eagle', 'ace', 'set_won', 'six', 'boundary_four', 'knockout', 'tko', 'checkered_flag'],
+  Shots: ['shot', 'save', 'tee_shot', 'putt', 'punch', 'ground_strike'],
+  Turnovers: ['turnover', 'interception', 'fumble', 'steal', 'strikeout', 'wicket', 'double_fault', 'unforced_error'],
+  Discipline: ['foul', 'yellow_card', 'red_card', 'penalty_flag', 'penalty_minutes', 'wide', 'no_ball'],
+  Momentum: ['substitution', 'power_play', 'break_point', 'match_point', 'overtake', 'pit_stop', 'takedown', 'knockdown'],
+};
 
 const EVENT_COLORS: Record<string, string> = {
   // Universal
@@ -114,25 +125,61 @@ const EVENT_COLORS: Record<string, string> = {
   fastest_lap: 'text-purple-400',
 };
 
-export default function EventLog({ events, sport: _sport }: Props) {
+export default function EventLog({ events, sport }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
+  const presentation = getSportPresentation(sport);
+  const [filter, setFilter] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    if (!filter) return events;
+    const types = EVENT_CATEGORIES[filter] ?? [];
+    return events.filter((e) => types.includes(e.type));
+  }, [events, filter]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [events.length]);
+  }, [filtered.length]);
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col max-h-[500px]">
-      <h3 className="font-semibold text-gray-200 text-sm mb-2">Event Log</h3>
-      <div className="flex-1 overflow-y-auto space-y-1 text-xs">
-        {events.length === 0 && (
-          <p className="text-gray-600 text-center py-8">No events yet</p>
+    <section aria-labelledby="event-log-heading" className="bg-slate-900/90 border border-white/8 rounded-2xl p-4 flex flex-col max-h-[500px] backdrop-blur-sm">
+      <div className="mb-3">
+        <h3 id="event-log-heading" className="font-semibold text-slate-100 text-sm">{presentation.label} Event Log</h3>
+        <p className="mt-1 text-xs text-slate-500">Tracking {presentation.rhythm} in real time.</p>
+      </div>
+      {/* Filter buttons */}
+      <div className="flex flex-wrap gap-1 mb-2">
+        <button
+          type="button"
+          onClick={() => setFilter(null)}
+          className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider transition ${!filter ? 'bg-white/15 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+        >
+          All ({events.length})
+        </button>
+        {Object.keys(EVENT_CATEGORIES).map((cat) => {
+          const count = events.filter((e) => (EVENT_CATEGORIES[cat] ?? []).includes(e.type)).length;
+          if (count === 0) return null;
+          return (
+            <button
+              type="button"
+              key={cat}
+              onClick={() => setFilter(filter === cat ? null : cat)}
+              className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider transition ${filter === cat ? 'bg-white/15 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+            >
+              {cat} ({count})
+            </button>
+          );
+        })}
+      </div>
+      <div role="log" aria-live="polite" className="flex-1 overflow-y-auto space-y-1 text-xs">
+        {filtered.length === 0 && (
+          <p className="text-slate-500 text-center py-8">{filter ? `No ${filter.toLowerCase()} events yet` : presentation.emptyState}</p>
         )}
-        {events.map((ev, i) => (
-          <div key={i} className="flex gap-2">
-            <span className="text-gray-600 w-12 text-right shrink-0 tabular-nums">
-              {ev.time.toFixed(1)}
-            </span>
+        {filtered.map((ev, i) => (
+          <div key={i} className="flex gap-2 rounded-xl px-2 py-1.5 hover:bg-white/5 transition-colors">
+            <div className="w-20 shrink-0 text-right">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-600">{formatSportPeriod(sport, ev.period)}</div>
+              <div className="text-[11px] tabular-nums text-slate-500">{formatSportClock(sport, ev.time)}</div>
+            </div>
             <span className={EVENT_COLORS[ev.type] ?? 'text-gray-400'}>
               {ev.description}
             </span>
@@ -140,6 +187,6 @@ export default function EventLog({ events, sport: _sport }: Props) {
         ))}
         <div ref={endRef} />
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,5 +1,7 @@
 # Sports Sim
 
+[![CI](https://github.com/matthew-lottly/Matt-Powell/actions/workflows/ci.yml/badge.svg)](https://github.com/matthew-lottly/Matt-Powell/actions/workflows/ci.yml)
+
 A multi-sport simulation engine with realistic fatigue, injury, weather, and momentum models — powered by Python, FastAPI, and React.
 
 ## Sports
@@ -84,6 +86,13 @@ sports-sim/
 
 ```bash
 pytest --tb=short -q
+```
+
+## Development Checks
+
+```bash
+pre-commit install
+pre-commit run --all-files
 ```
 
 ## Dashboard & Profiling

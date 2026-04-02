@@ -115,7 +115,7 @@ class BaseballSport(Sport):
         fielding = state.home_team if self._top_of_inning else state.away_team
 
         # Only process at-bat events periodically (not every tick)
-        if rng.random() > 0.015:
+        if rng.random() > 0.003:
             return state, events
 
         pitcher = next((p for p in fielding.active_players if p.position == "P"), fielding.active_players[0])
@@ -130,7 +130,7 @@ class BaseballSport(Sport):
 
         effective_bat = bat_quality + noise * 0.1
 
-        if roll < 0.18:  # Strikeout
+        if roll < 0.22:  # Strikeout
             self._outs += 1
             events.append(GameEvent(
                 type=EventType.STRIKEOUT, time=state.clock, period=state.period,
@@ -138,14 +138,14 @@ class BaseballSport(Sport):
                 secondary_player_id=batter.id,
                 description=f"{batter.name} strikes out ({self._outs} outs)",
             ))
-        elif roll < 0.35:  # Out (groundout / flyout)
+        elif roll < 0.67:  # Out (groundout / flyout)
             self._outs += 1
             events.append(GameEvent(
                 type=EventType.OUT, time=state.clock, period=state.period,
                 team_id=fielding.id, player_id=batter.id,
                 description=f"{batter.name} out ({self._outs} outs)",
             ))
-        elif roll < 0.42:  # Walk
+        elif roll < 0.76:  # Walk
             self._advance_runners()
             self._bases[0] = True
             events.append(GameEvent(
@@ -153,7 +153,7 @@ class BaseballSport(Sport):
                 team_id=batting.id, player_id=batter.id,
                 description=f"{batter.name} walks",
             ))
-        elif roll < 0.70:  # Single
+        elif roll < 0.91:  # Single
             runs = self._advance_runners()
             self._bases[0] = True
             batting.score += runs
@@ -170,7 +170,7 @@ class BaseballSport(Sport):
                     description=f"{runs} run(s) score! ({state.home_team.score}-{state.away_team.score})",
                     metadata={"runs": runs},
                 ))
-        elif roll < 0.82:  # Double
+        elif roll < 0.955:  # Double
             runs = self._advance_runners(extra=1)
             self._bases = [False, True, False]
             batting.score += runs
@@ -187,7 +187,7 @@ class BaseballSport(Sport):
                     description=f"{runs} run(s) score!",
                     metadata={"runs": runs},
                 ))
-        elif roll < 0.88:  # Triple
+        elif roll < 0.96:  # Triple
             runs = sum(self._bases) + 0
             self._bases = [False, False, True]
             batting.score += runs
@@ -243,3 +243,19 @@ class BaseballSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.12)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        return {
+            "outs": self._outs,
+            "bases": self._bases[:],
+            "top_of_inning": self._top_of_inning,
+            "inning": state.period,
+            "inning_half": "top" if self._top_of_inning else "bottom",
+            "at_bat_index": self._at_bat_index,
+            "home_hits": sum(1 for e in state.events if e.type == EventType.HIT and e.team_id == state.home_team.id),
+            "away_hits": sum(1 for e in state.events if e.type == EventType.HIT and e.team_id == state.away_team.id),
+            "home_errors": sum(1 for e in state.events if e.type == EventType.TURNOVER and e.team_id == state.home_team.id),
+            "away_errors": sum(1 for e in state.events if e.type == EventType.TURNOVER and e.team_id == state.away_team.id),
+            "home_strikeouts": sum(1 for e in state.events if e.type == EventType.STRIKEOUT and e.team_id == state.home_team.id),
+            "away_strikeouts": sum(1 for e in state.events if e.type == EventType.STRIKEOUT and e.team_id == state.away_team.id),
+        }

@@ -1,6 +1,7 @@
 """Unit tests for the simulation engine."""
 
 import pytest
+
 from sports_sim.core.engine import Simulation
 from sports_sim.core.models import SimulationConfig, SportType
 

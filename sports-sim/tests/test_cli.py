@@ -49,5 +49,6 @@ class TestCLI:
         assert result.exit_code == 0
         assert out.exists()
         import json
+
         data = json.loads(out.read_text())
         assert "final_score" in data

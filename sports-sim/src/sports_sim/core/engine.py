@@ -8,6 +8,7 @@ from typing import Generator
 import numpy as np
 
 from sports_sim.core.models import (
+    CoachStatus,
     EventType,
     GameEvent,
     GameState,
@@ -16,8 +17,11 @@ from sports_sim.core.models import (
     SurfaceType,
     VenueType,
 )
+from sports_sim.core.league_rules import get_league_rules
 from sports_sim.core.sport import Sport
 from sports_sim.core.sport_capabilities import get_capabilities
+from sports_sim.core.roster_validation import validate_matchup, log_roster_issues
+from sports_sim.realism.venue_calibration import get_venue_calibration
 from sports_sim.realism.fatigue import apply_fatigue
 from sports_sim.realism.injuries import check_injuries
 from sports_sim.realism.momentum import update_momentum
@@ -34,6 +38,10 @@ from sports_sim.realism.substitutions import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _clamp(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
 
 
 def _get_sport(sport_type: SportType) -> Sport:
@@ -100,6 +108,7 @@ class Simulation:
     def __init__(self, config: SimulationConfig, home_team=None, away_team=None):
         self.config = config
         self.sport = _get_sport(config.sport)
+        self.league_rules = get_league_rules(config.sport.value, config.league)
         self.rng = np.random.default_rng(config.seed)
         self.sport._rng = self.rng
         self.caps = get_capabilities(config.sport)
@@ -111,7 +120,8 @@ class Simulation:
         self.sub_tracker = create_sub_tracker(config.sport)
 
         if home_team and away_team:
-            h, a = home_team, away_team
+            h = home_team.model_copy(deep=True)
+            a = away_team.model_copy(deep=True)
         else:
             h, a = self.sport.create_default_teams()
 
@@ -123,6 +133,18 @@ class Simulation:
 
         # Determine venue (from config, or home team, or default)
         venue = config.venue or h.venue
+
+        if venue:
+            venue = venue.model_copy(deep=True)
+            calibration = get_venue_calibration(venue)
+            venue.noise_factor = _clamp(venue.noise_factor + calibration.crowd_morale_boost, 0.0, 1.0)
+            venue.surface_quality = _clamp(venue.surface_quality + calibration.surface_speed_modifier, 0.0, 1.0)
+            venue.visitor_fatigue_factor = _clamp(
+                venue.visitor_fatigue_factor + calibration.altitude_endurance_drain + calibration.heat_fatigue_modifier,
+                0.0,
+                0.5,
+            )
+            venue.difficulty_rating = _clamp(max(venue.difficulty_rating, calibration.difficulty_factor), 0.0, 1.0)
 
         # Sync environment with venue properties
         env = config.environment.model_copy()
@@ -137,15 +159,41 @@ class Simulation:
 
         self.state = GameState(
             sport=config.sport,
+            league=config.league,
             home_team=h,
             away_team=a,
             environment=env,
             venue=venue,
-            total_periods=self.sport.default_periods,
-            period_length=self.sport.default_period_length,
+            total_periods=self.league_rules.periods if self.league_rules and self.league_rules.periods else self.sport.default_periods,
+            period_length=(
+                self.league_rules.period_length_minutes
+                if self.league_rules and self.league_rules.period_length_minutes and self.league_rules.period_length_minutes > 0
+                else self.sport.default_period_length
+            ),
             seed=config.seed or int(self.rng.integers(0, 2**31)),
         )
         self.state = self.sport.setup_positions(self.state)
+
+        # Apply age-based attribute scaling
+        from sports_sim.realism.age_curves import apply_age_curve
+
+        for team in (self.state.home_team, self.state.away_team):
+            for p in team.players:
+                apply_age_curve(p)
+
+        # Validate rosters and log issues
+        roster_issues = validate_matchup(h, a, config.sport)
+        if roster_issues:
+            log_roster_issues(roster_issues)
+
+        # Ensure minimum roster count
+        min_players = self.sport.players_per_side
+        for label, team in [("Home", h), ("Away", a)]:
+            if len(team.players) < min_players:
+                raise ValueError(
+                    f"{label} team '{team.name}' has {len(team.players)} players "
+                    f"but {min_players} are required for {config.sport.value}"
+                )
 
     # ------------------------------------------------------------------
     # Run
@@ -247,6 +295,9 @@ class Simulation:
 
                 if events:
                     yield self.state, events
+                elif self.state.tick % 30 == 0:
+                    # Heartbeat yield — ensures momentum/stamina updates reach clients
+                    yield self.state, []
 
             self.state.events.append(
                 GameEvent(type=EventType.PERIOD_END, time=self.state.clock, period=period,
@@ -270,9 +321,35 @@ class Simulation:
         logger.info("Simulation complete: %s", self.state.score_summary)
 
     def _apply_coach_effects(self) -> None:
-        """Periodic coach influence — motivation pushes player morale toward team momentum."""
+        """Periodic coach influence — motivation, tactical bonus, clock management, and adaptability."""
         for team in (self.state.home_team, self.state.away_team):
-            motivation = team.coach.motivation
+            coach = team.coach
+
+            # Skip if coach is not active
+            if coach.status != CoachStatus.ACTIVE:
+                continue
+
+            # 1. Morale nudge — push player morale toward team momentum
+            motivation = coach.motivation
             for p in team.active_players:
                 diff = team.momentum - p.morale
                 p.morale = min(1.0, max(0.0, p.morale + diff * motivation * 0.02))
+
+            # 2. Tactical bonus — boost composure of active players
+            tactical = coach.tactical_bonus  # (play_calling - 0.5) * 0.1
+            for p in team.active_players:
+                p.attributes.composure = min(1.0, max(0.0, p.attributes.composure + tactical * 0.01))
+
+            # 3. Adaptability — if team is trailing, boost momentum recovery
+            if coach.adaptability > 0.5:
+                opp = self.state.away_team if team is self.state.home_team else self.state.home_team
+                if team.score < opp.score:
+                    adapt_boost = (coach.adaptability - 0.5) * 0.005
+                    team.momentum = min(1.0, team.momentum + adapt_boost)
+
+            # 4. Clock management — reduce fatigue impact late in periods
+            period_progress = self.state.clock / max(self.state.period_length * self.state.total_periods, 1.0)
+            if coach.clock_management > 0.5 and period_progress > 0.75:
+                mgmt_factor = coach.clock_management * 0.003
+                for p in team.active_players:
+                    p.stamina = min(1.0, p.stamina + mgmt_factor)

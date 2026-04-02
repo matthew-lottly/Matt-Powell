@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listSimulations } from '../api';
+import { listSimulations, deleteSimulation } from '../api';
 import type { SimSummary } from '../types';
 import { SPORT_LABELS, type SportType } from '../types';
+import { getSportPresentation } from '../sportPresentation';
+import { formatSimulationScore } from '../sportUi';
 
 export default function HistoryPage() {
   const [sims, setSims] = useState<SimSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const refresh = () => {
     setLoading(true);
@@ -18,8 +21,21 @@ export default function HistoryPage() {
 
   useEffect(() => { refresh(); }, []);
 
+  const handleDelete = async (gameId: string, label: string) => {
+    if (!window.confirm(`Delete simulation "${label}"? This cannot be undone.`)) return;
+    setDeletingId(gameId);
+    try {
+      await deleteSimulation(gameId);
+      setSims((prev) => prev.filter((s) => s.game_id !== gameId));
+    } catch {
+      // silently fail — sim may already be gone
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Simulation History</h2>
         <div className="flex gap-2">
@@ -49,41 +65,44 @@ export default function HistoryPage() {
       )}
 
       {sims.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-gray-400 border-b border-gray-800">
-              <tr>
-                <th className="py-2 pr-4">Sport</th>
-                <th className="py-2 pr-4">Home</th>
-                <th className="py-2 pr-4">Away</th>
-                <th className="py-2 pr-4">Score</th>
-                <th className="py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sims.map((s) => (
-                <tr key={s.game_id} className="border-b border-gray-800/50 hover:bg-gray-900">
-                  <td className="py-2 pr-4">
-                    {SPORT_LABELS[s.sport as SportType] ?? s.sport}
-                  </td>
-                  <td className="py-2 pr-4">{s.home_team}</td>
-                  <td className="py-2 pr-4">{s.away_team}</td>
-                  <td className="py-2 pr-4 font-mono">
-                    <span className={s.home_score > s.away_score ? 'text-blue-400 font-semibold' : ''}>{s.home_score}</span>
-                    {' – '}
-                    <span className={s.away_score > s.home_score ? 'text-red-400 font-semibold' : ''}>{s.away_score}</span>
-                  </td>
-                  <td className="py-2">
-                    {s.is_finished ? (
-                      <span className="text-green-400 text-xs font-medium bg-green-900/30 px-2 py-0.5 rounded-full">Finished</span>
-                    ) : (
-                      <span className="text-yellow-400 text-xs font-medium bg-yellow-900/30 px-2 py-0.5 rounded-full">In Progress</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-3">
+          {sims.map((simulation) => {
+            const sport = simulation.sport as SportType;
+            const presentation = getSportPresentation(sport);
+            return (
+              <div key={simulation.game_id} className="rounded-2xl border border-white/8 bg-slate-900/85 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] ${presentation.accentBadge}`}>
+                      {SPORT_LABELS[sport] ?? simulation.sport}
+                    </div>
+                    <div className="mt-3 text-lg font-semibold text-slate-100">{simulation.home_team} vs {simulation.away_team}</div>
+                    <div className="mt-1 text-sm text-slate-400">{formatSimulationScore(sport, simulation.home_score, simulation.away_score)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-2xl font-bold ${presentation.accentText}`}>
+                      {simulation.home_score} - {simulation.away_score}
+                    </div>
+                    <div className="mt-2 text-xs text-slate-400">{presentation.rhythm}</div>
+                    <div className="mt-2">
+                      {simulation.is_finished ? (
+                        <span className="text-green-400 text-xs font-medium bg-green-900/30 px-2 py-0.5 rounded-full">Finished</span>
+                      ) : (
+                        <span className="text-yellow-400 text-xs font-medium bg-yellow-900/30 px-2 py-0.5 rounded-full">In Progress</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDelete(simulation.game_id, `${simulation.home_team} vs ${simulation.away_team}`)}
+                      disabled={deletingId === simulation.game_id}
+                      className="mt-2 text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition"
+                    >
+                      {deletingId === simulation.game_id ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

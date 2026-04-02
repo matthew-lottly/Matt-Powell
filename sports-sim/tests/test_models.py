@@ -1,6 +1,8 @@
 """Unit tests for core models."""
 
 import pytest
+from pydantic import ValidationError
+
 from sports_sim.core.models import (
     Ball,
     Environment,
@@ -23,7 +25,7 @@ class TestPlayerAttributes:
         assert 0.0 <= a.strength <= 1.0
 
     def test_clamped(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             PlayerAttributes(speed=1.5)
 
 
@@ -104,5 +106,5 @@ class TestSimulationConfig:
         assert c.enable_fatigue is True
 
     def test_fidelity_validation(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             SimulationConfig(fidelity="ultra")

@@ -22,12 +22,19 @@ def test_admin_can_list_and_create_users(monkeypatch):
     assert "admin" in list_res.json()
 
     # create a new user
-    create_res = client.post("/api/auth/users", json={"username": "newuser", "password": "p", "role": "user"}, headers=headers)
+    create_res = client.post(
+        "/api/auth/users",
+        json={"username": "newuser", "password": "p", "role": "user"},
+        headers=headers,
+    )
     assert create_res.status_code == 200
     assert create_res.json()["username"] == "newuser"
 
     # non-admin cannot list users
-    user_token = client.post("/api/auth/token", json={"username": "user", "password": "userpass"}).json()["access_token"]
+    user_token = client.post(
+        "/api/auth/token",
+        json={"username": "user", "password": "userpass"},
+    ).json()["access_token"]
     uh = {"Authorization": f"Bearer {user_token}"}
     r2 = client.get("/api/auth/users", headers=uh)
     assert r2.status_code == 403

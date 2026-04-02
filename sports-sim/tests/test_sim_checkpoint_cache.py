@@ -1,8 +1,4 @@
 import asyncio
-import json
-from types import SimpleNamespace
-
-import pytest
 
 
 class FakeCache:
@@ -27,12 +23,10 @@ def test_simulation_checkpoint_cached(monkeypatch):
         fake = FakeCache()
 
         # Patch get_cache to return our fake
-        import src.sports_sim.cache.cache as cachemod
+        import sports_sim.cache.cache as cachemod
 
         # Set the global cache instance in the cache module before importing app
         monkeypatch.setattr(cachemod, "_GLOBAL_CACHE", fake, raising=False)
-
-        import src.sports_sim.api.app as api_mod
 
         # Create a minimal CreateSimRequest payload for the API function directly
         from sports_sim.api.app import CreateSimRequest, create_simulation, run_simulation
@@ -52,7 +46,5 @@ def test_simulation_checkpoint_cached(monkeypatch):
         # After run, expect another checkpoint update
         keys2 = [k for k, *_ in fake.set_calls]
         assert any(k.startswith(f"sim:{gid}:state") for k in keys2)
-
-    import asyncio
 
     asyncio.run(_inner())

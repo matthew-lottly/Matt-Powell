@@ -1,7 +1,6 @@
 """Tests for realism modules."""
 
 import numpy as np
-import pytest
 
 from sports_sim.core.models import (
     Ball,
@@ -27,8 +26,13 @@ def _make_state(**env_kwargs) -> GameState:
     h = Team(name="Home", players=players_h)
     a = Team(name="Away", players=players_a)
     env = Environment(**env_kwargs) if env_kwargs else Environment()
-    return GameState(sport=SportType.SOCCER, home_team=h, away_team=a, environment=env,
-                     ball=Ball(x=50, y=34))
+    return GameState(
+        sport=SportType.SOCCER,
+        home_team=h,
+        away_team=a,
+        environment=env,
+        ball=Ball(x=50, y=34),
+    )
 
 
 class TestFatigue:

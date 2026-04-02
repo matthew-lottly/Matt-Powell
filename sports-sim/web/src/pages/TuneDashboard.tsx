@@ -1,8 +1,7 @@
-import React from 'react';
 import './tune-dashboard.css';
 
 export default function TuneDashboard() {
-  const streamlitUrl = process.env.REACT_APP_TUNE_DASHBOARD_URL || 'http://localhost:8501';
+  const streamlitUrl = import.meta.env.VITE_TUNE_DASHBOARD_URL || 'http://localhost:8501';
 
   return (
     <div>
@@ -11,7 +10,7 @@ export default function TuneDashboard() {
       <div className="tune-dashboard-frame border rounded overflow-hidden">
         <iframe src={streamlitUrl} title="Tuning Dashboard" className="tune-dashboard-iframe" />
       </div>
-      <p className="mt-2 text-xs text-gray-400">If the dashboard does not load, start the Streamlit service or set REACT_APP_TUNE_DASHBOARD_URL.</p>
+      <p className="mt-2 text-xs text-gray-400">If the dashboard does not load, start the Streamlit service or set VITE_TUNE_DASHBOARD_URL.</p>
     </div>
   );
 }

@@ -5,14 +5,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from contextlib import asynccontextmanager
 import os
+import time
+from contextlib import asynccontextmanager
 from typing import Any
-from src.sports_sim.cache.cache import get_cache
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header, Response
 from sports_sim.auth.auth import get_current_user, role_required
 from sports_sim.api.tuning import router as tuning_router
+from sports_sim.cache.cache import close_global_cache, configure_cache_from_env, get_cache
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -37,6 +38,29 @@ _simulations: dict[str, dict[str, object]] = {}
 # Simple registry cache to avoid repeated imports/merges
 _registry_cache: dict[tuple[str, str | None], dict[str, object]] = {}
 
+
+def _refresh_active_simulations_metric() -> None:
+    try:
+        from sports_sim.metrics import active_simulations
+
+        active_simulations.set(sum(1 for entry in _simulations.values() if not entry["sim"].state.is_finished))
+    except Exception:
+        logger.debug("Active simulation metric refresh skipped")
+
+
+def _evict_old_simulations(max_age_seconds: int = 3600) -> None:
+    """Remove finished simulations older than max_age_seconds to prevent memory leaks."""
+    now = time.time()
+    to_remove = [
+        gid for gid, entry in _simulations.items()
+        if entry["sim"].state.is_finished and now - entry.get("created_at", now) > max_age_seconds
+    ]
+    for gid in to_remove:
+        del _simulations[gid]
+    if to_remove:
+        logger.info("Evicted %d old simulation(s)", len(to_remove))
+        _refresh_active_simulations_metric()
+
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
@@ -44,7 +68,6 @@ async def lifespan(app: FastAPI):
     logger.info("Sports-sim API starting")
     # Configure cache from environment (REDIS_URL) if provided
     try:
-        from src.sports_sim.cache.cache import configure_cache_from_env
         configure_cache_from_env()
     except Exception:
         logger.debug("Cache configuration skipped or failed; using in-memory cache")
@@ -75,7 +98,6 @@ async def lifespan(app: FastAPI):
     yield
     # Close cache if needed
     try:
-        from src.sports_sim.cache.cache import close_global_cache
         await close_global_cache()
     except Exception:
         logger.debug("Cache close skipped or failed")
@@ -92,18 +114,43 @@ app = FastAPI(
     version="0.2.0",
     description="Run and stream multi-sport simulations with full team/player/venue/coach customization.",
     lifespan=lifespan,
+    openapi_tags=[
+        {"name": "Health", "description": "Liveness and readiness probes"},
+        {"name": "Sports", "description": "Available sports and capabilities"},
+        {"name": "Auth", "description": "Authentication and user management"},
+        {"name": "Teams", "description": "Team rosters and lookups"},
+        {"name": "Players", "description": "Player details and attributes"},
+        {"name": "Venues", "description": "Venue and field information"},
+        {"name": "Leagues", "description": "League structure and schedules"},
+        {"name": "Simulations", "description": "Create, run, and manage simulations"},
+        {"name": "Batch", "description": "Monte Carlo batch simulation runs"},
+        {"name": "Export", "description": "Export simulation results (JSON, CSV)"},
+        {"name": "Odds", "description": "Odds normalization utilities"},
+        {"name": "Trades", "description": "Trade analysis tools"},
+        {"name": "Metrics", "description": "Prometheus metrics"},
+    ],
 )
 
 # include tuning API router
 app.include_router(tuning_router)
 
+_CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://localhost:3000",
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    allow_origins=[o.strip() for o in _CORS_ORIGINS if o.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting (configurable via RATE_LIMIT_RPM / RATE_LIMIT_BURST env vars)
+from sports_sim.api.rate_limit import RateLimitMiddleware  # noqa: E402
+
+app.add_middleware(RateLimitMiddleware)
 
 
 # ---------------------------------------------------------------------------
@@ -111,42 +158,42 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 class SlidersRequest(BaseModel):
-    offensive_aggression: float = 0.5
-    defensive_intensity: float = 0.5
-    pace: float = 0.5
-    pressing: float = 0.5
-    three_point_tendency: float = 0.5
-    run_pass_ratio: float = 0.5
-    steal_attempt_rate: float = 0.3
-    bunt_tendency: float = 0.2
-    blitz_frequency: float = 0.3
-    substitution_aggression: float = 0.5
+    offensive_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    defensive_intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    pace: float = Field(default=0.5, ge=0.0, le=1.0)
+    pressing: float = Field(default=0.5, ge=0.0, le=1.0)
+    three_point_tendency: float = Field(default=0.5, ge=0.0, le=1.0)
+    run_pass_ratio: float = Field(default=0.5, ge=0.0, le=1.0)
+    steal_attempt_rate: float = Field(default=0.3, ge=0.0, le=1.0)
+    bunt_tendency: float = Field(default=0.2, ge=0.0, le=1.0)
+    blitz_frequency: float = Field(default=0.3, ge=0.0, le=1.0)
+    substitution_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
     # Hockey
-    forecheck_intensity: float = 0.5
-    power_play_aggression: float = 0.5
-    line_change_frequency: float = 0.5
+    forecheck_intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    power_play_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    line_change_frequency: float = Field(default=0.5, ge=0.0, le=1.0)
     # Tennis
-    serve_aggression: float = 0.5
-    net_approach: float = 0.3
+    serve_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    net_approach: float = Field(default=0.3, ge=0.0, le=1.0)
     # Golf / Cricket / Racing
-    risk_taking: float = 0.5
-    batting_aggression: float = 0.5
-    bowling_variation: float = 0.5
+    risk_taking: float = Field(default=0.5, ge=0.0, le=1.0)
+    batting_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
+    bowling_variation: float = Field(default=0.5, ge=0.0, le=1.0)
     # Boxing / MMA
-    aggression_level: float = 0.5
-    counter_tendency: float = 0.3
-    clinch_tendency: float = 0.3
+    aggression_level: float = Field(default=0.5, ge=0.0, le=1.0)
+    counter_tendency: float = Field(default=0.3, ge=0.0, le=1.0)
+    clinch_tendency: float = Field(default=0.3, ge=0.0, le=1.0)
     # Racing
-    tire_management: float = 0.5
-    pit_strategy: float = 0.5
-    overtake_aggression: float = 0.5
+    tire_management: float = Field(default=0.5, ge=0.0, le=1.0)
+    pit_strategy: float = Field(default=0.5, ge=0.0, le=1.0)
+    overtake_aggression: float = Field(default=0.5, ge=0.0, le=1.0)
 
 
 class CreateSimRequest(BaseModel):
     sport: str = "soccer"
     seed: int | None = None
     fidelity: str = "medium"
-    ticks_per_second: int = 10
+    ticks_per_second: int = Field(default=10, ge=1, le=100)
     enable_fatigue: bool = True
     enable_injuries: bool = True
     enable_weather: bool = True
@@ -155,9 +202,9 @@ class CreateSimRequest(BaseModel):
     enable_coach_effects: bool = True
     enable_surface_effects: bool = True
     weather: str = "clear"
-    temperature_c: float = 22.0
-    wind_speed_kph: float = 0.0
-    humidity: float = 0.5
+    temperature_c: float = Field(default=22.0, ge=-50.0, le=60.0)
+    wind_speed_kph: float = Field(default=0.0, ge=0.0, le=200.0)
+    humidity: float = Field(default=0.5, ge=0.0, le=1.0)
     # Team selection
     home_team: str | None = None  # team abbreviation
     away_team: str | None = None
@@ -167,7 +214,7 @@ class CreateSimRequest(BaseModel):
     venue_name: str | None = None
     venue_type: str | None = None
     surface_type: str | None = None
-    altitude_m: float | None = None
+    altitude_m: float | None = Field(default=None, ge=0.0, le=5000.0)
     # Sliders
     home_sliders: SlidersRequest | None = None
     away_sliders: SlidersRequest | None = None
@@ -204,6 +251,42 @@ class SimSummary(BaseModel):
     away_score: int
     is_finished: bool
     total_events: int
+
+
+class BatchSimRequest(BaseModel):
+    """Request body for Monte Carlo batch simulation."""
+
+    sport: str = "soccer"
+    n: int = Field(default=100, ge=1, le=10000, description="Number of simulations to run")
+    seed: int | None = None
+    fidelity: str = "fast"
+    home_team: str | None = None
+    away_team: str | None = None
+    league: str | None = None
+    home_sliders: SlidersRequest | None = None
+    away_sliders: SlidersRequest | None = None
+
+
+class BatchSimResult(BaseModel):
+    """Aggregated results from a Monte Carlo batch run."""
+
+    sport: str
+    n: int
+    home_team: str
+    away_team: str
+    home_wins: int
+    away_wins: int
+    draws: int
+    home_win_pct: float
+    away_win_pct: float
+    draw_pct: float
+    avg_home_score: float
+    avg_away_score: float
+    min_home_score: int
+    max_home_score: int
+    min_away_score: int
+    max_away_score: int
+    score_distribution: dict[str, int]
 
 
 # ---------------------------------------------------------------------------
@@ -372,12 +455,18 @@ def _available_teams(sport: str, league: str | None = None) -> list[dict[str, st
 # REST endpoints
 # ---------------------------------------------------------------------------
 
-@app.get("/api/sports")
+@app.get("/api/health", tags=["Health"])
+async def health_check():
+    """Lightweight health check for load balancers and container orchestration."""
+    return {"status": "ok"}
+
+
+@app.get("/api/sports", tags=["Sports"])
 async def list_sports():
     return {"sports": [s.value for s in SportType]}
 
 
-@app.get("/api/sports/{sport}/capabilities")
+@app.get("/api/sports/{sport}/capabilities", tags=["Sports"])
 async def sport_capabilities(sport: str):
     """Return environment/gameplay capability profile for a sport."""
     cache = get_cache()
@@ -417,7 +506,7 @@ async def sport_capabilities(sport: str):
     return payload
 
 
-@app.post("/api/auth/token")
+@app.post("/api/auth/token", tags=["Auth"])
 async def issue_token(credentials: dict):
     """Issue a token for valid username/password. Disabled by default in dev unless
     `SPORTS_SIM_AUTH_ENABLED` is set to "1".
@@ -435,18 +524,18 @@ async def issue_token(credentials: dict):
     return {"access_token": token, "token_type": "bearer", "role": user["role"]}
 
 
-@app.get("/api/auth/users")
+@app.get("/api/auth/users", tags=["Auth"])
 async def list_users(current_user: dict = Depends(role_required("admin"))):
     """Admin-only: list known users (no passwords returned)."""
     from sports_sim.auth.auth import USERS
     return {k: {"role": v["role"]} for k, v in USERS.items()}
 
 
-@app.post("/api/auth/users")
+@app.post("/api/auth/users", tags=["Auth"])
 async def create_user(payload: dict, current_user: dict = Depends(role_required("admin"))):
     """Admin-only: create a user. Expects JSON with `username`, `password`, `role`.
     This stores users in-memory (for demo/testing)."""
-    from sports_sim.auth.auth import USERS
+    from sports_sim.auth.auth import USERS, _hash_password
     username = payload.get("username")
     password = payload.get("password")
     role = payload.get("role")
@@ -454,7 +543,7 @@ async def create_user(payload: dict, current_user: dict = Depends(role_required(
         raise HTTPException(400, "username, password and role are required")
     if username in USERS:
         raise HTTPException(409, "user already exists")
-    USERS[username] = {"password": password, "role": role}
+    USERS[username] = {"password": _hash_password(password), "role": role}
     return {"username": username, "role": role}
 
 
@@ -467,7 +556,18 @@ async def list_leagues(sport: str | None = None):
     return {"leagues": LEAGUES}
 
 
-@app.get("/api/teams/{sport}")
+@app.get("/api/leagues/{sport}/{league_id}/rules", tags=["Leagues"])
+async def get_league_rules_endpoint(sport: str, league_id: str):
+    """Return league-specific rules (periods, overtime, subs, etc.)."""
+    from sports_sim.core.league_rules import get_league_rules
+    from dataclasses import asdict
+    rules = get_league_rules(sport, league_id)
+    if rules is None:
+        return {"rules": None}
+    return {"rules": {k: v for k, v in asdict(rules).items() if v is not None and v is not False}}
+
+
+@app.get("/api/teams/{sport}", tags=["Teams"])
 async def list_teams(sport: str, league: str | None = None, page: int = 1, per_page: int = 200):
     """List all available real teams for a given sport, optionally filtered by league."""
     cache = get_cache()
@@ -488,7 +588,7 @@ async def list_teams(sport: str, league: str | None = None, page: int = 1, per_p
     return payload
 
 
-@app.get("/api/teams/{sport}/{abbr}")
+@app.get("/api/teams/{sport}/{abbr}", tags=["Teams"])
 async def get_team_detail(sport: str, abbr: str, league: str | None = None):
     """Get full roster and venue info for a specific team."""
     cache = get_cache()
@@ -528,7 +628,7 @@ async def get_team_detail(sport: str, abbr: str, league: str | None = None):
     return payload
 
 
-@app.get("/api/players/{sport}/{team_abbr}/{player_id}")
+@app.get("/api/players/{sport}/{team_abbr}/{player_id}", tags=["Players"])
 async def get_player_detail(sport: str, team_abbr: str, player_id: str, league: str | None = None):
     """Get detailed info for a specific player on a team."""
     h, _ = _load_teams(sport, team_abbr, None, league)
@@ -552,7 +652,7 @@ async def get_player_detail(sport: str, team_abbr: str, player_id: str, league: 
     }
 
 
-@app.get("/api/venues/{sport}")
+@app.get("/api/venues/{sport}", tags=["Venues"])
 async def list_venues(sport: str, league: str | None = None, page: int = 1, per_page: int = 200):
     """List known venues for a sport. If `league` is provided, return venues for that league when available."""
     cache = get_cache()
@@ -646,7 +746,7 @@ async def list_venues(sport: str, league: str | None = None, page: int = 1, per_
     return payload
 
 
-@app.post("/api/odds/normalize")
+@app.post("/api/odds/normalize", tags=["Odds"])
 async def normalize_odds(payload: dict):
     """Accepts JSON payload {'odds': {'home': 1.9, 'draw': 3.4, 'away': 4.2}} and returns normalized probabilities."""
     odds = payload.get("odds") if isinstance(payload, dict) else None
@@ -658,7 +758,7 @@ async def normalize_odds(payload: dict):
     return {"normalized": normalized}
 
 
-@app.get("/metrics")
+@app.get("/metrics", tags=["Metrics"])
 async def metrics():
     """Prometheus metrics endpoint (collects from prometheus_client registry).
 
@@ -673,8 +773,12 @@ async def metrics():
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 
-@app.post("/api/simulations", response_model=SimSummary)
+@app.post("/api/simulations", response_model=SimSummary, tags=["Simulations"])
 async def create_simulation(req: CreateSimRequest, current_user: dict = Depends(get_current_user)):
+    # Validate home != away
+    if req.home_team and req.away_team and req.home_team == req.away_team:
+        raise HTTPException(400, "home_team and away_team must be different")
+
     # Load teams (pass requested league if provided)
     home_team, away_team = _load_teams(req.sport, req.home_team, req.away_team, req.league)
 
@@ -702,6 +806,7 @@ async def create_simulation(req: CreateSimRequest, current_user: dict = Depends(
 
     config = SimulationConfig(
         sport=SportType(req.sport),
+        league=req.league,
         seed=req.seed,
         ticks_per_second=req.ticks_per_second,
         fidelity=req.fidelity,
@@ -720,7 +825,16 @@ async def create_simulation(req: CreateSimRequest, current_user: dict = Depends(
     sim = Simulation(config, home_team=home_team, away_team=away_team)
     gid = sim.state.game_id
 
-    _simulations[gid] = {"sim": sim, "config": config}
+    _simulations[gid] = {"sim": sim, "config": config, "created_at": time.time()}
+    _refresh_active_simulations_metric()
+    _evict_old_simulations()
+
+    try:
+        from sports_sim.metrics import simulations_created_total
+
+        simulations_created_total.labels(req.sport).inc()
+    except Exception:
+        logger.debug("Simulation creation metric update skipped")
 
     # Cache initial simulation snapshot
     try:
@@ -752,13 +866,25 @@ async def create_simulation(req: CreateSimRequest, current_user: dict = Depends(
     )
 
 
-@app.post("/api/simulations/{game_id}/run", response_model=SimSummary)
+@app.post("/api/simulations/{game_id}/run", response_model=SimSummary, tags=["Simulations"])
 async def run_simulation(game_id: str, current_user: dict = Depends(role_required("admin", "editor"))):
     entry = _simulations.get(game_id)
     if not entry:
         raise HTTPException(404, "Simulation not found")
     sim: Simulation = entry["sim"]
+    started = time.perf_counter()
     final = sim.run()
+    duration = time.perf_counter() - started
+    _refresh_active_simulations_metric()
+
+    try:
+        from sports_sim.metrics import simulation_duration_seconds, simulations_completed_total
+
+        simulations_completed_total.labels(final.sport.value).inc()
+        simulation_duration_seconds.labels(final.sport.value).observe(duration)
+    except Exception:
+        logger.debug("Simulation completion metric update skipped")
+
     # Cache final snapshot
     try:
         cache = get_cache()
@@ -787,7 +913,90 @@ async def run_simulation(game_id: str, current_user: dict = Depends(role_require
     )
 
 
-@app.get("/api/simulations/{game_id}")
+@app.post("/api/simulations/batch", response_model=BatchSimResult, tags=["Batch"])
+async def batch_simulate(req: BatchSimRequest, current_user: dict = Depends(get_current_user)):
+    """Run N simulations of the same matchup and return aggregated statistics."""
+    import numpy as np
+    from collections import Counter
+
+    try:
+        from sports_sim.metrics import batch_simulations_total
+
+        batch_simulations_total.inc()
+    except Exception:
+        logger.debug("Batch simulation metric update skipped")
+
+    home_team_tpl, away_team_tpl = _load_teams(req.sport, req.home_team, req.away_team, req.league)
+    home_sliders = TeamSliders(**req.home_sliders.model_dump()) if req.home_sliders else None
+    away_sliders = TeamSliders(**req.away_sliders.model_dump()) if req.away_sliders else None
+
+    base_seed = req.seed if req.seed is not None else int.from_bytes(os.urandom(4), "big")
+
+    home_scores: list[int] = []
+    away_scores: list[int] = []
+    home_wins = 0
+    away_wins = 0
+    draws = 0
+    score_counts: Counter[str] = Counter()
+    home_name = ""
+    away_name = ""
+
+    for i in range(req.n):
+        cfg = SimulationConfig(
+            sport=SportType(req.sport),
+            league=req.league,
+            seed=base_seed + i,
+            fidelity=req.fidelity,
+            home_sliders=home_sliders,
+            away_sliders=away_sliders,
+        )
+        sim = Simulation(cfg, home_team=home_team_tpl, away_team=away_team_tpl)
+        final = sim.run()
+
+        hs = final.home_team.score
+        aws = final.away_team.score
+        home_scores.append(hs)
+        away_scores.append(aws)
+        score_counts[f"{hs}-{aws}"] += 1
+
+        if not home_name:
+            home_name = final.home_team.name
+            away_name = final.away_team.name
+
+        if hs > aws:
+            home_wins += 1
+        elif aws > hs:
+            away_wins += 1
+        else:
+            draws += 1
+
+        # Yield control every 10 sims to avoid blocking the event loop
+        if i % 10 == 9:
+            await asyncio.sleep(0)
+
+    n = req.n
+    return BatchSimResult(
+        sport=req.sport,
+        n=n,
+        home_team=home_name,
+        away_team=away_name,
+        home_wins=home_wins,
+        away_wins=away_wins,
+        draws=draws,
+        home_win_pct=round(home_wins / n * 100, 1),
+        away_win_pct=round(away_wins / n * 100, 1),
+        draw_pct=round(draws / n * 100, 1),
+        avg_home_score=round(float(np.mean(home_scores)), 2),
+        avg_away_score=round(float(np.mean(away_scores)), 2),
+        min_home_score=min(home_scores),
+        max_home_score=max(home_scores),
+        min_away_score=min(away_scores),
+        max_away_score=max(away_scores),
+        score_distribution=dict(score_counts.most_common(20)),
+    )
+
+
+@app.get("/api/simulations/{game_id}", tags=["Simulations"])
 async def get_simulation(game_id: str):
     # Try to return cached snapshot if available
     try:
@@ -847,7 +1056,7 @@ async def get_simulation(game_id: str):
     }
 
 
-@app.get("/api/simulations/{game_id}/roster/{team}")
+@app.get("/api/simulations/{game_id}/roster/{team}", tags=["Simulations"])
 async def get_roster(game_id: str, team: str):
     """Get full roster details for home or away team in a simulation."""
     entry = _simulations.get(game_id)
@@ -877,7 +1086,7 @@ async def get_roster(game_id: str, team: str):
     }
 
 
-@app.post("/api/simulations/{game_id}/substitute")
+@app.post("/api/simulations/{game_id}/substitute", tags=["Simulations"])
 async def substitute_player(game_id: str, req: SubstitutionRequest, current_user: dict = Depends(role_required("admin", "editor"))):
     """Substitute a player from bench into the active roster."""
     entry = _simulations.get(game_id)
@@ -911,7 +1120,7 @@ async def substitute_player(game_id: str, req: SubstitutionRequest, current_user
     return {"substituted": True, "player_in": in_player.name, "player_out": out_player.name}
 
 
-@app.put("/api/simulations/{game_id}/player")
+@app.put("/api/simulations/{game_id}/player", tags=["Simulations"])
 async def update_player(game_id: str, req: PlayerUpdateRequest, current_user: dict = Depends(role_required("admin", "editor"))):
     """Update individual player attributes before or during a game."""
     entry = _simulations.get(game_id)
@@ -957,7 +1166,7 @@ async def update_player(game_id: str, req: PlayerUpdateRequest, current_user: di
     return {"updated": True, "player": player.name}
 
 
-@app.put("/api/simulations/{game_id}/sliders/{team}")
+@app.put("/api/simulations/{game_id}/sliders/{team}", tags=["Simulations"])
 async def update_sliders(game_id: str, team: str, sliders: SlidersRequest, current_user: dict = Depends(role_required("admin", "editor"))):
     """Update team strategy sliders during a simulation."""
     entry = _simulations.get(game_id)
@@ -977,7 +1186,7 @@ async def update_sliders(game_id: str, team: str, sliders: SlidersRequest, curre
     return {"updated": True, "team": t.name}
 
 
-@app.get("/api/simulations")
+@app.get("/api/simulations", tags=["Simulations"])
 async def list_simulations():
     results = []
     for gid, entry in _simulations.items():
@@ -994,7 +1203,7 @@ async def list_simulations():
     return {"simulations": results}
 
 
-@app.delete("/api/simulations/{game_id}")
+@app.delete("/api/simulations/{game_id}", tags=["Simulations"])
 async def delete_simulation(game_id: str, current_user: dict = Depends(role_required("admin"))):
     if game_id not in _simulations:
         raise HTTPException(404, "Simulation not found")
@@ -1005,6 +1214,7 @@ async def delete_simulation(game_id: str, current_user: dict = Depends(role_requ
         await cache.delete(f"sim:{game_id}:state")
     except Exception:
         logger.debug("Failed to delete sim snapshot from cache")
+    _refresh_active_simulations_metric()
     return {"deleted": True}
 
 
@@ -1015,6 +1225,13 @@ async def delete_simulation(game_id: str, current_user: dict = Depends(role_requ
 @app.websocket("/ws/simulate")
 async def ws_simulate(ws: WebSocket):
     await ws.accept()
+    try:
+        from sports_sim.metrics import websocket_connections
+
+        websocket_connections.inc()
+    except Exception:
+        logger.debug("WebSocket connection metric update skipped")
+
     try:
         raw = await ws.receive_text()
         data = json.loads(raw)
@@ -1044,6 +1261,7 @@ async def ws_simulate(ws: WebSocket):
 
         config = SimulationConfig(
             sport=SportType(req.sport),
+            league=req.league,
             seed=req.seed,
             ticks_per_second=req.ticks_per_second,
             fidelity=req.fidelity,
@@ -1061,11 +1279,21 @@ async def ws_simulate(ws: WebSocket):
         )
 
         sim = Simulation(config, home_team=home_team, away_team=away_team)
-        _simulations[sim.state.game_id] = {"sim": sim, "config": config}
+        _simulations[sim.state.game_id] = {"sim": sim, "config": config, "created_at": time.time()}
+        _refresh_active_simulations_metric()
+        _evict_old_simulations()
+
+        try:
+            from sports_sim.metrics import simulations_created_total
+
+            simulations_created_total.labels(req.sport).inc()
+        except Exception:
+            logger.debug("WebSocket simulation creation metric update skipped")
 
         for state, events in sim.stream():
             payload = {
                 "game_id": state.game_id,
+                "league": state.league,
                 "clock": round(state.clock, 2),
                 "period": state.period,
                 "home_team": state.home_team.name,
@@ -1075,8 +1303,17 @@ async def ws_simulate(ws: WebSocket):
                 "home_momentum": round(state.home_team.momentum, 3),
                 "away_momentum": round(state.away_team.momentum, 3),
                 "is_finished": state.is_finished,
+                "sport_state": sim.sport.get_sport_state(state),
                 "events": [
-                    {"type": e.type.value, "time": round(e.time, 2), "description": e.description}
+                    {
+                        "type": e.type.value,
+                        "time": round(e.time, 2),
+                        "period": e.period,
+                        "description": e.description,
+                        "team_id": e.team_id,
+                        "player_id": e.player_id,
+                        "metadata": e.metadata if e.metadata else {},
+                    }
                     for e in events
                 ],
             }
@@ -1086,19 +1323,41 @@ async def ws_simulate(ws: WebSocket):
             else:
                 await asyncio.sleep(0)  # yield to event loop
 
+        try:
+            from sports_sim.metrics import simulations_completed_total
+
+            simulations_completed_total.labels(req.sport).inc()
+        except Exception:
+            logger.debug("WebSocket simulation completion metric update skipped")
+
+        _refresh_active_simulations_metric()
+
         await ws.close()
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected")
     except Exception as exc:
         logger.exception("WebSocket error")
+        try:
+            from sports_sim.metrics import api_errors_total
+
+            api_errors_total.labels("/ws/simulate", "1011").inc()
+        except Exception:
+            logger.debug("WebSocket error metric update skipped")
         await ws.close(code=1011, reason=str(exc)[:120])
+    finally:
+        try:
+            from sports_sim.metrics import websocket_connections
+
+            websocket_connections.dec()
+        except Exception:
+            logger.debug("WebSocket connection metric cleanup skipped")
 
 
 # ---------------------------------------------------------------------------
 # Heatmap endpoint
 # ---------------------------------------------------------------------------
 
-@app.get("/api/simulations/{game_id}/heatmap")
+@app.get("/api/simulations/{game_id}/heatmap", tags=["Simulations"])
 async def get_heatmap(game_id: str, event_type: str | None = None, team: str | None = None):
     """Aggregate spatial event data into heatmap bins."""
     entry = _simulations.get(game_id)
@@ -1140,7 +1399,7 @@ async def get_heatmap(game_id: str, event_type: str | None = None, team: str | N
 # Trade endpoint
 # ---------------------------------------------------------------------------
 
-@app.post("/api/trade")
+@app.post("/api/trade", tags=["Trades"])
 async def trade_player(req_body: dict):
     """Trade a player between two teams in an active simulation."""
     game_id = req_body.get("game_id")
@@ -1176,3 +1435,79 @@ async def trade_player(req_body: dict):
 
     dst.bench.append(player)
     return {"traded": True, "player": player.name, "from": src.name, "to": dst.name}
+
+
+# ---------------------------------------------------------------------------
+# Export endpoints (CSV / JSON)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/simulations/{game_id}/export/json", tags=["Export"])
+async def export_json(game_id: str):
+    """Export full simulation results as JSON."""
+    entry = _simulations.get(game_id)
+    if not entry:
+        raise HTTPException(404, "Simulation not found")
+    sim: Simulation = entry["sim"]
+    state = sim.state
+
+    events_out = [
+        {
+            "type": e.type.value,
+            "time": round(e.time, 2),
+            "period": e.period,
+            "description": e.description,
+            "team_id": e.team_id,
+            "player_id": e.player_id,
+        }
+        for e in state.events
+    ]
+
+    data = {
+        "game_id": state.game_id,
+        "sport": state.sport.value,
+        "home_team": state.home_team.name,
+        "away_team": state.away_team.name,
+        "home_score": state.home_team.score,
+        "away_score": state.away_team.score,
+        "is_finished": state.is_finished,
+        "total_events": len(state.events),
+        "events": events_out,
+    }
+
+    return Response(
+        content=json.dumps(data, indent=2),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{game_id}.json"'},
+    )
+
+
+@app.get("/api/simulations/{game_id}/export/csv", tags=["Export"])
+async def export_csv(game_id: str):
+    """Export simulation events as CSV."""
+    import csv
+    import io
+
+    entry = _simulations.get(game_id)
+    if not entry:
+        raise HTTPException(404, "Simulation not found")
+    sim: Simulation = entry["sim"]
+    state = sim.state
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["time", "period", "type", "description", "team_id", "player_id"])
+    for e in state.events:
+        writer.writerow([
+            round(e.time, 2),
+            e.period,
+            e.type.value,
+            e.description,
+            e.team_id or "",
+            e.player_id or "",
+        ])
+
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{game_id}.csv"'},
+    )

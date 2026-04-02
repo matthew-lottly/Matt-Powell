@@ -20,6 +20,23 @@ from sports_sim.core.sport import Sport
 _PITCH_W, _PITCH_H = 105.0, 68.0
 _GOAL_Y_MIN, _GOAL_Y_MAX = 30.66, 37.34  # ~7.32 m goal centered
 
+# Probabilities per tick
+_PASS_ATTEMPT_RATE = 0.003
+_SHOT_ATTEMPT_RATE = 0.0018
+_FOUL_RATE = 0.0003
+_POSSESSION_CHANGE_RATE = 0.002
+_YELLOW_CARD_CHANCE = 0.15
+
+# Thresholds
+_SHOT_ZONE_DISTANCE = 18.0
+_GOAL_QUALITY_THRESHOLD = 0.46
+_PASS_COMPLETION_FACTOR = 0.85
+
+# Movement speeds
+_ATT_CHASE_SPEED = 0.01
+_DEF_CHASE_SPEED = 0.008
+_BALL_DRIVE_FACTOR = 0.02
+
 POSITIONS_442 = [
     ("GK", 5, 34), ("LB", 20, 8), ("CB", 20, 25), ("CB", 20, 43), ("RB", 20, 60),
     ("LM", 40, 10), ("CM", 40, 28), ("CM", 40, 40), ("RM", 40, 58),
@@ -121,22 +138,22 @@ class SoccerSport(Sport):
 
         # Move ball toward goal
         goal_x = _PITCH_W if att is state.home_team else 0.0
-        dx = (goal_x - state.ball.x) * 0.02
+        dx = (goal_x - state.ball.x) * _BALL_DRIVE_FACTOR
         dy = rng.normal(0, 1.5) * dt
         state.ball.x = float(np.clip(state.ball.x + dx, 0, _PITCH_W))
         state.ball.y = float(np.clip(state.ball.y + dy, 0, _PITCH_H))
 
         # Move players toward ball (simplified)
         for p in att.active_players:
-            p.x += (state.ball.x - p.x) * 0.01 * p.attributes.speed
-            p.y += (state.ball.y - p.y) * 0.01 * p.attributes.speed
+            p.x += (state.ball.x - p.x) * _ATT_CHASE_SPEED * p.attributes.speed
+            p.y += (state.ball.y - p.y) * _ATT_CHASE_SPEED * p.attributes.speed
             p.x = float(np.clip(p.x, 0, _PITCH_W))
             p.y = float(np.clip(p.y, 0, _PITCH_H))
             p.minutes_played += dt / 60.0
 
         for p in dfn.active_players:
-            p.x += (state.ball.x - p.x) * 0.008 * p.attributes.speed
-            p.y += (state.ball.y - p.y) * 0.008 * p.attributes.speed
+            p.x += (state.ball.x - p.x) * _DEF_CHASE_SPEED * p.attributes.speed
+            p.y += (state.ball.y - p.y) * _DEF_CHASE_SPEED * p.attributes.speed
             p.x = float(np.clip(p.x, 0, _PITCH_W))
             p.y = float(np.clip(p.y, 0, _PITCH_H))
             p.minutes_played += dt / 60.0
@@ -145,10 +162,10 @@ class SoccerSport(Sport):
         r = rng.random()
 
         # Pass events (~30% of ticks produce a pass attempt)
-        if r < 0.003:
+        if r < _PASS_ATTEMPT_RATE:
             _players = att.active_players
             passer = _players[int(rng.integers(len(_players)))]
-            if rng.random() < passer.effective_skill * 0.85:
+            if rng.random() < passer.effective_skill * _PASS_COMPLETION_FACTOR:
                 events.append(GameEvent(
                     type=EventType.PASS, time=state.clock, period=state.period,
                     team_id=att.id, player_id=passer.id,
@@ -163,7 +180,7 @@ class SoccerSport(Sport):
                 ))
 
         # Shot on goal
-        if abs(state.ball.x - goal_x) < 18.0 and rng.random() < 0.0008:
+        if abs(state.ball.x - goal_x) < _SHOT_ZONE_DISTANCE and rng.random() < _SHOT_ATTEMPT_RATE:
             _candidates = [p for p in att.active_players if p.position in ("ST", "CM", "RM", "LM")] or att.active_players
             shooter = _candidates[int(rng.integers(len(_candidates)))]
             shot_quality = shooter.effective_skill * shooter.attributes.accuracy
@@ -176,7 +193,7 @@ class SoccerSport(Sport):
                 description=f"{shooter.name} shoots!",
             ))
 
-            if shot_quality > 0.55:
+            if shot_quality > _GOAL_QUALITY_THRESHOLD:
                 att.score += 1
                 events.append(GameEvent(
                     type=EventType.GOAL, time=state.clock, period=state.period,
@@ -187,7 +204,7 @@ class SoccerSport(Sport):
                 state.possession_team_id = dfn.id
 
         # Foul
-        if rng.random() < 0.0003:
+        if rng.random() < _FOUL_RATE:
             _dfn_players = dfn.active_players
             fouler = _dfn_players[int(rng.integers(len(_dfn_players)))]
             events.append(GameEvent(
@@ -195,7 +212,7 @@ class SoccerSport(Sport):
                 team_id=dfn.id, player_id=fouler.id,
                 description=f"Foul by {fouler.name}",
             ))
-            if rng.random() < 0.15:
+            if rng.random() < _YELLOW_CARD_CHANCE:
                 events.append(GameEvent(
                     type=EventType.CARD, time=state.clock, period=state.period,
                     team_id=dfn.id, player_id=fouler.id,
@@ -204,7 +221,7 @@ class SoccerSport(Sport):
                 ))
 
         # Possession change
-        if rng.random() < 0.002:
+        if rng.random() < _POSSESSION_CHANGE_RATE:
             state.possession_team_id = dfn.id
             events.append(GameEvent(
                 type=EventType.POSSESSION_CHANGE, time=state.clock, period=state.period,
@@ -226,3 +243,23 @@ class SoccerSport(Sport):
             other = state.away_team if team is state.home_team else state.home_team
             other.momentum = max(0.0, other.momentum - 0.1)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        possession_name = ""
+        if state.possession_team_id == state.home_team.id:
+            possession_name = state.home_team.name
+        elif state.possession_team_id == state.away_team.id:
+            possession_name = state.away_team.name
+        return {
+            "possession": possession_name,
+            "home_shots": sum(1 for e in state.events if e.type == EventType.SHOT and e.team_id == state.home_team.id),
+            "away_shots": sum(1 for e in state.events if e.type == EventType.SHOT and e.team_id == state.away_team.id),
+            "home_fouls": sum(1 for e in state.events if e.type == EventType.FOUL and e.team_id == state.home_team.id),
+            "away_fouls": sum(1 for e in state.events if e.type == EventType.FOUL and e.team_id == state.away_team.id),
+            "home_corners": sum(1 for e in state.events if e.type == EventType.CORNER and e.team_id == state.home_team.id),
+            "away_corners": sum(1 for e in state.events if e.type == EventType.CORNER and e.team_id == state.away_team.id),
+            "home_yellows": sum(1 for e in state.events if e.type == EventType.YELLOW_CARD and e.team_id == state.home_team.id),
+            "away_yellows": sum(1 for e in state.events if e.type == EventType.YELLOW_CARD and e.team_id == state.away_team.id),
+            "home_reds": sum(1 for e in state.events if e.type == EventType.RED_CARD and e.team_id == state.home_team.id),
+            "away_reds": sum(1 for e in state.events if e.type == EventType.RED_CARD and e.team_id == state.away_team.id),
+        }

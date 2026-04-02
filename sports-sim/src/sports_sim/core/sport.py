@@ -64,3 +64,12 @@ class Sport(ABC):
     def post_event(self, state: GameState, event: GameEvent, config: SimulationConfig) -> GameState:
         """Hook called after each event — can update momentum, morale, etc."""
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        """Return a dict of sport-specific live state for stream enrichment.
+
+        Subclasses should override this to expose internal game state
+        (e.g. down/distance for football, bases/outs for baseball) that
+        the generic GameState model does not carry.
+        """
+        return {}

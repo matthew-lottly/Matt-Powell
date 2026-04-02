@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { getSportPresentation } from '../sportPresentation';
+import { attributeAverage, averagePlayerRating, getSportAttributeLabel, getSportRosterColumns, getSportRosterLabels, topAttribute } from '../sportUi';
+import type { SportType } from '../types';
 
 interface PlayerInfo {
   id: string;
@@ -25,11 +28,14 @@ interface TeamDetail {
 export default function TeamPage() {
   const { abbr } = useParams();
   const [searchParams] = useSearchParams();
-  const sport = searchParams.get('sport') ?? 'soccer';
+  const sport = (searchParams.get('sport') ?? 'soccer') as SportType;
   const league = searchParams.get('league');
   const [team, setTeam] = useState<TeamDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const presentation = getSportPresentation(sport);
+  const rosterLabels = getSportRosterLabels(sport);
+  const statColumns = getSportRosterColumns(sport);
 
   useEffect(() => {
     if (!abbr) return;
@@ -53,70 +59,118 @@ export default function TeamPage() {
   if (error) return <div className="text-red-400 p-6">{error}</div>;
   if (!team) return <div className="text-gray-500 p-6">Team not found.</div>;
 
+  const starterRating = averagePlayerRating(team.players);
+  const benchRating = averagePlayerRating(team.bench);
+  const topPlayers = [...team.players]
+    .sort((left, right) => attributeAverage(right.attributes ?? {}) - attributeAverage(left.attributes ?? {}))
+    .slice(0, 3);
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">{team.city} {team.name}</h2>
-          <div className="text-sm text-gray-400">{team.abbreviation} · {sport.charAt(0).toUpperCase() + sport.slice(1)}{league ? ` · ${league.toUpperCase()}` : ''}</div>
+    <div className="max-w-5xl mx-auto space-y-6">
+      <section className={`rounded-[28px] border border-white/8 bg-gradient-to-br ${presentation.heroGradient} p-6 sm:p-8`}>
+        <div className="space-y-4">
+          <div className={`inline-flex rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.2em] ${presentation.accentBadge}`}>
+            {presentation.label} Team Profile
+          </div>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold">{team.city} {team.name}</h2>
+            <div className="mt-2 text-sm text-slate-300">{team.abbreviation} · {presentation.format}{league ? ` · ${league.toUpperCase()}` : ''}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-xs">
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
+              <div className="text-slate-500 uppercase tracking-[0.16em]">{rosterLabels.starterMetric}</div>
+              <div className={`mt-1 text-2xl font-bold ${presentation.accentText}`}>{starterRating}</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
+              <div className="text-slate-500 uppercase tracking-[0.16em]">{rosterLabels.benchMetric}</div>
+              <div className={`mt-1 text-2xl font-bold ${presentation.accentText}`}>{benchRating}</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
+              <div className="text-slate-500 uppercase tracking-[0.16em]">Active Squad</div>
+              <div className="mt-1 text-2xl font-bold text-slate-100">{team.players.length}</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
+              <div className="text-slate-500 uppercase tracking-[0.16em]">Focus</div>
+              <div className="mt-1 text-sm text-slate-100">{presentation.keyMoments[0]}</div>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Coach & Venue */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {team.coach && (
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Coach</h3>
-            <div className="text-gray-200">{team.coach.name}</div>
-            <div className="text-xs text-gray-500 capitalize">Style: {team.coach.style.replace(/_/g, ' ')}</div>
+          <div className="bg-slate-900/85 border border-white/8 rounded-2xl p-4">
+            <h3 className="text-sm font-semibold text-slate-200 mb-2">Coach</h3>
+            <div className="text-slate-100">{team.coach.name}</div>
+            <div className="text-xs text-slate-400 capitalize">Style: {team.coach.style.replace(/_/g, ' ')}</div>
           </div>
         )}
         {team.venue && (
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Venue</h3>
-            <div className="text-gray-200">{team.venue.name}</div>
-            <div className="text-xs text-gray-500">
+          <div className="bg-slate-900/85 border border-white/8 rounded-2xl p-4">
+            <h3 className="text-sm font-semibold text-slate-200 mb-2">Venue</h3>
+            <div className="text-slate-100">{team.venue.name}</div>
+            <div className="text-xs text-slate-400">
               {team.venue.city} · {team.venue.surface} · Cap: {team.venue.capacity?.toLocaleString()}
             </div>
           </div>
         )}
       </div>
 
+      {topPlayers.length > 0 && (
+        <div className="rounded-2xl border border-white/8 bg-slate-900/85 p-4">
+          <div className="text-sm font-semibold text-slate-200 mb-3">Impact Players</div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {topPlayers.map((player) => {
+              const trait = topAttribute(player.attributes ?? {});
+              return (
+                <Link
+                  key={player.id}
+                  to={`/player/${player.id}?sport=${sport}&team=${abbr}&league=${league ?? ''}`}
+                  className="rounded-2xl border border-white/8 bg-black/10 p-4 hover:bg-white/5 transition"
+                >
+                  <div className="text-sm font-semibold text-slate-100">#{player.number} {player.name}</div>
+                  <div className="mt-1 text-xs text-slate-400">{player.position}</div>
+                  {trait && <div className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-[11px] ${presentation.accentBadge}`}>{getSportAttributeLabel(sport, trait.key)} · {trait.value}</div>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Active Roster */}
       <div>
-        <h3 className="text-lg font-semibold mb-3">Active Roster ({team.players.length})</h3>
-        <div className="overflow-x-auto">
+        <h3 className="text-lg font-semibold mb-3">{rosterLabels.starters} ({team.players.length})</h3>
+        <div className="overflow-x-auto rounded-2xl border border-white/8 bg-slate-900/85 p-2">
           <table className="w-full text-sm text-left">
-            <thead className="text-gray-400 border-b border-gray-800 text-xs">
+            <thead className="text-slate-400 border-b border-white/8 text-xs">
               <tr>
                 <th className="py-2 pr-3">#</th>
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3">Pos</th>
                 <th className="py-2 pr-3">Age</th>
-                <th className="py-2 pr-3">SPD</th>
-                <th className="py-2 pr-3">STR</th>
-                <th className="py-2 pr-3">ACC</th>
-                <th className="py-2 pr-3">END</th>
-                <th className="py-2">SKL</th>
+                {statColumns.map((column) => (
+                  <th key={column.key} className="py-2 pr-3">{column.shortLabel}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {team.players.map((p) => (
-                <tr key={p.id} className="border-b border-gray-800/50 hover:bg-gray-900/50">
-                  <td className="py-2 pr-3 text-gray-400">{p.number}</td>
+                <tr key={p.id} className="border-b border-white/6 hover:bg-white/5">
+                  <td className="py-2 pr-3 text-slate-400">{p.number}</td>
                   <td className="py-2 pr-3">
                     <Link to={`/player/${p.id}?sport=${sport}&team=${abbr}&league=${league ?? ''}`} className="text-blue-400 hover:text-blue-300">
                       {p.name}
                     </Link>
                   </td>
-                  <td className="py-2 pr-3 text-gray-400">{p.position}</td>
-                  <td className="py-2 pr-3 text-gray-400">{p.age ?? '—'}</td>
-                  <td className="py-2 pr-3">{p.attributes?.speed != null ? (p.attributes.speed * 100).toFixed(0) : '—'}</td>
-                  <td className="py-2 pr-3">{p.attributes?.strength != null ? (p.attributes.strength * 100).toFixed(0) : '—'}</td>
-                  <td className="py-2 pr-3">{p.attributes?.accuracy != null ? (p.attributes.accuracy * 100).toFixed(0) : '—'}</td>
-                  <td className="py-2 pr-3">{p.attributes?.endurance != null ? (p.attributes.endurance * 100).toFixed(0) : '—'}</td>
-                  <td className="py-2">{p.attributes?.skill != null ? (p.attributes.skill * 100).toFixed(0) : '—'}</td>
+                  <td className="py-2 pr-3 text-slate-400">{p.position}</td>
+                  <td className="py-2 pr-3 text-slate-400">{p.age ?? '—'}</td>
+                  {statColumns.map((column) => (
+                    <td key={column.key} className="py-2 pr-3">
+                      {p.attributes?.[column.key] != null ? ((p.attributes?.[column.key] ?? 0) * 100).toFixed(0) : '—'}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -127,32 +181,30 @@ export default function TeamPage() {
       {/* Bench */}
       {team.bench && team.bench.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold mb-3">Bench ({team.bench.length})</h3>
-          <div className="overflow-x-auto">
+          <h3 className="text-lg font-semibold mb-3">{rosterLabels.bench} ({team.bench.length})</h3>
+          <div className="overflow-x-auto rounded-2xl border border-white/8 bg-slate-900/85 p-2">
             <table className="w-full text-sm text-left">
-              <thead className="text-gray-400 border-b border-gray-800 text-xs">
+              <thead className="text-slate-400 border-b border-white/8 text-xs">
                 <tr>
                   <th className="py-2 pr-3">#</th>
                   <th className="py-2 pr-3">Name</th>
                   <th className="py-2 pr-3">Pos</th>
-                  <th className="py-2 pr-3">SPD</th>
-                  <th className="py-2 pr-3">STR</th>
-                  <th className="py-2 pr-3">ACC</th>
-                  <th className="py-2 pr-3">END</th>
-                  <th className="py-2">SKL</th>
+                  {statColumns.map((column) => (
+                    <th key={column.key} className="py-2 pr-3">{column.shortLabel}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {team.bench.map((p) => (
-                  <tr key={p.id} className="border-b border-gray-800/50 hover:bg-gray-900/50">
-                    <td className="py-2 pr-3 text-gray-400">{p.number}</td>
-                    <td className="py-2 pr-3 text-gray-400">{p.name}</td>
-                    <td className="py-2 pr-3 text-gray-400">{p.position}</td>
-                    <td className="py-2 pr-3">{p.attributes?.speed != null ? (p.attributes.speed * 100).toFixed(0) : '—'}</td>
-                    <td className="py-2 pr-3">{p.attributes?.strength != null ? (p.attributes.strength * 100).toFixed(0) : '—'}</td>
-                    <td className="py-2 pr-3">{p.attributes?.accuracy != null ? (p.attributes.accuracy * 100).toFixed(0) : '—'}</td>
-                    <td className="py-2 pr-3">{p.attributes?.endurance != null ? (p.attributes.endurance * 100).toFixed(0) : '—'}</td>
-                    <td className="py-2">{p.attributes?.skill != null ? (p.attributes.skill * 100).toFixed(0) : '—'}</td>
+                  <tr key={p.id} className="border-b border-white/6 hover:bg-white/5">
+                    <td className="py-2 pr-3 text-slate-400">{p.number}</td>
+                    <td className="py-2 pr-3 text-slate-200">{p.name}</td>
+                    <td className="py-2 pr-3 text-slate-400">{p.position}</td>
+                    {statColumns.map((column) => (
+                      <td key={column.key} className="py-2 pr-3">
+                        {p.attributes?.[column.key] != null ? ((p.attributes?.[column.key] ?? 0) * 100).toFixed(0) : '—'}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>

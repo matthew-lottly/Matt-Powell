@@ -68,6 +68,7 @@ typeCheckingMode = "basic"
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --tb=short"
 markers = [
+    "asyncio: marks asyncio-based tests",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks integration tests",
 ]

@@ -576,6 +576,7 @@ class Environment(BaseModel):
 class GameState(BaseModel):
     game_id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
     sport: SportType
+    league: str | None = None
     home_team: Team
     away_team: Team
     ball: Ball = Field(default_factory=Ball)
@@ -604,6 +605,7 @@ class GameState(BaseModel):
 
 class SimulationConfig(BaseModel):
     sport: SportType = SportType.SOCCER
+    league: str | None = None
     seed: int | None = None
     ticks_per_second: int = 10
     realtime: bool = False

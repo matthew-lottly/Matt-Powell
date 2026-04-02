@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 import json
@@ -11,16 +12,46 @@ from typing import Dict, Any
 from fastapi import HTTPException, Header
 from fastapi import Depends
 
-# Simple in-memory user store for demo purposes
-USERS = {
-    "admin": {"password": "adminpass", "role": "admin"},
-    "user": {"password": "userpass", "role": "user"},
-    "editor": {"password": "editorpass", "role": "editor"},
+logger = logging.getLogger(__name__)
+
+
+def _hash_password(password: str, salt: bytes | None = None) -> str:
+    """Hash a password with PBKDF2-HMAC-SHA256. Returns 'salt_hex:hash_hex'."""
+    if salt is None:
+        salt = os.urandom(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations=100_000)
+    return f"{salt.hex()}:{dk.hex()}"
+
+
+def _verify_password(password: str, stored: str) -> bool:
+    """Verify a password against a stored 'salt_hex:hash_hex' string."""
+    if ":" not in stored:
+        # Legacy plaintext comparison (migration path)
+        return hmac.compare_digest(password, stored)
+    salt_hex, hash_hex = stored.split(":", 1)
+    salt = bytes.fromhex(salt_hex)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations=100_000)
+    return hmac.compare_digest(dk.hex(), hash_hex)
+
+
+# In-memory user store — passwords are hashed with PBKDF2
+USERS: dict[str, dict[str, str]] = {
+    "admin": {"password": _hash_password("adminpass"), "role": "admin"},
+    "user": {"password": _hash_password("userpass"), "role": "user"},
+    "editor": {"password": _hash_password("editorpass"), "role": "editor"},
 }
 
 
 def _secret() -> str:
-    return os.getenv("SPORTS_SIM_AUTH_SECRET", "dev-secret")
+    secret = os.getenv("SPORTS_SIM_AUTH_SECRET", "")
+    if not secret:
+        if os.getenv("SPORTS_SIM_AUTH_ENABLED", "0") == "1":
+            logger.warning(
+                "SPORTS_SIM_AUTH_SECRET not set while auth is enabled — "
+                "using insecure default. Set this env var in production!"
+            )
+        secret = "dev-secret"
+    return secret
 
 
 def _now() -> int:
@@ -79,7 +110,7 @@ def authenticate(username: str, password: str) -> dict | None:
     u = USERS.get(username)
     if not u:
         return None
-    if u["password"] != password:
+    if not _verify_password(password, u["password"]):
         return None
     return {"username": username, "role": u["role"]}
 

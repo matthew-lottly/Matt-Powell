@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { SimConfig, SportCapabilities, SportType, TeamOption, TeamSliders } from '../types';
+import type { LeagueOption, SimConfig, SportCapabilities, SportType, TeamOption, TeamSliders, VenueOption } from '../types';
 import * as api from '../api';
 import { DEFAULT_SLIDERS } from '../types';
+import { getSportPresentation } from '../sportPresentation';
+import { getSportConfigLabels } from '../sportUi';
 
 const WEATHERS = ['clear', 'cloudy', 'rain', 'snow', 'wind', 'extreme_heat', 'fog', 'freezing', 'humid'];
 const FIDELITIES = ['fast', 'medium', 'high'] as const;
@@ -93,10 +95,13 @@ interface Props {
 
 export default function ConfigPanel({ config, onChange, disabled }: Props) {
   const [teams, setTeams] = useState<TeamOption[]>([]);
-  const [leagues, setLeagues] = useState<any[]>([]);
-  const [venues, setVenues] = useState<any[]>([]);
+  const [leagues, setLeagues] = useState<LeagueOption[]>([]);
+  const [venues, setVenues] = useState<VenueOption[]>([]);
   const [caps, setCaps] = useState<SportCapabilities | null>(null);
+  const [leagueRules, setLeagueRules] = useState<Record<string, unknown> | null>(null);
   const [showSliders, setShowSliders] = useState(false);
+  const presentation = getSportPresentation(config.sport);
+  const labels = getSportConfigLabels(config.sport);
 
   const set = <K extends keyof SimConfig>(key: K, val: SimConfig[K]) =>
     onChange({ ...config, [key]: val });
@@ -109,7 +114,7 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
   // Load available leagues and teams when sport or league changes
   useEffect(() => {
     // fetch leagues for sport
-    api.fetchLeagues(config.sport).then((l: any[]) => setLeagues(l)).catch(() => setLeagues([]));
+    api.fetchLeagues(config.sport).then(setLeagues).catch(() => setLeagues([]));
 
     // fetch teams (backend supports optional league query) and venues
     (async () => {
@@ -119,14 +124,23 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
         try {
           const v = await api.fetchVenues(config.sport, config.league ?? undefined);
           setVenues(v || []);
-        } catch (e) {
+        } catch {
           setVenues([]);
         }
-      } catch (err) {
+      } catch {
         setTeams([]);
         setVenues([]);
       }
     })();
+  }, [config.sport, config.league]);
+
+  // Fetch league rules when a league is selected
+  useEffect(() => {
+    if (config.league) {
+      api.fetchLeagueRules(config.sport, config.league).then(setLeagueRules).catch(() => setLeagueRules(null));
+    } else {
+      setLeagueRules(null);
+    }
   }, [config.sport, config.league]);
 
   // Auto-select home venue when home team changes and we have a matching venue
@@ -154,12 +168,18 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-4 text-sm">
-      <h3 className="font-semibold text-gray-200">Configuration</h3>
+    <div className="bg-slate-900/90 border border-white/8 rounded-2xl p-4 space-y-4 text-sm backdrop-blur-sm">
+      <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+        <div className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] ${presentation.accentBadge}`}>
+          {labels.panelTitle}
+        </div>
+        <div className="mt-3 text-sm text-slate-200">{presentation.headline}</div>
+        <div className="mt-2 text-xs text-slate-400">{presentation.keyMoments.join(' · ')}</div>
+      </div>
 
       {/* Sport */}
       <label className="block">
-        <span className="text-gray-400 text-xs">Sport</span>
+        <span className="text-gray-400 text-xs">{labels.sportLabel}</span>
         <select
           value={config.sport}
           onChange={(e) => {
@@ -187,7 +207,7 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
       {/* League Selection */}
       {leagues.length > 0 && (
         <label className="block">
-          <span className="text-gray-400 text-xs">League</span>
+          <span className="text-gray-400 text-xs">{labels.leagueLabel}</span>
           <select
             value={config.league ?? ''}
             onChange={(e) => set('league', e.target.value || null)}
@@ -214,10 +234,27 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
           );
         })()
       )}
+
+      {/* League rules */}
+      {leagueRules && (
+        <div className="rounded-lg border border-white/8 bg-slate-800/50 p-3 space-y-1">
+          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">League Rules</span>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+            {Object.entries(leagueRules)
+              .filter(([k]) => k !== 'league' && k !== 'sport')
+              .map(([k, v]) => (
+                <div key={k} className="flex justify-between">
+                  <span className="text-slate-400">{k.replace(/_/g, ' ')}</span>
+                  <span className="text-slate-200">{typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
       {teams.length > 0 && (
         <>
           <label className="block">
-            <span className="text-gray-400 text-xs">Home Team</span>
+            <span className="text-gray-400 text-xs">{labels.homeLabel}</span>
             <select
               value={config.home_team ?? ''}
               onChange={(e) => set('home_team', e.target.value || null)}
@@ -233,7 +270,7 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
             </select>
           </label>
           <label className="block">
-            <span className="text-gray-400 text-xs">Away Team</span>
+            <span className="text-gray-400 text-xs">{labels.awayLabel}</span>
             <select
               value={config.away_team ?? ''}
               onChange={(e) => set('away_team', e.target.value || null)}
@@ -254,7 +291,7 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
       {/* Venue Selection */}
       {venues.length > 0 ? (
         <label className="block">
-          <span className="text-gray-400 text-xs">Venue</span>
+          <span className="text-gray-400 text-xs">{labels.venueLabel}</span>
           <select
             value={config.venue_name ?? ''}
             onChange={(e) => {
@@ -274,7 +311,7 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
         </label>
       ) : (
         <label className="block">
-          <span className="text-gray-400 text-xs">Venue</span>
+          <span className="text-gray-400 text-xs">{labels.venueLabel}</span>
           <input
             type="text"
             value={config.venue_name ?? ''}
@@ -317,7 +354,7 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
       {/* Weather — only show for weather-affected sports */}
       {(!caps || caps.weather_affected) && (
         <label className="block">
-          <span className="text-gray-400 text-xs">Weather</span>
+          <span className="text-gray-400 text-xs">{labels.weatherLabel}</span>
           <select
             value={config.weather}
             onChange={(e) => set('weather', e.target.value)}
@@ -413,7 +450,7 @@ export default function ConfigPanel({ config, onChange, disabled }: Props) {
         onClick={() => setShowSliders(!showSliders)}
         className="w-full text-left text-xs text-blue-400 hover:text-blue-300 pt-1"
       >
-        {showSliders ? '▾ Hide Sliders' : '▸ Team Strategy Sliders'}
+        {showSliders ? `▾ Hide ${labels.slidersLabel}` : `▸ ${labels.slidersLabel}`}
       </button>
 
       {showSliders && (

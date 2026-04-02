@@ -1,34 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchTeams, fetchLeagues } from '../api';
-import type { TeamOption } from '../types';
-
-/** Map league id → sport so the teams endpoint knows what sport to query. */
-const LEAGUE_SPORT: Record<string, string> = {
-  nfl: 'football',
-  nba: 'basketball',
-  mlb: 'baseball',
-  nhl: 'hockey',
-  mls: 'soccer',
-  epl: 'soccer',
-  ncaasoc: 'soccer',
-  npb: 'baseball',
-  khl: 'hockey',
-  euro: 'basketball',
-  ipl: 'cricket',
-};
+import type { LeagueOption, SportType, TeamOption } from '../types';
+import { getSportPresentation } from '../sportPresentation';
+import { LEAGUE_SPORT } from '../sportUi';
 
 export default function LeaguePage() {
   const { league } = useParams<{ league: string }>();
   const [teams, setTeams] = useState<TeamOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [leagueName, setLeagueName] = useState<string>(league?.toUpperCase() ?? '');
+  const sport = (league ? LEAGUE_SPORT[league.toLowerCase()] : 'soccer') as SportType;
+  const presentation = getSportPresentation(sport);
+  const primaryMoment = presentation.keyMoments[0] ?? presentation.label;
 
   useEffect(() => {
     if (!league) return;
     setLoading(true);
-
-    const sport = LEAGUE_SPORT[league.toLowerCase()] ?? 'soccer';
 
     // Fetch teams for this league
     fetchTeams(sport, league)
@@ -39,15 +27,29 @@ export default function LeaguePage() {
     // Fetch league metadata for display name
     fetchLeagues(sport)
       .then((leagues) => {
-        const match = leagues.find((l: any) => l.id === league);
+        const match = leagues.find((l: LeagueOption) => l.id === league);
         if (match) setLeagueName(match.name);
       })
       .catch(() => {});
   }, [league]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">{leagueName || league?.toUpperCase()}</h2>
+    <div className="max-w-5xl mx-auto space-y-6">
+      <section className={`rounded-[28px] border border-white/8 bg-gradient-to-br ${presentation.heroGradient} p-6 sm:p-8`}>
+        <div className="space-y-3">
+          <div className={`inline-flex rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.2em] ${presentation.accentBadge}`}>
+            {presentation.label} League
+          </div>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold">{leagueName || league?.toUpperCase()}</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">{presentation.headline}</p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{presentation.format}</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{presentation.keyMoments.join(' · ')}</span>
+          </div>
+        </div>
+      </section>
 
       {loading && <p className="text-gray-500">Loading teams…</p>}
 
@@ -60,11 +62,12 @@ export default function LeaguePage() {
           {teams.map((t) => (
             <Link
               key={t.abbreviation}
-              to={`/team/${t.abbreviation}?sport=${LEAGUE_SPORT[league?.toLowerCase() ?? ''] ?? 'soccer'}&league=${league}`}
-              className="block bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-blue-500 transition"
+              to={`/team/${t.abbreviation}?sport=${sport}&league=${league}`}
+              className="block rounded-2xl border border-white/8 bg-slate-900/85 p-4 hover:border-blue-500/40 hover:-translate-y-0.5 transition"
             >
-              <div className="font-semibold text-gray-200">{t.name}</div>
-              <div className="text-xs text-gray-500 mt-1">{t.city} · {t.abbreviation}</div>
+              <div className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] ${presentation.accentBadge}`}>{t.abbreviation}</div>
+              <div className="mt-3 font-semibold text-slate-100">{t.city} {t.name}</div>
+              <div className="text-xs text-slate-400 mt-1">Built for {primaryMoment.toLowerCase()}</div>
             </Link>
           ))}
         </div>

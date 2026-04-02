@@ -1,0 +1,21 @@
+# Sports Sim Code Owners
+# Each line is a file pattern followed by one or more owners.
+
+# Core engine
+/src/sports_sim/core/      @matt-powell
+
+# Sport plugins
+/src/sports_sim/sports/    @matt-powell
+
+# API
+/src/sports_sim/api/       @matt-powell
+
+# Frontend
+/web/                      @matt-powell
+
+# CI / infrastructure
+/.github/                  @matt-powell
+Dockerfile                 @matt-powell
+
+# Tests
+/tests/                    @matt-powell

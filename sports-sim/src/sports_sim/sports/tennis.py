@@ -77,6 +77,8 @@ class TennisSport(Sport):
         self._p1_sets = 0
         self._p2_sets = 0
         self._serving_p1 = True
+        self._tiebreak = False
+        self._tiebreak_points_played = 0
         self._point_names = ["0", "15", "30", "40"]
 
     def create_default_teams(self) -> tuple[Team, Team]:
@@ -196,27 +198,70 @@ class TennisSport(Sport):
         else:
             self._p2_points += 1
 
-        # Check game won
-        if self._p1_points >= 4 and self._p1_points - self._p2_points >= 2:
-            self._p1_games += 1
-            self._reset_points()
-            self._serving_p1 = not self._serving_p1
-            self._check_set(state, events)
-        elif self._p2_points >= 4 and self._p2_points - self._p1_points >= 2:
-            self._p2_games += 1
-            self._reset_points()
-            self._serving_p1 = not self._serving_p1
-            self._check_set(state, events)
+        if self._tiebreak:
+            self._tiebreak_points_played += 1
+            # Tiebreak: first to 7, win by 2
+            if self._p1_points >= 7 and self._p1_points - self._p2_points >= 2:
+                self._p1_games += 1
+                self._finish_tiebreak_set(state, events, is_p1=True)
+            elif self._p2_points >= 7 and self._p2_points - self._p1_points >= 2:
+                self._p2_games += 1
+                self._finish_tiebreak_set(state, events, is_p1=False)
+            # Alternate serve every 2 points in tiebreak
+            if self._tiebreak_points_played % 2 == 1:
+                self._serving_p1 = not self._serving_p1
+        else:
+            # Standard game: deuce at 40-40, need advantage + win
+            if self._p1_points >= 4 and self._p1_points - self._p2_points >= 2:
+                self._p1_games += 1
+                self._reset_points()
+                self._serving_p1 = not self._serving_p1
+                self._check_set(state, events)
+            elif self._p2_points >= 4 and self._p2_points - self._p1_points >= 2:
+                self._p2_games += 1
+                self._reset_points()
+                self._serving_p1 = not self._serving_p1
+                self._check_set(state, events)
 
         # Update scores: encode as sets won
         state.home_team.score = self._p1_sets
         state.away_team.score = self._p2_sets
+
+    def _finish_tiebreak_set(self, state: GameState, events: list[GameEvent], is_p1: bool):
+        if is_p1:
+            self._p1_sets += 1
+            winner_team = state.home_team
+        else:
+            self._p2_sets += 1
+            winner_team = state.away_team
+        events.append(GameEvent(
+            type=EventType.SET_WON, time=state.clock, period=state.period,
+            team_id=winner_team.id,
+            description=f"{winner_team.name} wins tiebreak set ({self._p1_games}-{self._p2_games})",
+        ))
+        self._p1_games = 0
+        self._p2_games = 0
+        self._reset_points()
+        self._tiebreak = False
+        self._tiebreak_points_played = 0
+        self._check_match(state, events)
 
     def _reset_points(self):
         self._p1_points = 0
         self._p2_points = 0
 
     def _check_set(self, state: GameState, events: list[GameEvent]):
+        # Tiebreak at 6-6
+        if self._p1_games == 6 and self._p2_games == 6:
+            self._tiebreak = True
+            self._tiebreak_points_played = 0
+            self._reset_points()
+            events.append(GameEvent(
+                type=EventType.PERIOD_START, time=state.clock, period=state.period,
+                description="Tiebreak! First to 7 points, win by 2.",
+            ))
+            return
+
         if self._p1_games >= 6 and self._p1_games - self._p2_games >= 2:
             self._p1_sets += 1
             events.append(GameEvent(
@@ -253,3 +298,42 @@ class TennisSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.15)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        # Build point labels with deuce/advantage support
+        if self._tiebreak:
+            p1_label = str(self._p1_points)
+            p2_label = str(self._p2_points)
+        elif self._p1_points >= 3 and self._p2_points >= 3:
+            if self._p1_points == self._p2_points:
+                p1_label = p2_label = "Deuce"
+            elif self._p1_points > self._p2_points:
+                p1_label = "Ad"
+                p2_label = "40"
+            else:
+                p1_label = "40"
+                p2_label = "Ad"
+        else:
+            p1_label = self._point_names[min(self._p1_points, 3)]
+            p2_label = self._point_names[min(self._p2_points, 3)]
+
+        return {
+            "p1_points": self._p1_points,
+            "p2_points": self._p2_points,
+            "p1_point_label": p1_label,
+            "p2_point_label": p2_label,
+            "p1_games": self._p1_games,
+            "p2_games": self._p2_games,
+            "p1_sets": self._p1_sets,
+            "p2_sets": self._p2_sets,
+            "serving_p1": self._serving_p1,
+            "is_tiebreak": self._tiebreak,
+            "p1_aces": sum(1 for e in state.events if e.type == EventType.ACE and e.team_id == state.home_team.id),
+            "p2_aces": sum(1 for e in state.events if e.type == EventType.ACE and e.team_id == state.away_team.id),
+            "p1_double_faults": sum(1 for e in state.events if e.type == EventType.DOUBLE_FAULT and e.team_id == state.home_team.id),
+            "p2_double_faults": sum(1 for e in state.events if e.type == EventType.DOUBLE_FAULT and e.team_id == state.away_team.id),
+            "p1_winners": sum(1 for e in state.events if e.type == EventType.WINNER and e.team_id == state.home_team.id),
+            "p2_winners": sum(1 for e in state.events if e.type == EventType.WINNER and e.team_id == state.away_team.id),
+            "p1_unforced_errors": sum(1 for e in state.events if e.type == EventType.UNFORCED_ERROR and e.team_id == state.home_team.id),
+            "p2_unforced_errors": sum(1 for e in state.events if e.type == EventType.UNFORCED_ERROR and e.team_id == state.away_team.id),
+        }

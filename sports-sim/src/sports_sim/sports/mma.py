@@ -137,10 +137,10 @@ class MMASport(Sport):
             if rng.random() < attacker.attributes.accuracy * 0.4:
                 damage = attacker.attributes.strength * rng.uniform(1, 4)
                 if attacker is p1:
-                    self._p2_health -= damage
+                    self._p2_health = max(0.0, self._p2_health - damage)
                     self._current_round_p1 += 1
                 else:
-                    self._p1_health -= damage
+                    self._p1_health = max(0.0, self._p1_health - damage)
                     self._current_round_p2 += 1
                 events.append(GameEvent(
                     type=EventType.GROUND_STRIKE, time=state.clock, period=state.period,
@@ -180,7 +180,7 @@ class MMASport(Sport):
             # P1 strikes
             if rng.random() < p1.attributes.accuracy * 0.5:
                 damage = p1.attributes.strength * (1.0 + p1.attributes.aggression * 0.2) * rng.uniform(2, 5)
-                self._p2_health -= damage
+                self._p2_health = max(0.0, self._p2_health - damage)
                 self._current_round_p1 += 1
                 events.append(GameEvent(
                     type=EventType.PUNCH, time=state.clock, period=state.period,
@@ -202,7 +202,7 @@ class MMASport(Sport):
             # P2 strikes
             if rng.random() < p2.attributes.accuracy * 0.5:
                 damage = p2.attributes.strength * (1.0 + p2.attributes.aggression * 0.2) * rng.uniform(2, 5)
-                self._p1_health -= damage
+                self._p1_health = max(0.0, self._p1_health - damage)
                 self._current_round_p2 += 1
                 events.append(GameEvent(
                     type=EventType.PUNCH, time=state.clock, period=state.period,
@@ -260,3 +260,22 @@ class MMASport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.2)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        return {
+            "p1_health": round(self._p1_health, 1),
+            "p2_health": round(self._p2_health, 1),
+            "p1_round_score": self._current_round_p1,
+            "p2_round_score": self._current_round_p2,
+            "p1_total_score": sum(self._p1_round_scores),
+            "p2_total_score": sum(self._p2_round_scores),
+            "on_ground": self._on_ground,
+            "p1_round_scores": self._p1_round_scores[:],
+            "p2_round_scores": self._p2_round_scores[:],
+            "p1_strikes": sum(1 for e in state.events if e.type in (EventType.PUNCH, EventType.GROUND_STRIKE) and e.team_id == state.home_team.id),
+            "p2_strikes": sum(1 for e in state.events if e.type in (EventType.PUNCH, EventType.GROUND_STRIKE) and e.team_id == state.away_team.id),
+            "p1_takedowns": sum(1 for e in state.events if e.type == EventType.TAKEDOWN and e.team_id == state.home_team.id),
+            "p2_takedowns": sum(1 for e in state.events if e.type == EventType.TAKEDOWN and e.team_id == state.away_team.id),
+            "p1_submissions": sum(1 for e in state.events if e.type == EventType.SUBMISSION and e.team_id == state.home_team.id),
+            "p2_submissions": sum(1 for e in state.events if e.type == EventType.SUBMISSION and e.team_id == state.away_team.id),
+        }

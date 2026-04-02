@@ -173,3 +173,22 @@ class GolfSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.08)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        p1_total = sum(self._p1_strokes) if self._p1_strokes else 0
+        p2_total = sum(self._p2_strokes) if self._p2_strokes else 0
+        pars = [4, 3, 5, 4, 4, 3, 4, 5, 4, 4, 3, 5, 4, 4, 3, 4, 5, 4]
+        par_through = sum(pars[:self._current_hole]) if self._current_hole <= 18 else 72
+        return {
+            "current_hole": self._current_hole,
+            "p1_total_strokes": p1_total,
+            "p2_total_strokes": p2_total,
+            "p1_relative_to_par": p1_total - par_through,
+            "p2_relative_to_par": p2_total - par_through,
+            "p1_strokes_per_hole": self._p1_strokes[:],
+            "p2_strokes_per_hole": self._p2_strokes[:],
+            "p1_birdies": sum(1 for e in state.events if e.type == EventType.BIRDIE and e.team_id == state.home_team.id),
+            "p2_birdies": sum(1 for e in state.events if e.type == EventType.BIRDIE and e.team_id == state.away_team.id),
+            "p1_pars": sum(1 for e in state.events if e.type == EventType.PAR and e.team_id == state.home_team.id),
+            "p2_pars": sum(1 for e in state.events if e.type == EventType.PAR and e.team_id == state.away_team.id),
+        }

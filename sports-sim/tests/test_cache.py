@@ -1,5 +1,6 @@
 import asyncio
-from src.sports_sim.cache.cache import SimpleMemoryCache, get_cache
+
+from sports_sim.cache.cache import SimpleMemoryCache, get_cache
 
 
 def test_simple_memory_cache_set_get() -> None:

@@ -249,3 +249,22 @@ class RacingSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.1)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        return {
+            "p1_lap": self._p1_lap,
+            "p2_lap": self._p2_lap,
+            "total_laps": self._total_laps,
+            "p1_position": round(self._p1_position, 2),
+            "p2_position": round(self._p2_position, 2),
+            "p1_tire_wear": round(self._p1_tire_wear, 3),
+            "p2_tire_wear": round(self._p2_tire_wear, 3),
+            "p1_pit_stops": self._p1_pit_stops,
+            "p2_pit_stops": self._p2_pit_stops,
+            "p1_dnf": self._p1_dnf,
+            "p2_dnf": self._p2_dnf,
+            "p1_fastest_lap": round(self._p1_fastest_lap, 3) if self._p1_fastest_lap < 900 else None,
+            "p2_fastest_lap": round(self._p2_fastest_lap, 3) if self._p2_fastest_lap < 900 else None,
+            "gap": round(abs(self._p1_position - self._p2_position), 2),
+            "leader": "p1" if self._p1_position >= self._p2_position else "p2",
+        }

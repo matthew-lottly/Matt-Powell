@@ -21,6 +21,25 @@ from sports_sim.data.rosters_nfl import get_all_nfl_teams
 _FIELD_W = 109.7   # meters (100 yards + 2 end zones)
 _FIELD_H = 48.8    # meters (53⅓ yards)
 
+# Probabilities per tick
+_PLAY_FREQUENCY = 0.0033      # ~120 plays per game
+_SACK_BASE_CHANCE = 0.08
+_INTERCEPTION_BASE_CHANCE = 0.035
+_FUMBLE_BASE_CHANCE = 0.015
+_PENALTY_CHANCE = 0.04
+
+# Scoring and completion
+_COMPLETION_MAX = 0.65
+_EXTRA_POINT_RATE = 0.94
+_FG_DECAY_PER_YARD = 0.012
+_FG_SNAP_DISTANCE = 17        # added to LOS for attempt distance
+
+# Yardage parameters
+_RUSH_MEAN_YARDS = 3.5
+_RUSH_STD_YARDS = 2.5
+_PUNT_MIN_YARDS = 30
+_PUNT_MAX_YARDS = 55
+
 
 class FootballSport(Sport):
     @property
@@ -104,7 +123,7 @@ class FootballSport(Sport):
 
         # Only run plays periodically — target ~120 plays per game
         # At 10 ticks/sec, 4 × 15 min = 36000 ticks → 120/36000 ≈ 0.0033
-        if rng.random() > 0.0033:
+        if rng.random() > _PLAY_FREQUENCY:
             return state, events
 
         att = state.home_team if self._possession_home else state.away_team
@@ -136,13 +155,13 @@ class FootballSport(Sport):
             # Sack check (blitz factor)
             best_rusher = max(d_players, key=lambda p: p.attributes.speed * p.attributes.strength)
             ol_block = sum(p.attributes.strength for p in att.active_players if p.position == "OL") / max(1, sum(1 for p in att.active_players if p.position == "OL"))
-            sack_chance = 0.08 * best_rusher.effective_skill / max(0.3, ol_block) * (1 + blitz_freq * 0.3)
+            sack_chance = _SACK_BASE_CHANCE * best_rusher.effective_skill / max(0.3, ol_block) * (1 + blitz_freq * 0.3)
 
             if rng.random() < sack_chance:
                 loss = float(rng.integers(3, 10))
                 self._ball_on = max(0, self._ball_on - loss)
                 self._down += 1
-                self._yards_to_go += loss
+                self._yards_to_go = max(0.0, self._yards_to_go + loss)
                 events.append(GameEvent(
                     type=EventType.SACK, time=state.clock, period=state.period,
                     team_id=dfn.id, player_id=best_rusher.id,
@@ -156,14 +175,14 @@ class FootballSport(Sport):
                 coverage = defender.effective_skill * defender.attributes.speed
 
                 # Interception
-                int_chance = 0.035 * coverage / max(0.3, pass_skill)
+                int_chance = _INTERCEPTION_BASE_CHANCE * coverage / max(0.3, pass_skill)
                 if rng.random() < int_chance:
                     self._turnover(state, events, dfn, defender, att, "interception")
                     return state, events
 
                 # Completion check — NFL avg ~63%
                 completion = pass_skill * 0.45 + target.attributes.speed * 0.10 - coverage * 0.25
-                completion = min(0.65, completion)  # cap maximum
+                completion = min(_COMPLETION_MAX, completion)  # cap maximum
                 if rng.random() < completion:
                     yards = float(rng.integers(1, 18)) * target.attributes.speed
                     yards = min(yards, 100 - self._ball_on)
@@ -196,7 +215,7 @@ class FootballSport(Sport):
             run_skill = runner.effective_skill * runner.attributes.speed + coach_bonus
 
             # Fumble check
-            fumble_chance = 0.015 * (1.0 - runner.attributes.composure)
+            fumble_chance = _FUMBLE_BASE_CHANCE * (1.0 - runner.attributes.composure)
             if rng.random() < fumble_chance:
                 recoverer = d_players[int(rng.integers(len(d_players)))]
                 self._turnover(state, events, dfn, recoverer, att, "fumble")
@@ -204,7 +223,7 @@ class FootballSport(Sport):
 
             # Yardage — NFL avg ~4.3 ypc
             tackler = d_players[int(rng.integers(len(d_players)))]
-            yards = float(rng.normal(3.5, 2.5)) * run_skill / max(0.4, tackler.effective_skill)
+            yards = float(rng.normal(_RUSH_MEAN_YARDS, _RUSH_STD_YARDS)) * run_skill / max(0.4, tackler.effective_skill)
             yards = max(-3, min(yards, 100 - self._ball_on))
             self._ball_on += yards
             self._yards_to_go -= yards
@@ -231,8 +250,8 @@ class FootballSport(Sport):
             # Turnover on downs or punt/FG attempt
             if self._ball_on > 60 and rng.random() < 0.6:
                 # Field goal attempt
-                fg_distance = 100 - self._ball_on + 17  # add 17 yards for snap/hold
-                fg_prob = max(0.1, 1.0 - fg_distance * 0.012)
+                fg_distance = 100 - self._ball_on + _FG_SNAP_DISTANCE  # add 17 yards for snap/hold
+                fg_prob = max(0.1, 1.0 - fg_distance * _FG_DECAY_PER_YARD)
                 kicker_skill = max(p.attributes.accuracy for p in att.active_players)
                 fg_prob *= kicker_skill
 
@@ -253,7 +272,7 @@ class FootballSport(Sport):
                     ))
             else:
                 # Punt
-                punt_dist = float(rng.integers(30, 55))
+                punt_dist = float(rng.integers(_PUNT_MIN_YARDS, _PUNT_MAX_YARDS))
                 events.append(GameEvent(
                     type=EventType.PUNT, time=state.clock, period=state.period,
                     team_id=att.id,
@@ -265,7 +284,7 @@ class FootballSport(Sport):
             self._change_possession()
 
         # Penalty check
-        if rng.random() < 0.04:
+        if rng.random() < _PENALTY_CHANCE:
             penalty_team = att if rng.random() < 0.5 else dfn
             yards_pen = float(rng.choice([5, 10, 15]))
             events.append(GameEvent(
@@ -307,7 +326,7 @@ class FootballSport(Sport):
         ))
         # Extra point (automatic for now, 94% success rate)
         rng = cast(np.random.Generator, self._rng or np.random.default_rng())
-        if rng.random() < 0.94:
+        if rng.random() < _EXTRA_POINT_RATE:
             team.score += 1
             events.append(GameEvent(
                 type=EventType.EXTRA_POINT, time=state.clock, period=state.period,
@@ -362,3 +381,21 @@ class FootballSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.05)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        return {
+            "down": self._down,
+            "yards_to_go": round(self._yards_to_go, 1),
+            "ball_on": round(self._ball_on, 1),
+            "possession_home": self._possession_home,
+            "play_clock": round(self._play_clock, 1),
+            "home_total_yards": sum(e.metadata.get("yards", 0) for e in state.events if e.team_id == state.home_team.id and e.type in (EventType.RUSH, EventType.RECEPTION)),
+            "away_total_yards": sum(e.metadata.get("yards", 0) for e in state.events if e.team_id == state.away_team.id and e.type in (EventType.RUSH, EventType.RECEPTION)),
+            "home_turnovers": sum(1 for e in state.events if e.type in (EventType.INTERCEPTION, EventType.FUMBLE) and e.team_id == state.away_team.id),
+            "away_turnovers": sum(1 for e in state.events if e.type in (EventType.INTERCEPTION, EventType.FUMBLE) and e.team_id == state.home_team.id),
+            "home_sacks": sum(1 for e in state.events if e.type == EventType.SACK and e.team_id == state.home_team.id),
+            "away_sacks": sum(1 for e in state.events if e.type == EventType.SACK and e.team_id == state.away_team.id),
+            "home_penalties": sum(1 for e in state.events if e.type == EventType.PENALTY_FLAG and e.team_id == state.home_team.id),
+            "away_penalties": sum(1 for e in state.events if e.type == EventType.PENALTY_FLAG and e.team_id == state.away_team.id),
+            "red_zone": self._ball_on >= 80,
+        }

@@ -241,3 +241,17 @@ class CricketSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.12)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        return {
+            "wickets": self._wickets,
+            "overs": self._overs,
+            "balls_in_over": self._balls_in_over,
+            "over_display": f"{self._overs}.{self._balls_in_over}",
+            "batting_first": self._batting_first,
+            "batting_order_index": self._batting_order_idx,
+            "boundaries_four": sum(1 for e in state.events if e.type == EventType.BOUNDARY_FOUR),
+            "sixes": sum(1 for e in state.events if e.type == EventType.SIX),
+            "extras": sum(1 for e in state.events if e.type in (EventType.WIDE, EventType.NO_BALL)),
+            "maiden_overs": sum(1 for e in state.events if e.type == EventType.MAIDEN_OVER),
+        }

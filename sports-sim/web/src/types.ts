@@ -71,6 +71,16 @@ export interface TeamOption {
   city: string;
 }
 
+export interface LeagueOption {
+  id: string;
+  name: string;
+  sport?: string;
+  country?: string;
+  roster_available?: boolean;
+  venues?: boolean;
+  source?: string;
+}
+
 export interface VenueOption {
   abbreviation: string;
   name: string;
@@ -124,6 +134,16 @@ export interface SimSummary {
   total_events: number;
 }
 
+export interface StreamEvent {
+  type: string;
+  time: number;
+  period: number;
+  description: string;
+  team_id: string;
+  player_id: string;
+  metadata: Record<string, unknown>;
+}
+
 export interface StreamTick {
   game_id: string;
   clock: number;
@@ -135,7 +155,21 @@ export interface StreamTick {
   home_momentum: number;
   away_momentum: number;
   is_finished: boolean;
-  events: { type: string; time: number; description: string }[];
+  sport_state: Record<string, unknown>;
+  events: StreamEvent[];
+}
+
+export interface PlayerCardData {
+  id: string;
+  name: string;
+  number: number;
+  position: string;
+  age?: number;
+  stamina?: number;
+  morale?: number;
+  is_injured?: boolean;
+  minutes_played?: number;
+  attributes?: Record<string, number>;
 }
 
 export const DEFAULT_SLIDERS: TeamSliders = {

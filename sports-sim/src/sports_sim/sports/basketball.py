@@ -19,6 +19,23 @@ from sports_sim.core.sport import Sport
 
 _COURT_W, _COURT_H = 28.65, 15.24  # meters (NBA regulation)
 
+# Probabilities per tick
+_SHOT_ATTEMPT_RATE = 0.0055
+_TURNOVER_RATE = 0.001
+_FOUL_RATE = 0.0008
+_STEAL_RATE = 0.0005
+
+# Thresholds and distances
+_SHOT_ZONE_RADIUS = 7.0
+_THREE_POINT_DISTANCE = 6.75
+_THREE_POINT_THRESHOLD = 0.35
+_TWO_POINT_THRESHOLD = 0.44
+_FREE_THROW_ACCURACY = 0.85
+
+# Movement
+_PLAYER_CHASE_SPEED = 0.015
+_BALL_DRIVE_FACTOR = 0.03
+
 POSITIONS_5 = [
     ("PG", 7, 7.6), ("SG", 5, 4), ("SF", 5, 11), ("PF", 3, 5), ("C", 2, 7.6),
 ]
@@ -114,24 +131,24 @@ class BasketballSport(Sport):
         hoop_x = _COURT_W if att is state.home_team else 0.0
 
         # Move ball
-        state.ball.x += (hoop_x - state.ball.x) * 0.03
+        state.ball.x += (hoop_x - state.ball.x) * _BALL_DRIVE_FACTOR
         state.ball.y += rng.normal(0, 0.5) * dt
         state.ball.x = float(np.clip(state.ball.x, 0, _COURT_W))
         state.ball.y = float(np.clip(state.ball.y, 0, _COURT_H))
 
         for p in att.active_players + dfn.active_players:
-            p.x += (state.ball.x - p.x) * 0.015 * p.attributes.speed
-            p.y += (state.ball.y - p.y) * 0.015 * p.attributes.speed
+            p.x += (state.ball.x - p.x) * _PLAYER_CHASE_SPEED * p.attributes.speed
+            p.y += (state.ball.y - p.y) * _PLAYER_CHASE_SPEED * p.attributes.speed
             p.x = float(np.clip(p.x, 0, _COURT_W))
             p.y = float(np.clip(p.y, 0, _COURT_H))
             p.minutes_played += dt / 60.0
 
         # Shot attempt
         dist_to_hoop = abs(state.ball.x - hoop_x)
-        if dist_to_hoop < 7.0 and rng.random() < 0.004:
+        if dist_to_hoop < _SHOT_ZONE_RADIUS and rng.random() < _SHOT_ATTEMPT_RATE:
             _att_players = att.active_players
             shooter = _att_players[int(rng.integers(len(_att_players)))]
-            is_three = dist_to_hoop > 6.75
+            is_three = dist_to_hoop > _THREE_POINT_DISTANCE
             accuracy = shooter.effective_skill * shooter.attributes.accuracy
             accuracy *= 1.0 - config.noise_level * rng.random()
 
@@ -143,7 +160,7 @@ class BasketballSport(Sport):
                 metadata={"is_three": is_three},
             ))
 
-            threshold = 0.38 if is_three else 0.48
+            threshold = _THREE_POINT_THRESHOLD if is_three else _TWO_POINT_THRESHOLD
             if accuracy > threshold:
                 points = 3 if is_three else 2
                 att.score += points
@@ -167,7 +184,7 @@ class BasketballSport(Sport):
                 ))
 
         # Turnover
-        if rng.random() < 0.001:
+        if rng.random() < _TURNOVER_RATE:
             _att_players2 = att.active_players
             handler = _att_players2[int(rng.integers(len(_att_players2)))]
             state.possession_team_id = dfn.id
@@ -178,7 +195,7 @@ class BasketballSport(Sport):
             ))
 
         # Foul
-        if rng.random() < 0.0008:
+        if rng.random() < _FOUL_RATE:
             _dfn_players = dfn.active_players
             fouler = _dfn_players[int(rng.integers(len(_dfn_players)))]
             events.append(GameEvent(
@@ -190,7 +207,7 @@ class BasketballSport(Sport):
             _ft_players = att.active_players
             shooter = _ft_players[int(rng.integers(len(_ft_players)))]
             for ft in range(2):
-                if rng.random() < shooter.attributes.accuracy * 0.85:
+                if rng.random() < shooter.attributes.accuracy * _FREE_THROW_ACCURACY:
                     att.score += 1
                     events.append(GameEvent(
                         type=EventType.FREE_THROW, time=state.clock, period=state.period,
@@ -201,7 +218,7 @@ class BasketballSport(Sport):
             state.possession_team_id = dfn.id
 
         # Steal
-        if rng.random() < 0.0005:
+        if rng.random() < _STEAL_RATE:
             _dfn_players2 = dfn.active_players
             stealer = _dfn_players2[int(rng.integers(len(_dfn_players2)))]
             state.possession_team_id = dfn.id
@@ -224,3 +241,26 @@ class BasketballSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.08)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        possession_name = ""
+        if state.possession_team_id == state.home_team.id:
+            possession_name = state.home_team.name
+        elif state.possession_team_id == state.away_team.id:
+            possession_name = state.away_team.name
+        return {
+            "possession": possession_name,
+            "shot_clock": round(self._shot_clock, 1),
+            "home_fg_att": sum(1 for e in state.events if e.type == EventType.SHOT and e.team_id == state.home_team.id),
+            "away_fg_att": sum(1 for e in state.events if e.type == EventType.SHOT and e.team_id == state.away_team.id),
+            "home_3pt": sum(1 for e in state.events if e.type == EventType.THREE_POINTER and e.team_id == state.home_team.id),
+            "away_3pt": sum(1 for e in state.events if e.type == EventType.THREE_POINTER and e.team_id == state.away_team.id),
+            "home_ft": sum(1 for e in state.events if e.type == EventType.FREE_THROW and e.team_id == state.home_team.id),
+            "away_ft": sum(1 for e in state.events if e.type == EventType.FREE_THROW and e.team_id == state.away_team.id),
+            "home_rebounds": sum(1 for e in state.events if e.type == EventType.REBOUND and e.team_id == state.home_team.id),
+            "away_rebounds": sum(1 for e in state.events if e.type == EventType.REBOUND and e.team_id == state.away_team.id),
+            "home_turnovers": sum(1 for e in state.events if e.type == EventType.TURNOVER and e.team_id == state.home_team.id),
+            "away_turnovers": sum(1 for e in state.events if e.type == EventType.TURNOVER and e.team_id == state.away_team.id),
+            "home_fouls": sum(1 for e in state.events if e.type == EventType.FOUL and e.team_id == state.home_team.id),
+            "away_fouls": sum(1 for e in state.events if e.type == EventType.FOUL and e.team_id == state.away_team.id),
+        }

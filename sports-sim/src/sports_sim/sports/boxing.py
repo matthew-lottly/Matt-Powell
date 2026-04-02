@@ -116,7 +116,7 @@ class BoxingSport(Sport):
         # P1 attacks
         if rng.random() < p1.attributes.accuracy * 0.6:
             damage = p1_power * (1.0 - p2_defense * 0.4) * rng.uniform(2, 6)
-            self._p2_health -= damage
+            self._p2_health = max(0.0, self._p2_health - damage)
             self._current_round_p1 += 1
 
             events.append(GameEvent(
@@ -149,7 +149,7 @@ class BoxingSport(Sport):
         # P2 attacks
         if rng.random() < p2.attributes.accuracy * 0.6:
             damage = p2_power * (1.0 - p1_defense * 0.4) * rng.uniform(2, 6)
-            self._p1_health -= damage
+            self._p1_health = max(0.0, self._p1_health - damage)
             self._current_round_p2 += 1
 
             events.append(GameEvent(
@@ -194,11 +194,13 @@ class BoxingSport(Sport):
     def _end_round(self, state: GameState):
         """Called at period end to score a round."""
         # 10-point must system
+        # 10-point must system with 10-8 for dominant rounds
+        diff = abs(self._current_round_p1 - self._current_round_p2)
         if self._current_round_p1 > self._current_round_p2:
             self._p1_round_scores.append(10)
-            self._p2_round_scores.append(9)
+            self._p2_round_scores.append(8 if diff >= 4 else 9)
         elif self._current_round_p2 > self._current_round_p1:
-            self._p1_round_scores.append(9)
+            self._p1_round_scores.append(8 if diff >= 4 else 9)
             self._p2_round_scores.append(10)
         else:
             self._p1_round_scores.append(10)
@@ -206,8 +208,8 @@ class BoxingSport(Sport):
         self._current_round_p1 = 0
         self._current_round_p2 = 0
         # Partial health recovery between rounds
-        self._p1_health = min(100, self._p1_health + 8)
-        self._p2_health = min(100, self._p2_health + 8)
+        self._p1_health = min(100.0, self._p1_health + 8)
+        self._p2_health = min(100.0, self._p2_health + 8)
 
     def is_valid_state(self, state: GameState) -> bool:
         return len(state.home_team.players) >= 1 and len(state.away_team.players) >= 1
@@ -221,3 +223,21 @@ class BoxingSport(Sport):
             team = state.home_team if event.team_id == state.home_team.id else state.away_team
             team.momentum = min(1.0, team.momentum + 0.2)
         return state
+
+    def get_sport_state(self, state: GameState) -> dict:
+        return {
+            "p1_health": round(self._p1_health, 1),
+            "p2_health": round(self._p2_health, 1),
+            "p1_round_score": self._current_round_p1,
+            "p2_round_score": self._current_round_p2,
+            "p1_total_score": sum(self._p1_round_scores),
+            "p2_total_score": sum(self._p2_round_scores),
+            "p1_knockdowns": self._knockdowns_p1,
+            "p2_knockdowns": self._knockdowns_p2,
+            "p1_round_scores": self._p1_round_scores[:],
+            "p2_round_scores": self._p2_round_scores[:],
+            "p1_punches": sum(1 for e in state.events if e.type == EventType.PUNCH and e.team_id == state.home_team.id),
+            "p2_punches": sum(1 for e in state.events if e.type == EventType.PUNCH and e.team_id == state.away_team.id),
+            "p1_total_damage": round(sum(e.metadata.get("damage", 0) for e in state.events if e.type == EventType.PUNCH and e.team_id == state.home_team.id), 1),
+            "p2_total_damage": round(sum(e.metadata.get("damage", 0) for e in state.events if e.type == EventType.PUNCH and e.team_id == state.away_team.id), 1),
+        }
