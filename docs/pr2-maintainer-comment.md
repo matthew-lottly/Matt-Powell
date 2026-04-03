@@ -12,4 +12,4 @@ Sports-sim has been removed from this repository since these review comments wer
 2. Resolve all unresolved sports-sim review threads as obsolete.
 3. Post the maintainer comment above.
 4. Confirm the remaining discussion only covers hub docs, project review artifacts, and merge scope.
-5. Decide whether to merge PR #2 or replace it with smaller follow-up PRs.
+5. Prefer replacing PR #2 with smaller follow-up PRs instead of merging the full historical branch as one unit.

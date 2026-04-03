@@ -114,13 +114,13 @@ How to use it
 88. Use `scripts/mark-issue-filed.ps1` after each filing session.
 89. Keep `docs/issue-opening-batches.md` aligned with the tracker and submission files.
 90. Add triage labels to repositories that are missing `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.
-91. Decide which standalone repos need issue templates and PR templates.
-92. Add issue templates to collaboration-ready standalone repos.
-93. Add PR templates to collaboration-ready standalone repos.
-94. Add Dependabot only where maintenance commitment is realistic.
-95. Add security scanning only where false-positive and upkeep cost are acceptable.
+91. ~~Decide which standalone repos need issue templates and PR templates.~~
+92. ~~Add issue templates to collaboration-ready standalone repos.~~
+93. ~~Add PR templates to collaboration-ready standalone repos.~~
+94. ~~Add Dependabot only where maintenance commitment is realistic.~~
+95. ~~Add security scanning only where false-positive and upkeep cost are acceptable.~~
 96. Resolve the stale sports-sim threads on PR #2.
 97. Post the PR #2 maintainer closeout comment.
-98. Decide whether PR #2 should merge as-is or be replaced with smaller follow-up PRs.
+98. ~~Decide whether PR #2 should merge as-is or be replaced with smaller follow-up PRs.~~
 99. Re-check the active PR discussion after stale-thread cleanup so it matches current scope.
-100. Review GitHub automation quarterly instead of enabling everything by default.
+100. ~~Review GitHub automation quarterly instead of enabling everything by default.~~

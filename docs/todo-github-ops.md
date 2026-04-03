@@ -15,8 +15,8 @@ Now
 
 Next
 - Decide which repos should keep full CI versus lighter validation.
-- Add issue templates and PR templates to the standalone repos that are collaboration-ready.
-- Add Dependabot and security scanning only where maintenance commitment is realistic.
+- Follow `docs/github-automation-policy.md` for the current collaboration-ready template and automation scope.
+- Mirror the new templates and automation files from `projects/` into the published standalone repos during the next repo-sync pass.
 - Update the tracker immediately after each GitHub filing session so the queue stays trustworthy.
 
 Later

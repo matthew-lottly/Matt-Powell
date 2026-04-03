@@ -23,7 +23,7 @@ These unresolved review comments still point at deleted sports-sim files and sho
 2. Resolve each sports-sim review thread as obsolete.
 3. Add one maintainer comment explaining that sports-sim was removed and those review threads no longer apply to the current repository direction.
 4. Re-check the Files changed tab to confirm the remaining discussion matches the current hub and project-review scope.
-5. Decide whether PR #2 will be merged as one branch or replaced by smaller follow-up PRs.
+5. Prefer replacing PR #2 with smaller follow-up PRs after stale-thread cleanup instead of merging the full historical branch as one unit.
 
 ## Suggested maintainer comment
 
@@ -34,3 +34,4 @@ These unresolved review comments still point at deleted sports-sim files and sho
 - No unresolved sports-sim review threads remain.
 - The PR description reflects current scope.
 - Merge discussion distinguishes hub planning work from project-review hardening work.
+- The current CI failure is understood as unrelated workspace-wide test collection noise, not unresolved sports-sim review feedback.

@@ -55,5 +55,5 @@ Project-review hardening work under `projects/`:
 
 ## Merge Recommendation
 
-- Safe path: split the branch conceptually into `hub planning` and `project review artifacts` when discussing or documenting the merge.
-- Riskier path: merge the full branch only after clearing stale sports-sim review threads so the PR conversation matches the actual repo state.
+- Recommended path: replace PR #2 with smaller follow-up PRs after clearing stale sports-sim review threads.
+- Acceptable fallback: if you keep one PR open temporarily, discuss the branch as `hub planning` plus `project review artifacts` and do not treat the stale sports-sim review history as active feedback.
