@@ -109,6 +109,7 @@ These are the repositories that should absorb most polish effort first. They bes
 - [docs/todo-github-ops.md](docs/todo-github-ops.md) for GitHub settings and automation follow-ups
 - [docs/pr2-split-review.md](docs/pr2-split-review.md) for the active backlog-branch split review
 - [docs/pr2-github-cleanup.md](docs/pr2-github-cleanup.md) for exact stale-thread cleanup on the active PR
+- [docs/pr2-reviewer-closeout.md](docs/pr2-reviewer-closeout.md) for the shorter reviewer-facing PR cleanup note
 - [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
 - [docs/weekly-maintenance-checklist.md](docs/weekly-maintenance-checklist.md) for recurring portfolio upkeep
 - [CONTRIBUTOR_ONBOARDING.md](CONTRIBUTOR_ONBOARDING.md) for repo workflow and contribution rules

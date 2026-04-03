@@ -17,6 +17,7 @@ $requiredFiles = @(
     "docs/issue-bodies-supporting.md",
     "docs/issue-submissions/README.md",
     "docs/pr2-github-cleanup.md",
+    "docs/pr2-reviewer-closeout.md",
     "docs/weekly-maintenance-checklist.md",
     "docs/merge-checklist.md",
     ".github/CODEOWNERS",

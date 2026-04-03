@@ -12,11 +12,13 @@ if ($tableLines.Count -lt 3) {
     exit 1
 }
 
-$headers = $tableLines[0].Split('|').ForEach({ $_.Trim() }) | Where-Object { $_ -ne '' }
+$headerSegments = $tableLines[0].Split('|')
+$headers = $headerSegments[1..($headerSegments.Count - 2)].ForEach({ $_.Trim() })
 $dataLines = $tableLines | Select-Object -Skip 2
 
 $rows = foreach ($line in $dataLines) {
-    $values = $line.Split('|').ForEach({ $_.Trim() }) | Where-Object { $_ -ne '' }
+    $segments = $line.Split('|')
+    $values = $segments[1..($segments.Count - 2)].ForEach({ $_.Trim() })
     $row = [ordered]@{}
     for ($index = 0; $index -lt $headers.Count; $index++) {
         $value = if ($index -lt $values.Count) { $values[$index] } else { '' }

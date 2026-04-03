@@ -8,6 +8,7 @@ Now
 - Follow `docs/issue-filing-queue.md` so the highest-value issues are opened first.
 - Track filing status, owner, and issue URLs in `docs/issue-filing-tracker.md`.
 - Use `docs/issue-opening-batches.md` to open issues in manageable waves.
+- Use `scripts/show-next-batch.ps1` and `scripts/mark-issue-filed.ps1` during filing sessions.
 - Add triage labels for `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.
 - Resolve stale PR review threads that still reference deleted sports-sim files using `docs/pr2-github-cleanup.md`.
 

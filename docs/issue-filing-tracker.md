@@ -7,6 +7,12 @@ Status values
 - `Filed`: issue has been opened in the target repository.
 - `Blocked`: do not open yet because the repo, labels, or scope need attention first.
 
+Update workflow
+1. Run `scripts/show-next-issue.ps1` or `scripts/show-next-batch.ps1`.
+2. Open the matching issue in GitHub.
+3. Run `scripts/mark-issue-filed.ps1 -Queue <nn> -IssueReference <url-or-number>`.
+4. Add `-Owner` or `-Notes` when useful.
+
 | Queue | Repository | Issue title | Priority | Status | Owner | Filed on | Issue URL or number | Submission file | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 01 | spatial-data-api | richer API examples, rollback notes, and invalid-query coverage | First 10 | Ready | | | | docs/issue-submissions/01-spatial-data-api.md | |

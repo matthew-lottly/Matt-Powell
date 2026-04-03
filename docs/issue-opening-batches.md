@@ -68,3 +68,5 @@ Submission files
 1. Open issues from one batch only.
 2. Record each issue URL in `docs/issue-filing-tracker.md` before moving on.
 3. Mark any repo-level blockers in the tracker notes column immediately.
+4. Use `scripts/show-next-batch.ps1` to print the next active batch.
+5. Use `scripts/mark-issue-filed.ps1` right after opening an issue so the tracker stays current.
