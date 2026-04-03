@@ -1,6 +1,0 @@
-[
-  "tests/test_blueprint.py::test_build_service_blueprint",
-  "tests/test_blueprint.py::test_export_seed_sql",
-  "tests/test_blueprint.py::test_export_service_blueprint",
-  "tests/test_blueprint.py::test_load_layer_features"
-]

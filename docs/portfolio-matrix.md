@@ -13,25 +13,25 @@ Showcase priority set
 
 | Project | Lane | Priority | Maturity | Example | Data Flow | Runbook | Smoke | CI | Next Move |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| arroyo-flood-forecasting-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Add benchmark summary and tighten README positioning. |
-| causal-lens | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | No | Add CI and refine public framing around outcomes. |
-| environmental-monitoring-analytics | Analytics | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Add stronger packaging and reporting examples. |
-| environmental-monitoring-api | Backend + GIS | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Add richer API examples and rollback guidance. |
-| environmental-time-series-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Add benchmark tables and stronger README claims discipline. |
-| experience-builder-station-brief-widget | GIS Frontend | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Add screenshots, accessibility checks, and browser-level flows. |
-| geoprompt | Package Design | Showcase | Reviewable | Yes | Yes | No | Yes | No | Add CI alignment and public package-positioning cleanup. |
-| gulf-coast-inundation-lab | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | No | Yes | Add smoke coverage and a clearer evaluation artifact. |
-| monitoring-anomaly-detection | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Add benchmark context and stronger model-evaluation notes. |
-| monitoring-data-warehouse | Database Engineering | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Add warehouse architecture narrative and sample schema walkthrough. |
-| open-web-map-operations-dashboard | Web Mapping | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Add screenshots, accessibility checks, and end-to-end flows. |
-| postgis-service-blueprint | Spatial Services | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Add rollback guidance and deployment examples. |
-| qgis-operations-workbench | Desktop GIS | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Add analyst-facing screenshots and packaging guidance. |
-| raster-monitoring-pipeline | Raster Analysis | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Add benchmark evidence and pipeline performance notes. |
-| spatial-data-api | Backend + GIS | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Add richer sample requests, responses, and rollout notes. |
-| station-forecasting-workbench | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Add clearer holdout metrics and summary framing. |
-| station-risk-classification-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Add confusion-matrix style evaluation evidence. |
-| strata | Data Science | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Tighten deployment guidance and public positioning. |
-| tsuan | Data Science | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Add deployment assumptions and stronger benchmark framing. |
+| arroyo-flood-forecasting-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark summary added. Next: tighten README outcome framing. |
+| causal-lens | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | CI added. Next: refine public framing around outcomes. |
+| environmental-monitoring-analytics | Analytics | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Packaging guide added. Next: add larger snapshot fixtures. |
+| environmental-monitoring-api | Backend + GIS | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | API examples and rollback guide added. Health-check tests added. |
+| environmental-time-series-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark tables added. Next: tighten evaluation framing. |
+| experience-builder-station-brief-widget | GIS Frontend | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Screenshot guide and accessibility checklist added. Next: browser-level tests. |
+| geoprompt | Package Design | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | CI aligned. Ruff baseline added. Next: tighten public package framing. |
+| gulf-coast-inundation-lab | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | No | Yes | Evaluation artifact added. Next: add smoke test coverage. |
+| monitoring-anomaly-detection | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark context added. Next: strengthen evaluation narrative. |
+| monitoring-data-warehouse | Database Engineering | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Schema walkthrough added. README tightened. Next: audit generated artifacts. |
+| open-web-map-operations-dashboard | Web Mapping | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Screenshot guide and accessibility checklist added. Next: browser-level tests. |
+| postgis-service-blueprint | Spatial Services | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Rollback guide and deployment examples added. |
+| qgis-operations-workbench | Desktop GIS | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Analyst workflow, packaging guide, and screenshot guide added. |
+| raster-monitoring-pipeline | Raster Analysis | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark evidence added. Next: tighten evaluation narrative. |
+| spatial-data-api | Backend + GIS | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | API examples, rollback guide, and validation tests added. |
+| station-forecasting-workbench | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Holdout metrics doc added. Next: strengthen selection narrative. |
+| station-risk-classification-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Classification evaluation evidence added. Next: tighten explainability framing. |
+| strata | Data Science | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Deployment guide added. Next: tighten uncertainty-story framing. |
+| tsuan | Data Science | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Deployment assumptions added. Next: tighten benchmark framing. |
 
 Notes
 - This matrix reflects the local workspace state, not a GitHub inventory API.

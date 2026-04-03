@@ -99,6 +99,9 @@ With `--export-geopackage`, the command also writes `outputs/qgis_review_bundle.
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the review walkthrough.
 See [docs/geopackage-workflow.md](docs/geopackage-workflow.md) for the desktop handoff details.
+See [docs/analyst-workflow.md](docs/analyst-workflow.md) for the analyst review session guide.
+See [docs/packaging-guide.md](docs/packaging-guide.md) for distribution and packaging notes.
+See [docs/screenshots.md](docs/screenshots.md) for planned visual review artifacts.
 
 ## Publication
 

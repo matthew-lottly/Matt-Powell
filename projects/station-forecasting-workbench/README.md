@@ -47,3 +47,12 @@ The default command writes `outputs/station_forecast_report.json` with:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+## Publication
+
+- License: [LICENSE](LICENSE)
+- Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
+- Local CI workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
+
+## Repository Notes
+
+This copy is intended to be publishable as its own repository.

@@ -86,6 +86,8 @@ The current dashboard includes:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/screenshots.md](docs/screenshots.md) for planned visual review artifacts.
+See [docs/accessibility-checklist.md](docs/accessibility-checklist.md) for accessibility requirements and validation.
 
 ## Publication
 

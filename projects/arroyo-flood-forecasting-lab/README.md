@@ -72,3 +72,12 @@ pytest
 See [docs/architecture.md](docs/architecture.md) for the method notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
 See [docs/case-study-walkthrough.md](docs/case-study-walkthrough.md) for an article-style narrative built around the generated artifacts.
+## Publication
+
+- License: [LICENSE](LICENSE)
+- Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
+- Local CI workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
+
+## Repository Notes
+
+This copy is intended to be publishable as its own repository.
