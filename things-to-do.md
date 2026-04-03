@@ -18,6 +18,7 @@ Use this file
 1. Update repo-level progress here.
 2. Open standalone-repo issues from the roadmap items in `ROADMAP.md`.
 3. Keep `docs/portfolio-matrix.md` aligned with the real current state.
+4. Use `docs/todo-100.md` when you want the full expanded backlog instead of the shorter operational summary.
 
 Done recently
 - Added example output artifacts across the project portfolio.

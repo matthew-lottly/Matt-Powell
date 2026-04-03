@@ -97,6 +97,7 @@ These are the repositories that should absorb most polish effort first. They bes
 - [docs/todo-hub.md](docs/todo-hub.md) for hub-only next actions
 - [docs/todo-showcase.md](docs/todo-showcase.md) for showcase-specific polish priorities
 - [docs/todo-standalone-repos.md](docs/todo-standalone-repos.md) for source-repo follow-up work
+- [docs/todo-100.md](docs/todo-100.md) for the expanded 100-item portfolio backlog
 - [docs/standalone-issue-checklists.md](docs/standalone-issue-checklists.md) for repo-by-repo issue-ready checklists
 - [docs/issue-drafts-showcase.md](docs/issue-drafts-showcase.md) for showcase repo issue drafts
 - [docs/issue-drafts-supporting.md](docs/issue-drafts-supporting.md) for supporting repo issue drafts
