@@ -54,6 +54,7 @@ This repository is the portfolio hub. Standalone project code is published in se
 | [experience-builder-station-brief-widget](https://github.com/matthew-lottly/experience-builder-station-brief-widget) | GIS Frontend | Public-safe React and TypeScript widget prototype inspired by ArcGIS Experience Builder patterns, with conceptual visuals and selection-driven station summaries. |
 | [causal-lens](https://github.com/matthew-lottly/causal-lens) | Data Science | Causal inference toolkit for observational monitoring data with propensity scoring, matching, sensitivity analysis, and treatment-effect estimation. |
 | [strata](https://github.com/matthew-lottly/strata) | Data Science | Conformal prediction framework for heterogeneous infrastructure graphs with GNN-based uncertainty quantification, per-type coverage guarantees, and propagation-aware calibration. |
+| 3d-vp-lcp | Remote Sensing / Ecology | LiDAR-driven 3-D landscape connectivity framework: voxelization, vertical gap fraction, species-specific morphology filtering, and 3-D least-cost-path routing. |
 
 ## Showcase Priority
 

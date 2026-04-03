@@ -32,6 +32,7 @@ Showcase priority set
 | station-risk-classification-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Classification evaluation evidence added. Next: tighten explainability framing. |
 | strata | Data Science | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Deployment guide added. Next: tighten uncertainty-story framing. |
 | tsuan | Data Science | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Deployment assumptions added. Next: tighten benchmark framing. |
+| 3d-vp-lcp | Remote Sensing / Ecology | New | Research prototype | Yes | Yes | No | Yes | No | Initial scaffold with full pipeline, sample data, tutorial notebook, and 12 passing tests. Next: add circuit-theory extension and real LiDAR validation. |
 
 Notes
 - This matrix reflects the local workspace state, not a GitHub inventory API.
