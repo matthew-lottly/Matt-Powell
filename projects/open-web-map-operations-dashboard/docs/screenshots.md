@@ -2,7 +2,14 @@
 
 Visual review artifacts for the Open Web Map Operations Dashboard.
 
-## Planned Screenshots
+## Current Screenshots
+
+### 1. Default Dashboard Review
+**File**: `assets/dashboard-live-screenshot.png`
+- Browser capture from the Vite application in this repository
+- Shows the default dashboard state with the map, summary cards, and operations panel
+
+## Additional Planned Screenshots
 
 These screenshots should be captured and committed to `assets/` after significant UI changes:
 
@@ -47,4 +54,4 @@ npx playwright screenshot http://localhost:5173 assets/dashboard-full.png --view
 
 ## Current Placeholder
 
-The `assets/dashboard-preview.svg` provides a schematic preview. Replace with actual screenshots once the UI is stable enough for long-lived captures.
+The `assets/dashboard-preview.svg` remains useful as a schematic overview, but the repository now also includes a live browser capture for reviewer-facing use.

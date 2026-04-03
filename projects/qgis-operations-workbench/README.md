@@ -4,6 +4,8 @@ Desktop GIS portfolio project for packaging repeatable QGIS-oriented review work
 
 ![Workbench preview](assets/workbench-preview.svg)
 
+![Desktop review preview generated from the packaged GIS outputs](assets/qgis-review-preview.png)
+
 ## Review Artifacts
 
 - Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
@@ -101,7 +103,7 @@ See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the review walkthroug
 See [docs/geopackage-workflow.md](docs/geopackage-workflow.md) for the desktop handoff details.
 See [docs/analyst-workflow.md](docs/analyst-workflow.md) for the analyst review session guide.
 See [docs/packaging-guide.md](docs/packaging-guide.md) for distribution and packaging notes.
-See [docs/screenshots.md](docs/screenshots.md) for planned visual review artifacts.
+See [docs/screenshots.md](docs/screenshots.md) for the current review preview and the desktop capture checklist for fuller QGIS screenshots.
 
 ## Publication
 

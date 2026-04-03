@@ -12,14 +12,14 @@ What does not belong here
 - Project-specific CI logic that should live in each standalone repository.
 - Feature work for a specific project unless the matching standalone repo is the target.
 
-How to work in this repo
+Contribution Workflow
 1. Confirm whether the change belongs in the hub or in a standalone repo.
 2. If the change is project-specific, open or link the issue in the correct standalone repository.
 3. Keep the roadmap, matrix, and README links current when project status changes.
 4. Prefer small PRs that change planning, docs, or cross-project coordination in one focused pass.
 
-Recommended workflow
-1. Read `README.md`, `things-to-do.md`, `ROADMAP.md`, and `docs/portfolio-matrix.md`.
+Before starting work, review:
+1. `README.md`, `things-to-do.md`, `ROADMAP.md`, and `docs/portfolio-matrix.md`.
 2. Check whether the target project is a showcase priority or a lower-priority reviewable project.
 3. Update the matrix when adding artifacts, runbooks, CI, or smoke coverage.
 4. If you add a new portfolio-level process, document it here or in `things-to-do.md`.

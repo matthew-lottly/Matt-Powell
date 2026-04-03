@@ -18,7 +18,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 ## Overview
 
-This project starts a reusable spatial package lane instead of another one-off analysis repo. The goal is to build a custom package that users can import directly, similar to how they would reach for GeoPandas, but focused first on a small and clear set of spatial equations that can grow over time.
+This project delivers a reusable spatial analysis package rather than another one-off analysis repository. It is designed for direct import, similar to GeoPandas, while staying focused on a clear initial set of spatial equations that can grow over time.
 
 The initial version still stays intentionally simple, but it now goes beyond points: the frame can work with points, lines, and polygons represented through a small GeoJSON-like geometry mapping. That keeps the package small enough to iterate on while still showing a real package design direction.
 

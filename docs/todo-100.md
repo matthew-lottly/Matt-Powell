@@ -45,8 +45,8 @@ How to use it
 30. Add screenshots for `qgis-operations-workbench`.
 31. ~~Add an analyst workflow note to `qgis-operations-workbench`.~~
 32. ~~Add packaging guidance in `qgis-operations-workbench`.~~
-33. Add screenshots or a GIF for `open-web-map-operations-dashboard`.
-34. Add browser-level interaction tests to `open-web-map-operations-dashboard`.
+33. ~~Add screenshots or a GIF for `open-web-map-operations-dashboard`.~~
+34. ~~Add browser-level interaction tests to `open-web-map-operations-dashboard`.~~
 35. ~~Add accessibility checks to `open-web-map-operations-dashboard`.~~
 36. ~~Align CI with current package expectations in `geoprompt`.~~
 37. ~~Tighten public package framing in `geoprompt`.~~
@@ -58,12 +58,12 @@ How to use it
 
 41. ~~Add CI to `causal-lens`.~~
 42. ~~Tighten benchmark framing in `causal-lens`.~~
-43. Add screenshots or a GIF to `experience-builder-station-brief-widget`.
-44. Add browser-level tests to `experience-builder-station-brief-widget`.
+43. ~~Add screenshots or a GIF to `experience-builder-station-brief-widget`.~~
+44. ~~Add browser-level tests to `experience-builder-station-brief-widget`.~~
 45. ~~Add accessibility checks to `experience-builder-station-brief-widget`.~~
 46. ~~Add rollback guidance to `postgis-service-blueprint`.~~
 47. ~~Add deployment-oriented examples to `postgis-service-blueprint`.~~
-48. Add main-path smoke coverage to `gulf-coast-inundation-lab`.
+48. ~~Add main-path smoke coverage to `gulf-coast-inundation-lab`.~~
 49. ~~Improve evaluation artifact clarity in `gulf-coast-inundation-lab`.~~
 50. ~~Add benchmark context to `monitoring-anomaly-detection`.~~
 51. ~~Tighten model-evaluation framing in `monitoring-anomaly-detection`.~~
@@ -100,7 +100,7 @@ How to use it
 79. ~~Add benchmark or comparison tables to research-heavy repos.~~
 80. ~~Add `ruff` and formatting baselines where missing.~~
 81. Add stronger type checking to the most operational repos first.
-82. Add contributor guides to standalone repos that are ready for outside collaboration.
+82. ~~Add contributor guides to standalone repos that are ready for outside collaboration.~~
 83. Audit licenses, citations, and publication metadata in public-facing repos.
 84. ~~Add deploy guides only where a real deployment target exists.~~
 85. Revisit whether each repo should stay documentation-first or move toward heavier validation.
@@ -113,7 +113,7 @@ How to use it
 87. ~~Update `docs/issue-filing-tracker.md` with real URLs as issues are opened.~~
 88. ~~Use `scripts/mark-issue-filed.ps1` after each filing session.~~
 89. ~~Keep `docs/issue-opening-batches.md` aligned with the tracker and submission files.~~
-90. Add triage labels to repositories that are missing `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.
+90. ~~Add triage labels to repositories that are missing `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.~~
 91. ~~Decide which standalone repos need issue templates and PR templates.~~
 92. ~~Add issue templates to collaboration-ready standalone repos.~~
 93. ~~Add PR templates to collaboration-ready standalone repos.~~

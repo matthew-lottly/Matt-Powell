@@ -62,3 +62,13 @@ def test_manifest_contains_ten_public_gauges() -> None:
     assert manifest["type"] == "FeatureCollection"
     assert len(manifest["features"]) == 10
     assert manifest["features"][0]["properties"]["gaugeId"] == "02358000"
+
+
+def test_workflow_smoke_report_contains_expected_sections() -> None:
+    report = GulfCoastValidationWorkflow(input_path=SAMPLE_PATH).build_report()
+
+    assert report["reportName"] == "Gulf Coast Inundation Lab Validation Summary"
+    assert report["experiment"]["inputFile"] == SAMPLE_PATH.name
+    assert report["summary"]["gaugeCount"] == len(report["gauges"])
+    assert report["summary"]["strongestGaugeId"] == report["gauges"][0]["gaugeId"]
+    assert len(report["notes"]) == 3

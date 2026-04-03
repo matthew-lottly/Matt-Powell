@@ -18,14 +18,14 @@ Showcase priority set
 | environmental-monitoring-analytics | Analytics | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Packaging guide added. Next: add larger snapshot fixtures. |
 | environmental-monitoring-api | Backend + GIS | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | API examples and rollback guide added. Health-check tests added. |
 | environmental-time-series-lab | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark tables added. Next: tighten evaluation framing. |
-| experience-builder-station-brief-widget | GIS Frontend | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Screenshot guide and accessibility checklist added. Next: browser-level tests. |
+| experience-builder-station-brief-widget | GIS Frontend | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Live screenshot and browser-level tests added. Next: expand interaction coverage beyond the primary selection flow. |
 | geoprompt | Package Design | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | CI aligned. Ruff baseline added. Next: tighten public package framing. |
-| gulf-coast-inundation-lab | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | No | Yes | Evaluation artifact added. Next: add smoke test coverage. |
+| gulf-coast-inundation-lab | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Evaluation artifact and smoke coverage added. Next: add a short runbook for the Earth Engine handoff. |
 | monitoring-anomaly-detection | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark context added. Next: strengthen evaluation narrative. |
 | monitoring-data-warehouse | Database Engineering | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Schema walkthrough added. README tightened. Next: audit generated artifacts. |
-| open-web-map-operations-dashboard | Web Mapping | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Screenshot guide and accessibility checklist added. Next: browser-level tests. |
+| open-web-map-operations-dashboard | Web Mapping | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Live screenshot and browser-level tests added. Next: extend interaction coverage into additional review paths. |
 | postgis-service-blueprint | Spatial Services | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Rollback guide and deployment examples added. |
-| qgis-operations-workbench | Desktop GIS | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Analyst workflow, packaging guide, and screenshot guide added. |
+| qgis-operations-workbench | Desktop GIS | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Analyst workflow, packaging guide, and a generated review preview asset added. Next: capture fuller desktop screenshots from a live QGIS session. |
 | raster-monitoring-pipeline | Raster Analysis | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark evidence added. Next: tighten evaluation narrative. |
 | spatial-data-api | Backend + GIS | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | API examples, rollback guide, and validation tests added. |
 | station-forecasting-workbench | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Holdout metrics doc added. Next: strengthen selection narrative. |

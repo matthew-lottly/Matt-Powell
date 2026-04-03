@@ -7,7 +7,7 @@ Use this before making the portfolio repository public-facing.
 - Username is professional
 - Display name matches resume and LinkedIn
 - Profile photo is professional
-- Bio explains your throughline in one sentence
+- Bio clearly states your technical focus in one sentence
 - Location and contact details are appropriate for public visibility
 
 ## Repository README

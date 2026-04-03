@@ -1,6 +1,6 @@
 # Merge Checklist
 
-Use this before merging a broad backlog or cleanup branch.
+Use this checklist before merging a large coordinated cleanup or backlog branch.
 
 1. Review the branch diff against `main` for accidental unrelated changes.
 2. Confirm repo-hub changes stay in the hub and project-source changes stay in standalone repos.

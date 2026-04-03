@@ -4,11 +4,11 @@ These items focus only on the current showcase-priority repositories.
 
 Now
 - Add stronger example requests and rollback guidance to `spatial-data-api` and `environmental-monitoring-api`.
-- Add screenshots and accessibility work to `open-web-map-operations-dashboard`.
 - Add a schema walkthrough artifact to `monitoring-data-warehouse`.
-- Add screenshots and analyst workflow guidance to `qgis-operations-workbench`.
 - Add CI alignment and package-framing cleanup to `geoprompt`.
 - Tighten packaging and report framing for `environmental-monitoring-analytics`.
+- Capture fuller desktop screenshots for `qgis-operations-workbench` after a live QGIS session.
+- Extend `open-web-map-operations-dashboard` browser coverage into additional multi-step map review flows.
 
 Next
 - Decide which showcase repos should carry full CI and which should stay lighter.

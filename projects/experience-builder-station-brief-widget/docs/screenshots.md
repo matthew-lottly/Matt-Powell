@@ -2,7 +2,14 @@
 
 Visual review artifacts for the Experience Builder Station Brief Widget.
 
-## Planned Screenshots
+## Current Screenshots
+
+### 1. Default Widget Review
+**File**: `assets/widget-live-screenshot.png`
+- Browser capture from the Vite application in this repository
+- Shows the widget shell, configuration panel, station list, and detail surface
+
+## Additional Planned Screenshots
 
 ### 1. Default Dashboard View
 **File**: `assets/widget-default.png`
@@ -48,4 +55,4 @@ npx playwright screenshot http://localhost:5173 assets/widget-default.png --view
 
 ## Current Placeholder
 
-The `assets/widget-preview.svg` provides a schematic preview.
+The `assets/widget-preview.svg` remains useful as a schematic overview, while `assets/widget-live-screenshot.png` provides a concrete reviewer-facing browser capture.

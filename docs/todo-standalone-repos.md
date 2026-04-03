@@ -10,16 +10,18 @@ Service and API repos
 - Standardize Docker health checks, ports, and startup docs.
 
 Frontend repos
-- Add screenshots or short GIFs for visual review.
-- Expand smoke tests into browser-level flows.
+- Refresh screenshots or short GIFs after major UI changes land.
+- Extend browser coverage beyond the primary interaction flows now under test.
 - Add accessibility checks and fixes.
 
 Research and data-science repos
 - Add benchmark tables or comparison summaries.
 - Tighten README summaries around outcomes and evaluation.
 - Add stronger packaging, framing, and reproducibility notes where needed.
+- Add smoke-style validation where the main path is still only documented.
 
 Cross-cutting
 - Remove tracked cache artifacts permanently where they still exist.
 - Audit dependency sprawl and Python version support.
 - Standardize README ordering and project maturity positioning.
+- Add contributor guides where outside collaboration is realistic.

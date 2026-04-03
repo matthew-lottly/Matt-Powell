@@ -3,9 +3,9 @@
 ![Python](https://img.shields.io/badge/Python-3.11%2B-49616d)
 ![Focus](https://img.shields.io/badge/Focus-Backend%20%7C%20GIS%20%7C%20Data-d4a85f)
 
-GIS developer and software engineer building backend, database, geospatial, and analytics systems.
+Backend, database, and geospatial engineer focused on production-minded systems and environmental analytics.
 
-This repository is the portfolio hub only. The actual project code lives in standalone repositories under the `matthew-lottly` account. Local `projects/` and `standalone-checkouts/` folders are workspace checkout areas, not part of the public portfolio repository.
+This repository is the portfolio hub. Standalone project code is published in separate repositories under the `matthew-lottly` account, while local `projects/` and `standalone-checkouts/` folders serve as workspace checkouts.
 
 ## Quick Access
 
@@ -65,15 +65,15 @@ This repository is the portfolio hub only. The actual project code lives in stan
 - [geoprompt](https://github.com/matthew-lottly/geoprompt)
 - [environmental-monitoring-analytics](https://github.com/matthew-lottly/environmental-monitoring-analytics)
 
-These are the repositories that should absorb most polish effort first. They best represent the backend, GIS, data, and public-facing portfolio lanes.
+These repositories should receive priority refinement. They represent the strongest backend, GIS, data, and public-facing portfolio work in the set.
 
 | Repository | Why It Is Prioritized | Next High-Value Upgrade |
 | --- | --- | --- |
 | [spatial-data-api](https://github.com/matthew-lottly/spatial-data-api) | Strongest backend and GIS service story. | Add richer request and response examples plus rollback notes. |
 | [environmental-monitoring-api](https://github.com/matthew-lottly/environmental-monitoring-api) | Production-leaning API with dashboard context. | Add stronger operational examples and failure-path validation. |
 | [monitoring-data-warehouse](https://github.com/matthew-lottly/monitoring-data-warehouse) | Best database-engineering evidence in the set. | Add a clearer schema-walkthrough artifact and warehouse narrative. |
-| [qgis-operations-workbench](https://github.com/matthew-lottly/qgis-operations-workbench) | Best desktop GIS representation. | Add screenshots and analyst-facing packaging guidance. |
-| [open-web-map-operations-dashboard](https://github.com/matthew-lottly/open-web-map-operations-dashboard) | Best open-stack frontend and mapping signal. | Add screenshots, accessibility checks, and browser-level flows. |
+| [qgis-operations-workbench](https://github.com/matthew-lottly/qgis-operations-workbench) | Best desktop GIS representation. | Add fuller desktop capture assets after a QGIS review session. |
+| [open-web-map-operations-dashboard](https://github.com/matthew-lottly/open-web-map-operations-dashboard) | Best open-stack frontend and mapping signal. | Extend browser interaction coverage into more multi-step review paths. |
 | [geoprompt](https://github.com/matthew-lottly/geoprompt) | Best custom spatial package story. | Add CI alignment and cleaner public package framing. |
 | [environmental-monitoring-analytics](https://github.com/matthew-lottly/environmental-monitoring-analytics) | Strong analytics and reporting lane. | Add stronger packaging and report-evaluation framing. |
 

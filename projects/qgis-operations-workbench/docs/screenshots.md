@@ -2,7 +2,14 @@
 
 Visual review artifacts for the QGIS Operations Workbench.
 
-## Planned Screenshots
+## Current Review Asset
+
+### 1. Desktop Review Preview
+**File**: `assets/qgis-review-preview.png`
+- Generated directly from the packaged station points and inspection routes
+- Gives reviewers a concrete visual artifact even before a local QGIS capture session
+
+## Planned QGIS Screenshots
 
 These screenshots should be captured and committed to `assets/` after the GeoPackage output is stable:
 
@@ -50,4 +57,4 @@ python -m qgis_operations_workbench.workbench --export-geopackage
 
 ## Current Placeholder
 
-The `assets/workbench-preview.svg` provides a schematic preview. Replace with actual QGIS screenshots once the GeoPackage workflow is demonstrated end-to-end.
+The `assets/workbench-preview.svg` remains a schematic overview, while `assets/qgis-review-preview.png` provides a concrete data-driven preview. Add the QGIS-specific screenshots above when a desktop capture session is available.
