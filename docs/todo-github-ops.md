@@ -6,13 +6,14 @@ Now
 - Keep `docs/issue-filing-tracker.md` current as new issue waves are added beyond the initial 20.
 - Use `scripts/show-next-batch.ps1` and `scripts/mark-issue-filed.ps1` for future filing sessions.
 - Review whether the newest standalone repos should keep full CI or a lighter validation path.
-- Spot-check Dependabot and CodeQL after their first runs on the newly published repos.
+- Review whether the broader automation baseline on the newly published repos should be kept or narrowed at the next quarterly pass.
 
 Completed on 2026-04-02
 - All 20 initial standalone issues are now filed.
 - Baseline triage labels exist across the newly published repos.
 - `spatial-data-api`, `gulf-coast-inundation-lab`, `arroyo-flood-forecasting-lab`, `station-risk-classification-lab`, and `strata` are now published as standalone GitHub repos.
 - The shared `.github` templates and baseline automation files are present on those newly published repos.
+- GitHub Actions runs and Dependabot activity were spot-checked on the newly published repos.
 
 Next
 - Decide which repos should keep full CI versus lighter validation.

@@ -22,31 +22,39 @@ Do not add templates yet to the more experimental supporting repos. Those repos 
 
 ## Dependabot decision
 
-Add Dependabot only to repos where regular dependency review is realistic and the update surface is small enough to manage without creating constant backlog churn.
+The narrower initial plan covered only the most collaboration-ready showcase repos. The current published baseline is broader because the newly published repos inherited the shared `.github` automation bundle during repo sync.
 
-Selected repos:
+Repos currently carrying Dependabot:
 
 - `spatial-data-api`
 - `environmental-monitoring-api`
 - `open-web-map-operations-dashboard`
 - `geoprompt`
 - `environmental-monitoring-analytics`
+- `gulf-coast-inundation-lab`
+- `arroyo-flood-forecasting-lab`
+- `station-risk-classification-lab`
+- `strata`
 
-Leave Dependabot off for the other repos until they either ship more frequently or have a narrower dependency surface.
+Review this broader baseline quarterly and remove Dependabot from repos where the update volume is not earning its maintenance cost.
 
 ## Security scanning decision
 
-Add CodeQL only to repos where the security signal is worth the upkeep cost.
+The narrower initial plan also expanded during the publish pass for the newly created repos.
 
-Selected repos:
+Repos currently carrying CodeQL:
 
 - `spatial-data-api`
 - `environmental-monitoring-api`
 - `open-web-map-operations-dashboard`
 - `geoprompt`
 - `environmental-monitoring-analytics`
+- `gulf-coast-inundation-lab`
+- `arroyo-flood-forecasting-lab`
+- `station-risk-classification-lab`
+- `strata`
 
-Do not add CodeQL yet to research-heavy repos where the likely output would be dependency noise or low-value findings relative to maintenance effort.
+Keep reviewing whether the research-heavy repos are producing actionable CodeQL signal or just maintenance noise.
 
 ## Label baseline
 
@@ -76,3 +84,8 @@ That keeps the review discussion aligned with the actual repo direction and avoi
 Review templates, Dependabot, and CodeQL quarterly.
 
 Keep automation only where it is still producing actionable signal.
+
+Verified on 2026-04-02:
+
+- the newly published repos have active GitHub Actions runs
+- Dependabot update PRs are already appearing on those repos
