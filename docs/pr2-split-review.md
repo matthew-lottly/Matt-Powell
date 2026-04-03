@@ -48,12 +48,12 @@ Project-review hardening work under `projects/`:
 
 ## Manual GitHub Follow-Up
 
-1. Resolve the unresolved review threads on deleted sports-sim files as obsolete.
-2. Decide whether to merge PR #2 as-is or close it in favor of smaller follow-up PRs.
-3. If keeping one PR, add a maintainer comment explaining that the old sports-sim review comments are no longer relevant after removal.
-4. Use `docs/pr2-github-cleanup.md` as the exact stale-thread cleanup checklist.
+1. The unresolved review threads on deleted sports-sim files have been resolved as obsolete.
+2. The maintainer closeout comment has been posted.
+3. Treat PR #2 as historical cleanup context, not as the preferred merge vehicle.
+4. Use smaller follow-up PRs for mergeable work instead of landing the full historical branch as one unit.
 
 ## Merge Recommendation
 
-- Recommended path: replace PR #2 with smaller follow-up PRs after clearing stale sports-sim review threads.
-- Acceptable fallback: if you keep one PR open temporarily, discuss the branch as `hub planning` plus `project review artifacts` and do not treat the stale sports-sim review history as active feedback.
+- Decided path: do not merge PR #2 as one unit. Use it as historical review context, then land smaller follow-up PRs for hub coordination work and project-review hardening.
+- Temporary fallback: if PR #2 stays open for reference, discuss the branch as `hub planning` plus `project review artifacts` and do not treat the stale sports-sim review history as active feedback.
