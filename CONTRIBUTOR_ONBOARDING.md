@@ -23,6 +23,12 @@ Recommended workflow
 2. Check whether the target project is a showcase priority or a lower-priority reviewable project.
 3. Update the matrix when adding artifacts, runbooks, CI, or smoke coverage.
 4. If you add a new portfolio-level process, document it here or in `things-to-do.md`.
+5. Use the workspace tasks for quick portfolio checks and issue-filing navigation when working in VS Code.
+
+VS Code tasks
+- `Portfolio: Checks`
+- `Portfolio: Next Issue`
+- `Portfolio: Next Batch`
 
 Contribution guardrails
 - Do not move standalone project source into this hub repo.

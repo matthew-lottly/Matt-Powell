@@ -18,10 +18,12 @@ $requiredFiles = @(
     "docs/issue-submissions/README.md",
     "docs/pr2-github-cleanup.md",
     "docs/pr2-reviewer-closeout.md",
+    "docs/pr2-maintainer-comment.md",
     "docs/weekly-maintenance-checklist.md",
     "docs/merge-checklist.md",
     ".github/CODEOWNERS",
-    ".github/PULL_REQUEST_TEMPLATE.md"
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".vscode/tasks.json"
 )
 
 $missing = @()

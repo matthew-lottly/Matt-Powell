@@ -110,9 +110,11 @@ These are the repositories that should absorb most polish effort first. They bes
 - [docs/pr2-split-review.md](docs/pr2-split-review.md) for the active backlog-branch split review
 - [docs/pr2-github-cleanup.md](docs/pr2-github-cleanup.md) for exact stale-thread cleanup on the active PR
 - [docs/pr2-reviewer-closeout.md](docs/pr2-reviewer-closeout.md) for the shorter reviewer-facing PR cleanup note
+- [docs/pr2-maintainer-comment.md](docs/pr2-maintainer-comment.md) for the exact PR #2 maintainer comment and UI checklist
 - [docs/merge-checklist.md](docs/merge-checklist.md) for backlog-branch merge review
 - [docs/weekly-maintenance-checklist.md](docs/weekly-maintenance-checklist.md) for recurring portfolio upkeep
 - [CONTRIBUTOR_ONBOARDING.md](CONTRIBUTOR_ONBOARDING.md) for repo workflow and contribution rules
+- Workspace tasks in `.vscode/tasks.json` for one-click checks and filing helpers
 
 ## Connect
 
