@@ -12,6 +12,8 @@
 
 STRATA introduces *Conformalized Heterogeneous Message Passing* (CHMP), a framework that combines heterogeneous graph neural networks with split conformal prediction to produce uncertainty-quantified risk predictions across coupled infrastructure systems (power, water, telecom). Unlike existing conformal prediction methods for graphs—which assume homogeneous node/edge types—CHMP provides Mondrian-style per-type coverage guarantees on heterogeneous graphs, and introduces a suite of propagation-aware calibration schemes that account for multi-hop error propagation across utility boundaries.
 
+The reviewer-facing story is therefore not just predictive accuracy. It is whether the method produces calibrated uncertainty that remains interpretable when the graph contains multiple infrastructure types with different failure behavior and coupling patterns.
+
 ## Key Contributions
 
 1. **Heterogeneous conformal calibration**: Mondrian grouping by infrastructure type yields per-type coverage guarantees (Theorem 1).
@@ -209,3 +211,7 @@ $$C_i = [\hat{y}_i - \hat{q}\,\sigma_i,\; \hat{y}_i + \hat{q}\,\sigma_i]$$
 ## License
 
 MIT
+
+## Deployment Notes
+
+See [docs/deployment-guide.md](docs/deployment-guide.md) for the current deployment assumptions, GPU expectations, and packaging path for a reviewable STRATA environment.

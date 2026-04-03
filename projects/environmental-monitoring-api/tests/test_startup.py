@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 from spatial_data_api.main import app
 from spatial_data_api.repository import get_repository
 
-
 client = TestClient(app)
 
 

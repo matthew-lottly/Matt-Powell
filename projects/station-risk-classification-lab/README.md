@@ -22,6 +22,8 @@ This project extends the portfolio from time-series review and anomaly detection
 
 The implementation stays dependency-light while still following the same object-oriented report workflow used in the other data-science repos.
 
+The important explainability signal is that the selected prediction is accompanied by explicit risk drivers and holdout metrics, so a reviewer can evaluate whether the classifier is only accurate or also interpretable enough for operational triage.
+
 ## What It Demonstrates
 
 - A class-based classification workflow with the same export pattern as the other data-science projects
@@ -79,3 +81,4 @@ The default command writes `outputs/station_risk_report.json` with:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/classification-evaluation.md](docs/classification-evaluation.md) for the evaluation and explainability framing behind the exported report.

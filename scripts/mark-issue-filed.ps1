@@ -39,7 +39,7 @@ for ($index = 0; $index -lt $lines.Count; $index++) {
 
     $notesValue = if ($Notes) { $Notes } else { $values[10] }
     $ownerValue = if ($Owner) { $Owner } else { $values[6] }
-    $newLine = "| {0} | {1} | {2} | {3} | Filed | {4} | {5} | {6} | {7} | {8} |" -f \
+    $newLine = "| {0} | {1} | {2} | {3} | Filed | {4} | {5} | {6} | {7} | {8} |" -f `
         $values[1], $values[2], $values[3], $values[4], $ownerValue, $resolvedDate, $IssueReference, $values[9], $notesValue
     $lines[$index] = $newLine
     $updated = $true

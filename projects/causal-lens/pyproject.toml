@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "causal-lens"
-version = "0.3.0"
+version = "0.5.0"
 description = "Causal inference toolkit for observational data and treatment-effect diagnostics."
 readme = "README.md"
 requires-python = ">=3.11"

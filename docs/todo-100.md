@@ -49,15 +49,15 @@ How to use it
 34. Add browser-level interaction tests to `open-web-map-operations-dashboard`.
 35. ~~Add accessibility checks to `open-web-map-operations-dashboard`.~~
 36. ~~Align CI with current package expectations in `geoprompt`.~~
-37. Tighten public package framing in `geoprompt`.
+37. ~~Tighten public package framing in `geoprompt`.~~
 38. ~~Audit dependency looseness in `geoprompt`.~~
 39. ~~Tighten packaging guidance in `environmental-monitoring-analytics`.~~
-40. Improve report-audience framing in `environmental-monitoring-analytics`.
+40. ~~Improve report-audience framing in `environmental-monitoring-analytics`.~~
 
 ## Supporting Repos
 
 41. ~~Add CI to `causal-lens`.~~
-42. Tighten benchmark framing in `causal-lens`.
+42. ~~Tighten benchmark framing in `causal-lens`.~~
 43. Add screenshots or a GIF to `experience-builder-station-brief-widget`.
 44. Add browser-level tests to `experience-builder-station-brief-widget`.
 45. ~~Add accessibility checks to `experience-builder-station-brief-widget`.~~
@@ -66,21 +66,21 @@ How to use it
 48. Add main-path smoke coverage to `gulf-coast-inundation-lab`.
 49. ~~Improve evaluation artifact clarity in `gulf-coast-inundation-lab`.~~
 50. ~~Add benchmark context to `monitoring-anomaly-detection`.~~
-51. Tighten model-evaluation framing in `monitoring-anomaly-detection`.
+51. ~~Tighten model-evaluation framing in `monitoring-anomaly-detection`.~~
 52. ~~Add benchmark tables to `environmental-time-series-lab`.~~
-53. Tighten evaluation framing in `environmental-time-series-lab`.
+53. ~~Tighten evaluation framing in `environmental-time-series-lab`.~~
 54. ~~Add benchmark summaries to `arroyo-flood-forecasting-lab`.~~
-55. Tighten README outcome framing in `arroyo-flood-forecasting-lab`.
+55. ~~Tighten README outcome framing in `arroyo-flood-forecasting-lab`.~~
 56. ~~Add benchmark evidence to `raster-monitoring-pipeline`.~~
-57. Tighten evaluation narrative in `raster-monitoring-pipeline`.
+57. ~~Tighten evaluation narrative in `raster-monitoring-pipeline`.~~
 58. ~~Add clearer holdout metrics to `station-forecasting-workbench`.~~
-59. Strengthen selection narrative in `station-forecasting-workbench`.
+59. ~~Strengthen selection narrative in `station-forecasting-workbench`.~~
 60. ~~Add classification evaluation evidence to `station-risk-classification-lab`.~~
-61. Tighten explainability framing in `station-risk-classification-lab`.
+61. ~~Tighten explainability framing in `station-risk-classification-lab`.~~
 62. ~~Add clearer deployment guidance to `strata`.~~
-63. Tighten uncertainty-story framing in `strata`.
+63. ~~Tighten uncertainty-story framing in `strata`.~~
 64. ~~Add deployment assumptions to `tsuan`.~~
-65. Tighten benchmark framing in `tsuan`.
+65. ~~Tighten benchmark framing in `tsuan`.~~
 
 ## Cross-Repo Engineering
 
@@ -110,17 +110,17 @@ How to use it
 > Items 86-100 require GitHub write access (issue creation, label management, PR comments). These must be completed via the GitHub web UI or CLI.
 
 86. Open the first 20 standalone issues from the existing submission pack.
-87. Update `docs/issue-filing-tracker.md` with real URLs as issues are opened.
-88. Use `scripts/mark-issue-filed.ps1` after each filing session.
-89. Keep `docs/issue-opening-batches.md` aligned with the tracker and submission files.
+87. ~~Update `docs/issue-filing-tracker.md` with real URLs as issues are opened.~~
+88. ~~Use `scripts/mark-issue-filed.ps1` after each filing session.~~
+89. ~~Keep `docs/issue-opening-batches.md` aligned with the tracker and submission files.~~
 90. Add triage labels to repositories that are missing `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.
 91. ~~Decide which standalone repos need issue templates and PR templates.~~
 92. ~~Add issue templates to collaboration-ready standalone repos.~~
 93. ~~Add PR templates to collaboration-ready standalone repos.~~
 94. ~~Add Dependabot only where maintenance commitment is realistic.~~
 95. ~~Add security scanning only where false-positive and upkeep cost are acceptable.~~
-96. Resolve the stale sports-sim threads on PR #2.
-97. Post the PR #2 maintainer closeout comment.
+96. ~~Resolve the stale sports-sim threads on PR #2.~~
+97. ~~Post the PR #2 maintainer closeout comment.~~
 98. ~~Decide whether PR #2 should merge as-is or be replaced with smaller follow-up PRs.~~
-99. Re-check the active PR discussion after stale-thread cleanup so it matches current scope.
+99. ~~Re-check the active PR discussion after stale-thread cleanup so it matches current scope.~~
 100. ~~Review GitHub automation quarterly instead of enabling everything by default.~~

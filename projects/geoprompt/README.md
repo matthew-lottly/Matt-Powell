@@ -22,6 +22,8 @@ This project starts a reusable spatial package lane instead of another one-off a
 
 The initial version still stays intentionally simple, but it now goes beyond points: the frame can work with points, lines, and polygons represented through a small GeoJSON-like geometry mapping. That keeps the package small enough to iterate on while still showing a real package design direction.
 
+For portfolio review, the important signal is not just that the package runs. It is that the package exposes a reusable API surface, a benchmarkable behavior set, and a path toward a public spatial package that can be evaluated on usability rather than on one demo alone.
+
 ## What It Demonstrates
 
 - A package-first project structure rather than a single lab script

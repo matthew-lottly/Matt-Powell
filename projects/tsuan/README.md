@@ -127,6 +127,8 @@ data_root/
 | Physical plausibility | < 5% violations |
 | Inference latency | < 1 sec / 256×256 patch (CPU) |
 
+These are intended benchmark targets, not claimed achieved results in the current repository state. They exist to clarify what success should look like when the model is evaluated against the cited remote-sensing baselines.
+
 ## Project Structure
 
 ```
@@ -147,3 +149,7 @@ src/tsuan/
 ## License
 
 MIT
+
+## Deployment Notes
+
+See [docs/deployment-assumptions.md](docs/deployment-assumptions.md) for the expected input-data shape, deployment constraints, and benchmark framing behind the current TSUAN package layout.

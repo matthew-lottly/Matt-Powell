@@ -24,6 +24,8 @@ This project focuses on the analytics lane of the portfolio. It uses DuckDB to q
 
 It is intentionally small and fast to run so a reviewer can move from raw data to a presentable operations brief in a few minutes.
 
+The intended audience is an operations reviewer who needs a concise answer to "what changed, where is the pressure, and which stations need attention" rather than a notebook full of intermediate exploration.
+
 ## What It Demonstrates
 
 - SQL-first analytics with DuckDB
@@ -98,6 +100,7 @@ See [docs/sample-operations-brief.md](docs/sample-operations-brief.md) for a sam
 See [docs/sample-operations-brief.html](docs/sample-operations-brief.html) for a sample generated HTML brief.
 See [docs/architecture.md](docs/architecture.md) for the reporting flow overview.
 See [docs/api-snapshot-contract.md](docs/api-snapshot-contract.md) for the snapshot input contract.
+See [docs/packaging-guide.md](docs/packaging-guide.md) for packaging and reviewer-run guidance.
 
 ## API Snapshot Workflow
 

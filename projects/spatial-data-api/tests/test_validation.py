@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 from spatial_data_api.main import app
 from spatial_data_api.repository import get_repository
 
-
 client = TestClient(app)
 
 
@@ -95,9 +94,7 @@ def test_observations_for_missing_feature() -> None:
 
 def test_recent_observations_zero_limit() -> None:
     response = client.get("/api/v1/observations/recent", params={"limit": 0})
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["observations"] == []
+    assert response.status_code == 422
 
 
 def test_recent_observations_negative_limit() -> None:

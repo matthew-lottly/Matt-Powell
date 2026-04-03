@@ -12,7 +12,7 @@ authors:
   - family-names: Powell
     given-names: Matthew
     orcid: ""
-version: "0.3.0"
+version: "0.5.0"
 date-released: "2026-03-25"
 license: MIT
 repository-code: "https://github.com/matthew-lottly/causal-lens"

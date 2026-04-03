@@ -22,6 +22,8 @@ This project shows the operational side of data science: turning raw monitoring 
 
 The current implementation stays public-safe and dependency-light. It uses checked-in observations, compares several detector strategies against labeled events, selects the strongest detector by F1 score, and exports a ranked anomaly report with experiment-style metadata.
 
+The key review question is not whether one detector wins on one seed. It is whether the repository makes the model-selection tradeoff legible through labeled-event metrics, benchmark context, and a ranked output that an analyst could plausibly act on.
+
 ## What It Demonstrates
 
 - Candidate-detector comparison across global, rolling, robust, and delta-based scoring
@@ -80,12 +82,4 @@ The default command writes `outputs/anomaly_report.json` with:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
-## Publication
-
-- License: [LICENSE](LICENSE)
-- Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
-- Local CI workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
-
-## Repository Notes
-
-This copy is intended to be publishable as its own repository.
+See [docs/benchmark-context.md](docs/benchmark-context.md) for the detector-comparison framing behind the exported metrics.

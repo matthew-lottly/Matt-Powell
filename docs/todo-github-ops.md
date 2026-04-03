@@ -10,8 +10,7 @@ Now
 - Use `docs/issue-opening-batches.md` to open issues in manageable waves.
 - Use `scripts/show-next-batch.ps1` and `scripts/mark-issue-filed.ps1` during filing sessions.
 - Add triage labels for `bug`, `enhancement`, `ci`, `maintenance`, and `showcase`.
-- Resolve stale PR review threads that still reference deleted sports-sim files using `docs/pr2-github-cleanup.md`.
-- Use `docs/pr2-maintainer-comment.md` for the exact maintainer comment during PR cleanup.
+- Remaining blockers: `spatial-data-api`, `gulf-coast-inundation-lab`, `arroyo-flood-forecasting-lab`, `station-risk-classification-lab`, and `strata` are not currently accessible as standalone GitHub repos, so their issue filing and repo-level automation cannot be completed yet.
 
 Next
 - Decide which repos should keep full CI versus lighter validation.

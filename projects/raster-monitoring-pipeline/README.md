@@ -22,6 +22,8 @@ This project rounds out the current repo wave by adding a raster-first analysis 
 
 The current implementation is intentionally public-safe and runnable without GDAL or rasterio. It uses checked-in grid fixtures so the workflow is easy to review before adding GeoTIFF-backed processing.
 
+The evaluation story is intentionally operational: a reviewer should be able to see where change concentrates, how hotspots are ranked, and what evidence would justify promoting this from a fixture-backed demo into a production raster monitoring workflow.
+
 ## What It Demonstrates
 
 - Repeatable raster change detection without notebook-only logic
@@ -82,6 +84,7 @@ The default command writes `outputs/raster_change_report.json` with:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/benchmark-evidence.md](docs/benchmark-evidence.md) for the change-detection evidence framing behind the exported report.
 
 ## Publication
 

@@ -20,6 +20,8 @@ Data science portfolio project for temporal diagnostics, baseline comparison, an
 
 This project focuses on time-series analysis rather than GIS surface area. It loads small station histories, reserves a trailing review window, compares candidate baselines against that holdout segment, and exports structured diagnostics that can support monitoring review or later modeling work.
 
+That holdout-first structure is the main evaluation signal: the repository is meant to show how temporal diagnostics, baseline ranking, and later modeling decisions can be grounded in a reviewable window rather than in in-sample descriptions.
+
 ## What It Demonstrates
 
 - Repeatable time-series summarization in a package structure
@@ -34,12 +36,4 @@ This project focuses on time-series analysis rather than GIS surface area. It lo
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
-## Publication
-
-- License: [LICENSE](LICENSE)
-- Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
-- Local CI workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
-
-## Repository Notes
-
-This copy is intended to be publishable as its own repository.
+See [docs/benchmark-tables.md](docs/benchmark-tables.md) for the baseline-comparison framing used to interpret the exported leaderboard.
