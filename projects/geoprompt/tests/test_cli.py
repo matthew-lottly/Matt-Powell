@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -20,6 +21,11 @@ def _run_demo(*args: str) -> subprocess.CompletedProcess:
         cwd=str(PROJECT_ROOT),
         timeout=120,
     )
+
+
+def _read_output_records(path: Path) -> list[dict[str, object]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload["records"]
 
 
 def test_cli_dry_run() -> None:
@@ -161,3 +167,87 @@ def test_cli_analyze_command_custom_columns(tmp_path: Path) -> None:
         str(tmp_path),
     )
     assert result.returncode == 0
+
+
+def test_cli_analyze_command_with_chunk_size(tmp_path: Path) -> None:
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        "hotspot-scan",
+        "--chunk-size",
+        "2",
+        "--format",
+        "json",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    output_path = tmp_path / "geoprompt_analyze_hotspot_scan.json"
+    assert len(_read_output_records(output_path)) == 6
+
+
+def test_cli_analyze_command_with_sample(tmp_path: Path) -> None:
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        "hotspot-scan",
+        "--sample",
+        "0.5",
+        "--format",
+        "json",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    output_path = tmp_path / "geoprompt_analyze_hotspot_scan.json"
+    assert len(_read_output_records(output_path)) == 3
+
+
+def test_cli_analyze_command_invalid_sample_exits_nonzero(tmp_path: Path) -> None:
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        "hotspot-scan",
+        "--sample",
+        "0",
+        "--format",
+        "json",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode != 0
+    assert "--sample must be between 0 and 1" in result.stderr
+
+
+def test_cli_analyze_command_with_max_results(tmp_path: Path) -> None:
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        "gravity-flow",
+        "--max-results",
+        "2",
+        "--format",
+        "json",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    output_path = tmp_path / "geoprompt_analyze_gravity_flow.json"
+    assert len(_read_output_records(output_path)) == 2
+
+
+def test_cli_analyze_command_with_max_distance(tmp_path: Path) -> None:
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        "gravity-flow",
+        "--max-distance",
+        "0",
+        "--format",
+        "json",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    output_path = tmp_path / "geoprompt_analyze_gravity_flow.json"
+    assert _read_output_records(output_path) == []

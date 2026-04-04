@@ -4,6 +4,8 @@ import json
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
+
+
 def read_features_chunked(
     path: str | Path,
     chunk_size: int = 1000,
@@ -156,6 +158,7 @@ def write_geojson(path: str | Path, frame: GeoPromptFrame, geometry: str = "geom
 __all__ = [
     "frame_to_geojson",
     "read_features",
+    "read_features_chunked",
     "read_geojson",
     "read_points",
     "write_geojson",
