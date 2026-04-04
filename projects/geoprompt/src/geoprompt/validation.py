@@ -75,6 +75,27 @@ def validate_crs(crs: str | None, *, require: bool = False) -> None:
         logger.debug("CRS set to %s", crs)
 
 
+def validate_distance_method_crs(distance_method: str, crs: str | None) -> None:
+    """Validate that a distance method is compatible with CRS assumptions.
+
+    Haversine distance requires geographic coordinates in EPSG:4326.
+    """
+    method = distance_method.strip().lower()
+    if method not in {"euclidean", "haversine"}:
+        raise ValidationError(f"Unsupported distance method: {distance_method}")
+    if method != "haversine":
+        return
+
+    if crs is None:
+        raise CRSError("distance_method='haversine' requires CRS to be set to EPSG:4326")
+
+    normalized = crs.strip().upper().replace(" ", "")
+    if normalized not in {"EPSG:4326", "WGS84"}:
+        raise CRSError(
+            f"distance_method='haversine' requires geographic CRS EPSG:4326, got '{crs}'"
+        )
+
+
 def validate_numeric_range(value: float, name: str, *, min_val: float | None = None, max_val: float | None = None) -> None:
     """Item 8: Enforce numeric range checks for weight fields."""
     if min_val is not None and value < min_val:
@@ -112,6 +133,7 @@ __all__ = [
     "add_schema_version",
     "safe_weight",
     "validate_crs",
+    "validate_distance_method_crs",
     "validate_geometry",
     "validate_non_empty_features",
     "validate_numeric_range",

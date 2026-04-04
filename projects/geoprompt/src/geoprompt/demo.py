@@ -198,6 +198,103 @@ def _write_run_manifest(
     return write_json(manifest_path, payload)
 
 
+def _run_pipeline(args: argparse.Namespace) -> None:
+    pipeline_file = getattr(args, "pipeline_file", None)
+    if not isinstance(pipeline_file, Path):
+        print("error: --pipeline-file is required for the pipeline command.", file=sys.stderr)
+        raise SystemExit(2)
+    if not pipeline_file.exists():
+        print(f"error: pipeline file not found: {pipeline_file}", file=sys.stderr)
+        raise SystemExit(2)
+
+    payload = json.loads(pipeline_file.read_text(encoding="utf-8"))
+    steps = payload.get("steps")
+    if not isinstance(steps, list) or not steps:
+        print("error: pipeline file must contain a non-empty 'steps' list.", file=sys.stderr)
+        raise SystemExit(2)
+
+    checkpoint_dir = args.output_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = checkpoint_dir / "geoprompt_pipeline_state.json"
+
+    completed_steps: list[str] = []
+    if args.resume and checkpoint_path.exists():
+        checkpoint_payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        completed_steps = list(checkpoint_payload.get("completed_steps", []))
+
+    run_results: list[dict[str, Any]] = []
+    for index, step in enumerate(steps, start=1):
+        if not isinstance(step, dict):
+            print(f"error: step {index} is not an object", file=sys.stderr)
+            raise SystemExit(2)
+
+        step_name = str(step.get("name") or f"step_{index}")
+        if args.resume and step_name in completed_steps:
+            logger.info("Skipping completed pipeline step: %s", step_name)
+            run_results.append({"name": step_name, "status": "skipped"})
+            continue
+
+        step_command = str(step.get("command", "analyze"))
+        if step_command == "pipeline":
+            print("error: nested 'pipeline' command is not allowed in pipeline steps.", file=sys.stderr)
+            raise SystemExit(2)
+
+        cli = [
+            sys.executable,
+            "-m",
+            "geoprompt.demo",
+            step_command,
+            "--input-path",
+            str(args.input_path),
+            "--output-dir",
+            str(args.output_dir),
+        ]
+
+        for key, value in step.items():
+            if key in {"name", "command"}:
+                continue
+            flag = f"--{key.replace('_', '-')}"
+            if isinstance(value, bool):
+                if value:
+                    cli.append(flag)
+            elif isinstance(value, list):
+                cli.append(flag)
+                cli.extend(str(item) for item in value)
+            elif value is not None:
+                cli.extend([flag, str(value)])
+
+        result = subprocess.run(
+            cli,
+            capture_output=True,
+            text=True,
+            cwd=str(PROJECT_ROOT),
+            check=False,
+        )
+        if result.returncode != 0:
+            print(result.stderr, file=sys.stderr)
+            print(f"error: pipeline step '{step_name}' failed with exit code {result.returncode}", file=sys.stderr)
+            raise SystemExit(result.returncode)
+
+        completed_steps.append(step_name)
+        checkpoint_payload = {
+            "completed_steps": completed_steps,
+            "last_completed_step": step_name,
+            "total_steps": len(steps),
+        }
+        write_json(checkpoint_path, checkpoint_payload)
+        run_results.append({"name": step_name, "status": "completed", "command": step_command})
+
+    _write_run_manifest(
+        output_dir=args.output_dir,
+        command="pipeline",
+        input_path=args.input_path,
+        output_paths=[checkpoint_path],
+        args=args,
+        extra={"completed_steps": completed_steps, "step_results": run_results},
+    )
+    logger.info("Pipeline complete: %d/%d steps complete", len(completed_steps), len(steps))
+
+
 def export_pressure_plot(
     records: list[dict[str, object]],
     output_path: Path,
@@ -561,8 +658,8 @@ def parse_args() -> argparse.Namespace:
         "command",
         nargs="?",
         default="report",
-        choices=["report", "plot", "export", "accessibility", "gravity-flow", "suitability", "analyze"],
-        help="Command to run: report (default), plot, export, accessibility, gravity-flow, suitability, or analyze.",
+        choices=["report", "plot", "export", "accessibility", "gravity-flow", "suitability", "analyze", "pipeline"],
+        help="Command to run: report (default), plot, export, accessibility, gravity-flow, suitability, analyze, or pipeline.",
     )
 
     # Path options
@@ -570,6 +667,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Output directory for report and charts.")
     parser.add_argument("--asset-path", type=Path, default=DEFAULT_ASSET_PATH, help="Committed asset path for the review plot.")
     parser.add_argument("--config", type=Path, default=None, help="Path to geoprompt.toml config file (item 30).")
+    parser.add_argument("--pipeline-file", type=Path, default=None, help="Path to pipeline JSON file (pipeline command only).")
+    parser.add_argument("--resume", action="store_true", help="Resume pipeline execution from checkpoint state.")
 
     # Output format (item 22)
     parser.add_argument("--format", dest="output_format", default="json", choices=["json", "csv", "geojson"],
@@ -648,6 +747,10 @@ def main() -> None:
     configure_logging(verbose=args.verbose or config.verbose, trace=args.trace or config.trace)
 
     logger.info("GeoPrompt demo v%s (schema %s)", "0.1.6", SCHEMA_VERSION)
+
+    if args.command == "pipeline":
+        _run_pipeline(args)
+        return
 
     # Item 29: Dry-run mode
     if args.dry_run:

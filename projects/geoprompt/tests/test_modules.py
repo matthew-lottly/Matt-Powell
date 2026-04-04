@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from geoprompt.config import GeoPromptConfig, load_config
-from geoprompt.exceptions import ConfigError, PluginError, ValidationError
+from geoprompt.exceptions import CRSError, ConfigError, PluginError, ValidationError
 from geoprompt.normalization import (
     apply_negative_weight_policy,
     normalize,
@@ -31,6 +31,7 @@ from geoprompt.validation import (
     add_schema_version,
     safe_weight,
     validate_crs,
+    validate_distance_method_crs,
     validate_non_empty_features,
     validate_required_columns,
 )
@@ -60,6 +61,17 @@ class TestValidation:
         from geoprompt.exceptions import CRSError
         with pytest.raises(CRSError, match="non-empty"):
             validate_crs("", require=False)
+
+    def test_validate_distance_method_crs_requires_4326_for_haversine(self) -> None:
+        with pytest.raises(CRSError, match="EPSG:4326"):
+            validate_distance_method_crs("haversine", "EPSG:3857")
+
+    def test_validate_distance_method_crs_requires_crs_for_haversine(self) -> None:
+        with pytest.raises(CRSError, match="requires CRS"):
+            validate_distance_method_crs("haversine", None)
+
+    def test_validate_distance_method_crs_accepts_haversine_for_4326(self) -> None:
+        validate_distance_method_crs("haversine", "EPSG:4326")
 
 
 class TestConfig:

@@ -96,7 +96,7 @@ from .overlay import buffer_geometries, dissolve_geometries, geometry_from_shape
 from .plugins import get_decay, get_kernel, list_decay_functions, list_kernels, register_decay, register_kernel
 from .sensitivity import SweepResult, confidence_score, parameter_sweep, rank_with_confidence
 from .types import BoundsDict, DemoReport, InteractionRecord, NearestNeighborRecord
-from .validation import SCHEMA_VERSION, add_schema_version, safe_weight, validate_crs, validate_geometry, validate_non_empty_features, validate_numeric_range, validate_required_columns, validate_weight_column_values
+from .validation import SCHEMA_VERSION, add_schema_version, safe_weight, validate_crs, validate_distance_method_crs, validate_geometry, validate_non_empty_features, validate_numeric_range, validate_required_columns, validate_weight_column_values
 
 
 API_STABILITY: dict[str, str] = {
@@ -261,6 +261,7 @@ __all__ = [
     "transit_support_score",
     "vaccination_protection_score",
     "validate_crs",
+    "validate_distance_method_crs",
     "validate_geometry",
     "validate_non_empty_features",
     "validate_numeric_range",

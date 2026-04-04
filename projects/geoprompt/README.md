@@ -302,6 +302,24 @@ Run tests:
 pytest
 ```
 
+Run a resumable pipeline from a JSON plan:
+
+```bash
+geoprompt-demo pipeline --pipeline-file pipeline.json --resume
+```
+
+Example `pipeline.json`:
+
+```json
+{
+    "steps": [
+        {"name": "scan", "command": "analyze", "tool": "hotspot-scan", "format": "json"},
+        {"name": "flow", "command": "analyze", "tool": "gravity-flow", "max_results": 20, "format": "json"},
+        {"name": "report", "command": "report", "no_plot": true, "no_asset_copy": true}
+    ]
+}
+```
+
 ## Current Output
 
 The default demo command writes `outputs/geoprompt_demo_report.json` and `outputs/charts/neighborhood-pressure-review.png` with:
@@ -336,7 +354,7 @@ See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthro
 These are intentionally simple first equations. The package now supports two distance modes:
 
 - `euclidean` for planar coordinate space and direct comparison with Shapely and GeoPandas raw-coordinate results
-- `haversine` for geographic point-to-point distances in kilometers when your coordinates are longitude/latitude
+- `haversine` for geographic point-to-point distances in kilometers when your coordinates are longitude/latitude (`EPSG:4326` required)
 
 The package now supports CRS tagging and reprojection, but it is still designed so richer CRS handling, overlays, and additional operators can be layered in later.
 

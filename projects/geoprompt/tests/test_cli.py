@@ -277,3 +277,66 @@ def test_cli_analyze_writes_manifest(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     manifest = tmp_path / "manifests" / "geoprompt_analyze_hotspot_scan_manifest.json"
     assert manifest.exists()
+
+
+def test_cli_pipeline_runs_steps_and_writes_checkpoint(tmp_path: Path) -> None:
+        pipeline_file = tmp_path / "pipeline.json"
+        pipeline_file.write_text(
+                """
+{
+    "steps": [
+        {"name": "scan", "command": "analyze", "tool": "hotspot-scan", "format": "json"},
+        {"name": "report", "command": "report", "no_plot": true, "no_asset_copy": true}
+    ]
+}
+                """.strip(),
+                encoding="utf-8",
+        )
+
+        result = _run_demo(
+                "pipeline",
+                "--pipeline-file",
+                str(pipeline_file),
+                "--output-dir",
+                str(tmp_path),
+        )
+        assert result.returncode == 0, result.stderr
+
+        checkpoint = tmp_path / "checkpoints" / "geoprompt_pipeline_state.json"
+        assert checkpoint.exists()
+        pipeline_manifest = tmp_path / "manifests" / "geoprompt_pipeline_manifest.json"
+        assert pipeline_manifest.exists()
+
+
+def test_cli_pipeline_resume_skips_completed_steps(tmp_path: Path) -> None:
+        pipeline_file = tmp_path / "pipeline_resume.json"
+        pipeline_file.write_text(
+                """
+{
+    "steps": [
+        {"name": "scan", "command": "analyze", "tool": "hotspot-scan", "format": "json"},
+        {"name": "flow", "command": "analyze", "tool": "gravity-flow", "format": "json", "max_results": 2}
+    ]
+}
+                """.strip(),
+                encoding="utf-8",
+        )
+
+        first = _run_demo(
+                "pipeline",
+                "--pipeline-file",
+                str(pipeline_file),
+                "--output-dir",
+                str(tmp_path),
+        )
+        assert first.returncode == 0, first.stderr
+
+        second = _run_demo(
+                "pipeline",
+                "--pipeline-file",
+                str(pipeline_file),
+                "--output-dir",
+                str(tmp_path),
+                "--resume",
+        )
+        assert second.returncode == 0, second.stderr

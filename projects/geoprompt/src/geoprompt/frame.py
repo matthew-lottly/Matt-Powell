@@ -39,6 +39,7 @@ from .equations import (
 )
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections
+from .validation import validate_distance_method_crs
 
 
 Record = dict[str, Any]
@@ -106,6 +107,7 @@ class GeoPromptAnalysis:
         max_distance: float | None = None,
     ) -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(opportunities)
         frame._require_column(id_column)
 
@@ -147,6 +149,7 @@ class GeoPromptAnalysis:
         max_results: int | None = None,
     ) -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(origin_weight)
         frame._require_column(destination_weight)
         frame._require_column(id_column)
@@ -222,6 +225,7 @@ class GeoPromptAnalysis:
         max_distance: float | None = None,
     ) -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(demand_column)
         frame._require_column(supply_column)
         frame._require_column(id_column)
@@ -304,6 +308,7 @@ class GeoPromptAnalysis:
         distance_method: str = "euclidean",
     ) -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(service_frequency_column)
         frame._require_column(coverage_column)
         frame._require_column(id_column)
@@ -376,6 +381,7 @@ class GeoPromptAnalysis:
 
     def land_value_surface(self, base_value_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(base_value_column)
         frame._require_column(id_column)
         centroids = frame._cached_centroids
@@ -398,6 +404,7 @@ class GeoPromptAnalysis:
 
     def pollution_surface(self, source_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(source_column)
         frame._require_column(id_column)
         centroids = frame._cached_centroids
@@ -420,6 +427,7 @@ class GeoPromptAnalysis:
 
     def habitat_fragmentation_map(self, patch_column: str, connectivity_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(patch_column)
         frame._require_column(connectivity_column)
         frame._require_column(id_column)
@@ -460,6 +468,7 @@ class GeoPromptAnalysis:
 
     def migration_pull_map(self, economic_column: str, quality_column: str, cultural_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(economic_column)
         frame._require_column(quality_column)
         frame._require_column(cultural_column)
@@ -518,6 +527,7 @@ class GeoPromptAnalysis:
 
     def trade_corridor_map(self, export_column: str, import_column: str, id_column: str = "site_id", distance_method: str = "euclidean", max_distance: float | None = None, max_results: int | None = None) -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(export_column)
         frame._require_column(import_column)
         frame._require_column(id_column)
@@ -594,6 +604,7 @@ class GeoPromptAnalysis:
 
     def noise_impact_map(self, source_column: str, barrier_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(source_column)
         frame._require_column(barrier_column)
         frame._require_column(id_column)
@@ -617,6 +628,7 @@ class GeoPromptAnalysis:
 
     def visual_prominence_map(self, vertical_column: str, range_column: str, distinctiveness_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
         frame = self._frame
+        frame._validate_distance_method(distance_method)
         frame._require_column(vertical_column)
         frame._require_column(range_column)
         frame._require_column(distinctiveness_column)
@@ -756,6 +768,7 @@ class GeoPromptFrame:
         return aggregate_values
 
     def distance_matrix(self, distance_method: str = "euclidean") -> list[list[float]]:
+        self._validate_distance_method(distance_method)
         return [
             [
                 geometry_distance(origin=row[self.geometry_column], destination=other[self.geometry_column], method=distance_method)
@@ -779,6 +792,7 @@ class GeoPromptFrame:
         k: int = 1,
         distance_method: str = "euclidean",
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(id_column)
         if k <= 0:
             raise ValueError("k must be greater than zero")
@@ -842,6 +856,7 @@ class GeoPromptFrame:
         max_distance: float | None = None,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=other.crs)
         if k <= 0:
             raise ValueError("k must be greater than zero")
         if how not in {"inner", "left"}:
@@ -899,6 +914,7 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         origin_suffix: str = "origin",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=targets.crs)
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -923,6 +939,7 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         assignment_suffix: str = "assigned",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=targets.crs)
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -984,6 +1001,7 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -1015,6 +1033,7 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> list[bool]:
+        self._validate_distance_method(distance_method)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -1038,6 +1057,7 @@ class GeoPromptFrame:
         rsuffix: str = "right",
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=other.crs)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
         if how not in {"inner", "left"}:
@@ -1442,6 +1462,11 @@ class GeoPromptFrame:
         if name not in self.columns:
             raise KeyError(f"column '{name}' is not present")
 
+    def _validate_distance_method(self, distance_method: str, other_crs: str | None = None) -> None:
+        validate_distance_method_crs(distance_method, self.crs)
+        if other_crs is not None:
+            validate_distance_method_crs(distance_method, other_crs)
+
     def neighborhood_pressure(
         self,
         weight_column: str,
@@ -1450,6 +1475,7 @@ class GeoPromptFrame:
         include_self: bool = False,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         pressures: list[float] = []
         for row in self._rows:
@@ -1476,6 +1502,7 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -1501,6 +1528,7 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -1527,6 +1555,7 @@ class GeoPromptFrame:
         max_distance: float | None = None,
         max_results: int | None = None,
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(id_column)
         centroids = self._cached_centroids
         areas = [geometry_area(row[self.geometry_column]) for row in self._rows]
@@ -1568,6 +1597,7 @@ class GeoPromptFrame:
         max_distance: float | None = None,
         max_results: int | None = None,
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(origin_weight)
         self._require_column(destination_weight)
         self._require_column(id_column)
