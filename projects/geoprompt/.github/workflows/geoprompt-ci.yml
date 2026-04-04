@@ -10,6 +10,7 @@ on:
       - "src/**"
       - "tests/**"
       - "data/**"
+      - "benchmarks/**"
   pull_request:
     paths:
       - ".github/workflows/geoprompt-ci.yml"
@@ -19,14 +20,37 @@ on:
       - "src/**"
       - "tests/**"
       - "data/**"
+      - "benchmarks/**"
 
 jobs:
-  validate:
+  lint:
     runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install linting tools
+        run: python -m pip install --upgrade pip ruff
+
+      - name: Run Ruff linter
+        run: ruff check src/ tests/
+
+      - name: Run Ruff formatter check
+        run: ruff format --check src/ tests/
+
+  validate:
+    runs-on: ${{ matrix.os }}
+    needs: lint
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -42,11 +66,11 @@ jobs:
       - name: Install Geoprompt with validation extras
         run: python -m pip install -e ".[dev,compare,overlay,projection]"
 
-      - name: Run tests
-        run: python -m pytest
+      - name: Run tests with coverage
+        run: python -m pytest --cov=geoprompt --cov-report=xml --cov-report=term --cov-fail-under=70
 
       - name: Generate demo outputs
-        run: python -m geoprompt.demo
+        run: python -m geoprompt.demo --no-asset-copy
 
       - name: Run comparison corpus
         run: python -m geoprompt.compare
@@ -56,3 +80,13 @@ jobs:
 
       - name: Check distribution metadata
         run: python -m twine check dist/*
+
+      - name: Upload test artifacts
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: geoprompt-outputs
+          path: |
+            outputs/
+            dist/
+          retention-days: 14

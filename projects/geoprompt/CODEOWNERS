@@ -1,0 +1,18 @@
+# CODEOWNERS
+# Maintainers responsible for geoprompt package review
+
+# Default owner for all files
+* @matthew-lottly
+
+# Core spatial engine
+/src/geoprompt/frame.py @matthew-lottly
+/src/geoprompt/geometry.py @matthew-lottly
+/src/geoprompt/equations.py @matthew-lottly
+/src/geoprompt/overlay.py @matthew-lottly
+
+# CI and infrastructure
+/.github/ @matthew-lottly
+/pyproject.toml @matthew-lottly
+
+# Tests
+/tests/ @matthew-lottly

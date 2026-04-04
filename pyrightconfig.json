@@ -3,10 +3,14 @@
     "projects/3d-vp-lcp/src",
     "projects/3d-vp-lcp/tests",
     "projects/3d-vp-lcp/examples",
+    "projects/geoprompt/src",
+    "projects/geoprompt/tests",
+    "projects/geoprompt/benchmarks",
     "projects/tsuan/src"
   ],
   "extraPaths": [
     "projects/3d-vp-lcp/src",
+    "projects/geoprompt/src",
     "projects/tsuan/src"
   ],
   "venvPath": ".",
@@ -16,6 +20,12 @@
       "root": "projects/3d-vp-lcp",
       "extraPaths": [
         "projects/3d-vp-lcp/src"
+      ]
+    },
+    {
+      "root": "projects/geoprompt",
+      "extraPaths": [
+        "projects/geoprompt/src"
       ]
     },
     {
