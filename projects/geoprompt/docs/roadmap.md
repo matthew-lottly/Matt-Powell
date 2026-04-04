@@ -43,6 +43,7 @@ Use these GitHub labels to categorize issues and PRs:
 - Platform matrix (Ubuntu, Windows, macOS)
 - Regression test suite with snapshot validation
 - Performance benchmarking with regression thresholds
+- Configurable benchmark thresholds in `benchmarks/thresholds.json`
 
 ### v1.0.0 — Stable Release
 - Stable public API

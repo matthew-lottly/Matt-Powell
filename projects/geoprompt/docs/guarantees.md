@@ -27,6 +27,8 @@ This document defines the current reliability contract for Geoprompt.
 - Beta: plugin extension interfaces and sensitivity utilities.
 - Experimental: performance heuristics and benchmark thresholds.
 
+Public API stability markers are exported in `geoprompt.API_STABILITY`.
+
 ## Non-Goals (Current)
 
 - Bit-identical floating-point parity across all OS/CPU combinations.

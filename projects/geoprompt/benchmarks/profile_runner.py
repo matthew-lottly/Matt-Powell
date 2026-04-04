@@ -4,12 +4,32 @@ Run: python benchmarks/profile_runner.py
 """
 from __future__ import annotations
 
+import json
+import os
 import random
 import sys
 import time
 import tracemalloc
+from pathlib import Path
 
 from geoprompt import GeoPromptFrame
+
+
+DEFAULT_THRESHOLDS_PATH = Path(__file__).resolve().parent / "thresholds.json"
+
+
+def _load_thresholds() -> dict[str, float]:
+    override = os.environ.get("GEOPROMPT_BENCHMARK_THRESHOLDS")
+    threshold_path = Path(override) if override else DEFAULT_THRESHOLDS_PATH
+    if not threshold_path.exists():
+        return {
+            "neighborhood_pressure": 30.0,
+            "nearest_neighbors": 30.0,
+            "distance_matrix": 30.0,
+            "interaction_table": 30.0,
+        }
+    payload = json.loads(threshold_path.read_text(encoding="utf-8"))
+    return {str(key): float(value) for key, value in payload.items()}
 
 
 def _random_frame(n: int, seed: int = 42) -> GeoPromptFrame:
@@ -53,6 +73,7 @@ def main() -> None:
     print("GeoPrompt Profile Runner")
     print("=" * 70)
 
+    thresholds = _load_thresholds()
     results = []
     for n in (25, 100, 250):
         frame = _random_frame(n)
@@ -77,12 +98,17 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("Profile complete.")
 
-    # Check for regressions: no single operation should exceed 30s for n=250
-    slow = [r for r in results if r["elapsed"] > 30]
+    # Check for regressions using explicit per-operation thresholds.
+    slow: list[dict[str, float | str]] = []
+    for result in results:
+        op_name = str(result["name"]).split(" (")[0]
+        threshold = thresholds.get(op_name, 30.0)
+        if float(result["elapsed"]) > threshold:
+            slow.append({"name": result["name"], "elapsed": result["elapsed"], "threshold": threshold})
     if slow:
-        print(f"\nWARNING: {len(slow)} operations exceeded 30s threshold")
+        print(f"\nWARNING: {len(slow)} operations exceeded benchmark thresholds")
         for r in slow:
-            print(f"  {r['name']}: {r['elapsed']:.2f}s")
+            print(f"  {r['name']}: {r['elapsed']:.2f}s > {r['threshold']:.2f}s")
         sys.exit(1)
 
 

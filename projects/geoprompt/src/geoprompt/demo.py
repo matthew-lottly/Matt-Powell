@@ -15,6 +15,7 @@ import logging
 import platform
 import random as _random
 import subprocess
+import sys
 from heapq import nlargest
 from pathlib import Path
 from typing import Any
@@ -150,22 +151,45 @@ def _write_run_manifest(
     manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = manifest_dir / f"geoprompt_{command.replace('-', '_')}_manifest.json"
 
+    config_hash: str | None = None
+    config_path = getattr(args, "config", None)
+    if isinstance(config_path, Path) and config_path.exists():
+        config_hash = _sha256_file(config_path)
+
+    arguments = {
+        key: (str(value) if isinstance(value, Path) else value)
+        for key, value in vars(args).items()
+    }
+
+    fingerprint_payload = {
+        "command": command,
+        "input_sha256": _sha256_file(input_path),
+        "arguments": arguments,
+        "git_commit": _current_git_commit(),
+        "config_hash": config_hash,
+    }
+    run_fingerprint = hashlib.sha256(json.dumps(fingerprint_payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "package": "geoprompt",
         "command": command,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "python_version": platform.python_version(),
+        "python_executable": sys.executable,
         "platform": platform.platform(),
+        "cwd": str(Path.cwd()),
         "git_commit": _current_git_commit(),
+        "run_fingerprint": run_fingerprint,
         "input": {
             "path": str(input_path),
             "sha256": _sha256_file(input_path),
         },
-        "arguments": {
-            key: (str(value) if isinstance(value, Path) else value)
-            for key, value in vars(args).items()
+        "config": {
+            "path": str(config_path) if isinstance(config_path, Path) else None,
+            "sha256": config_hash,
         },
+        "arguments": arguments,
         "outputs": [str(path) for path in output_paths],
     }
     if extra:
@@ -429,12 +453,28 @@ def build_demo_report(
                     ),
                     key=lambda item: float(item["interaction"]),
                 )
+                top_interactions = sorted(
+                    top_interactions,
+                    key=lambda item: (
+                        -float(item["interaction"]),
+                        str(item.get("origin", "")),
+                        str(item.get("destination", "")),
+                    ),
+                )
 
             with log_timing("area_similarity_table"):
                 top_area_similarity = nlargest(
                     top_n,
                     enriched.area_similarity_table(scale=0.2, power=1.2),
                     key=lambda item: float(item["area_similarity"]),
+                )
+                top_area_similarity = sorted(
+                    top_area_similarity,
+                    key=lambda item: (
+                        -float(item["area_similarity"]),
+                        str(item.get("origin", "")),
+                        str(item.get("destination", "")),
+                    ),
                 )
 
         top_nearest_neighbors = enriched.nearest_neighbors(k=1)

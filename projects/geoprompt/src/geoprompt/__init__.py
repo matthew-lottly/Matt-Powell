@@ -99,8 +99,21 @@ from .types import BoundsDict, DemoReport, InteractionRecord, NearestNeighborRec
 from .validation import SCHEMA_VERSION, add_schema_version, safe_weight, validate_crs, validate_geometry, validate_non_empty_features, validate_numeric_range, validate_required_columns, validate_weight_column_values
 
 
+API_STABILITY: dict[str, str] = {
+    "GeoPromptFrame": "stable",
+    "GeoPromptAnalysis": "stable",
+    "read_features": "stable",
+    "read_geojson": "stable",
+    "write_geojson": "stable",
+    "plugins": "beta",
+    "sensitivity": "beta",
+    "benchmarks": "experimental",
+}
+
+
 __all__ = [
     "AnchorError",
+    "API_STABILITY",
     "Bounds",
     "BoundsDict",
     "CRSError",
