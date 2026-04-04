@@ -5,6 +5,30 @@ their mathematical definitions, assumptions, and caveats.
 
 ## Core Equations
 
+## Equation Family Graph
+
+```mermaid
+flowchart TD
+	A[Distance inputs] --> B[Decay functions]
+	B --> C[Influence and interaction scores]
+	C --> D[Tool-level metrics]
+
+	B --> B1[prompt_decay]
+	B --> B2[exponential_decay]
+	B --> B3[gaussian_decay]
+	B --> B4[linear and logistic decays]
+
+	C --> C1[prompt_influence]
+	C --> C2[prompt_interaction]
+	C --> C3[corridor_strength]
+	C --> C4[area_similarity]
+
+	D --> D1[accessibility]
+	D --> D2[gravity_flow]
+	D --> D3[suitability]
+	D --> D4[risk and resilience maps]
+```
+
 ### Prompt Decay
 
 $$d(x, s, p) = \frac{1}{(1 + x / s)^p}$$

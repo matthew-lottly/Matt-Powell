@@ -28,6 +28,19 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 
 For portfolio review, the important signal is not just that the package runs. It is that the package exposes a reusable API surface, a benchmarkable behavior set, and a path toward a public spatial package that can be evaluated on usability rather than on one demo alone.
 
+## System Graph
+
+```mermaid
+flowchart TD
+    A[Input data\nJSON or GeoJSON] --> B[Validation and normalization]
+    B --> C[GeoPromptFrame core operations]
+    C --> D[Equation-based scoring]
+    C --> E[Spatial overlays and joins]
+    D --> F[CLI and API outputs]
+    E --> F
+    F --> G[JSON, CSV, GeoJSON, charts, comparison reports]
+```
+
 ## What It Demonstrates
 
 - A package-first project structure rather than a single lab script
@@ -440,7 +453,7 @@ Before calling Geoprompt production-ready, use the comparison CLI to verify resu
 geoprompt-compare
 ```
 
-This writes `outputs/geoprompt_comparison_report.json` with:
+This writes a comparison report to `outputs/geoprompt_comparison_report.json` with:
 
 - core metric agreement across the built-in sample and benchmark corpora
 - core metric agreement across a generated stress corpus with 93 features and 16 join regions
@@ -457,6 +470,8 @@ Current validated snapshot from the built-in corpora:
 - Geoprompt is consistently faster on geometry metrics, nearest-neighbor lookup, bounds queries, and dissolve
 - the generated stress corpus now shows Geoprompt ahead on both spatial join and clip
 - the smaller benchmark corpus still shows `clip` and `spatial_join` trailing the reference path, which is the clearest target for the next optimization pass
+
+Note: files under `outputs/` are generated artifacts and are intentionally not committed.
 
 Representative relative speed ratios from the latest comparison report:
 
@@ -478,7 +493,7 @@ The project now includes:
 - License: [LICENSE](LICENSE)
 - Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Release notes: [docs/release-notes-0.1.6.md](docs/release-notes-0.1.6.md)
+- Release notes: [docs/release-notes-0.1.8.md](docs/release-notes-0.1.8.md)
 - Tool roadmap: [docs/tool-roadmap.md](docs/tool-roadmap.md)
 
 ## Repository Notes

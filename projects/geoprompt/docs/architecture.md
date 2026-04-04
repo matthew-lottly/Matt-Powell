@@ -6,45 +6,47 @@ This project models Geoprompt as a reusable package rather than a single spatial
 
 ## Data Flow
 
-```
-Input JSON/GeoJSON
-        │
-        ▼
-   ┌─────────┐
-   │  io.py   │  read_features / read_geojson
-   └────┬─────┘
-        │
-        ▼
-  ┌──────────────┐
-  │ validation.py│  validate columns, geometry, CRS
-  └──────┬───────┘
-         │
-         ▼
-  ┌──────────────┐
-  │  geometry.py │  normalize_geometry → typed internal form
-  └──────┬───────┘
-         │
-         ▼
-  ┌──────────────┐
-  │   frame.py   │  GeoPromptFrame: enrichment, queries, spatial joins
-  └──────┬───────┘
-         │
-    ┌────┴────────────────┐
-    │                     │
-    ▼                     ▼
-┌───────────┐     ┌──────────────┐
-│equations.py│    │  overlay.py  │  spatial_join
-└─────┬─────┘     └──────┬───────┘
-      │                   │
-      ▼                   ▼
-  ┌──────────────────────────┐
-  │       demo.py            │  build_demo_report, export_pressure_plot
-  └──────────┬───────────────┘
-             │
-        ┌────┴────┐
-        ▼         ▼
-    JSON/CSV   PNG/SVG/PDF
-    report       chart
+```mermaid
+flowchart TD
+       In[Input JSON or GeoJSON]
+
+       subgraph Core[Core Processing]
+              IO[io.py\nread_features and read_geojson]
+              VAL[validation.py\ncolumn and geometry guards]
+              GEO[geometry.py\nnormalize and metrics]
+              FR[frame.py\nGeoPromptFrame operations]
+       end
+
+       subgraph Compute[Compute Layers]
+              EQ[equations.py\nscoring and decays]
+              OV[overlay.py\nbuffer, clip, dissolve]
+              AN[analytics.py\nranking and helpers]
+       end
+
+       subgraph Interface[Interfaces]
+              CLI[demo.py and compare.py]
+              API[Python API\nGeoPromptFrame and functions]
+       end
+
+       subgraph Out[Outputs]
+              JSON[JSON and CSV outputs]
+              GEOJSON[GeoJSON outputs]
+              CHART[PNG, SVG, PDF charts]
+              COMP[comparison report]
+       end
+
+       In --> IO --> VAL --> GEO --> FR
+       FR --> EQ
+       FR --> OV
+       FR --> AN
+       EQ --> CLI
+       OV --> CLI
+       AN --> CLI
+       FR --> API
+       CLI --> JSON
+       CLI --> GEOJSON
+       CLI --> CHART
+       CLI --> COMP
 ```
 
 ## Pipeline Steps

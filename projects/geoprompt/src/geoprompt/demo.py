@@ -876,7 +876,7 @@ def main() -> None:
     # Items 17-18: Structured logging
     configure_logging(verbose=args.verbose or config.verbose, trace=args.trace or config.trace)
 
-    logger.info("GeoPrompt demo v%s (schema %s)", "0.1.6", SCHEMA_VERSION)
+    logger.info("GeoPrompt demo v%s (schema %s)", "0.1.8", SCHEMA_VERSION)
 
     if args.command == "pipeline":
         _run_pipeline(args)
