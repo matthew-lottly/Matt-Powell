@@ -97,3 +97,67 @@ def test_cli_suitability_command(tmp_path: Path) -> None:
         "priority_index",
     )
     assert result.returncode == 0
+
+
+@pytest.mark.parametrize(
+    "tool",
+    [
+        "accessibility",
+        "gravity-flow",
+        "suitability",
+        "catchment-competition",
+        "hotspot-scan",
+        "equity-gap",
+        "network-reliability",
+        "transit-service-gap",
+        "congestion-hotspots",
+        "walkability-audit",
+        "gentrification-scan",
+        "land-value-surface",
+        "pollution-surface",
+        "habitat-fragmentation-map",
+        "climate-vulnerability-map",
+        "migration-pull-map",
+        "mortality-risk-map",
+        "market-power-map",
+        "trade-corridor-map",
+        "community-cohesion-map",
+        "cultural-similarity-matrix",
+        "noise-impact-map",
+        "visual-prominence-map",
+    ],
+)
+def test_cli_analyze_command_all_tools(tool: str, tmp_path: Path) -> None:
+    """Unified analyze command works for every registered tool with default columns."""
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        tool,
+        "--format",
+        "json",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_cli_analyze_command_no_tool_exits_nonzero() -> None:
+    """analyze command without --tool should exit with non-zero code."""
+    result = _run_demo("analyze")
+    assert result.returncode != 0
+
+
+def test_cli_analyze_command_custom_columns(tmp_path: Path) -> None:
+    """analyze command accepts --columns to override defaults."""
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        "hotspot-scan",
+        "--columns",
+        "capacity_index",
+        "--format",
+        "csv",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0

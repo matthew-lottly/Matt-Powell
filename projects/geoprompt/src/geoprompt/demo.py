@@ -77,6 +77,33 @@ GEOMETRY_MARKERS: dict[str, str] = {
     "MultiPolygon": "p",
 }
 
+# All available analysis tools for the unified analyze command
+ANALYZE_TOOLS: list[str] = [
+    "accessibility",
+    "gravity-flow",
+    "suitability",
+    "catchment-competition",
+    "hotspot-scan",
+    "equity-gap",
+    "network-reliability",
+    "transit-service-gap",
+    "congestion-hotspots",
+    "walkability-audit",
+    "gentrification-scan",
+    "land-value-surface",
+    "pollution-surface",
+    "habitat-fragmentation-map",
+    "climate-vulnerability-map",
+    "migration-pull-map",
+    "mortality-risk-map",
+    "market-power-map",
+    "trade-corridor-map",
+    "community-cohesion-map",
+    "cultural-similarity-matrix",
+    "noise-impact-map",
+    "visual-prominence-map",
+]
+
 
 def export_pressure_plot(
     records: list[dict[str, object]],
@@ -425,8 +452,8 @@ def parse_args() -> argparse.Namespace:
         "command",
         nargs="?",
         default="report",
-        choices=["report", "plot", "export", "accessibility", "gravity-flow", "suitability"],
-        help="Command to run: report (default), plot, export, accessibility, gravity-flow, or suitability.",
+        choices=["report", "plot", "export", "accessibility", "gravity-flow", "suitability", "analyze"],
+        help="Command to run: report (default), plot, export, accessibility, gravity-flow, suitability, or analyze.",
     )
 
     # Path options
@@ -461,6 +488,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include-self", action="store_true", help="Include origin-to-origin self links in analysis commands.")
     parser.add_argument("--criteria-columns", nargs="*", default=["demand_index", "capacity_index", "priority_index"], help="Criteria columns for suitability command.")
     parser.add_argument("--criteria-weights", nargs="*", type=float, default=None, help="Optional weights for suitability criteria.")
+
+    # Unified analyze command options
+    parser.add_argument(
+        "--tool",
+        choices=ANALYZE_TOOLS,
+        default=None,
+        help="Analysis tool name for the analyze command (one of the 23 available tools).",
+    )
+    parser.add_argument(
+        "--columns",
+        nargs="*",
+        default=[],
+        help=(
+            "Column names passed positionally to the selected analysis tool. "
+            "Number and order of columns depends on the tool. "
+            "Sensible defaults are applied when omitted."
+        ),
+    )
 
     # Logging (items 17-20)
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose DEBUG logging.")
@@ -594,6 +639,174 @@ def main() -> None:
                 },
             )
         logger.info("Wrote suitability analysis to %s", output_path)
+        return
+
+    if args.command == "analyze":
+        if not args.tool:
+            import sys as _sys
+            print("error: --tool is required for the analyze command.", file=_sys.stderr)
+            print(f"  Available tools: {', '.join(ANALYZE_TOOLS)}", file=_sys.stderr)
+            raise SystemExit(2)
+        frame = read_features(args.input_path, crs="EPSG:4326")
+        cols = list(args.columns or [])
+
+        def _c(idx: int, default: str) -> str:
+            return cols[idx] if idx < len(cols) else default
+
+        id_col = args.id_column
+        dm = args.distance_method
+        a = frame.analysis
+        tool = args.tool
+
+        dispatch = {
+            "accessibility": lambda: a.accessibility(
+                opportunities=_c(0, "demand_index"),
+                id_column=id_col,
+                friction=args.friction,
+                include_self=args.include_self,
+                distance_method=dm,
+            ),
+            "gravity-flow": lambda: a.gravity_flow(
+                origin_weight=_c(0, "capacity_index"),
+                destination_weight=_c(1, "demand_index"),
+                id_column=id_col,
+                beta=args.beta,
+                offset=args.offset,
+                include_self=args.include_self,
+                distance_method=dm,
+            ),
+            "suitability": lambda: a.suitability(
+                criteria_columns=cols if cols else args.criteria_columns,
+                id_column=id_col,
+                criteria_weights=args.criteria_weights,
+            ),
+            "catchment-competition": lambda: a.catchment_competition(
+                demand_column=_c(0, "demand_index"),
+                supply_column=_c(1, "capacity_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "hotspot-scan": lambda: a.hotspot_scan(
+                value_column=_c(0, "demand_index"),
+                id_column=id_col,
+            ),
+            "equity-gap": lambda: a.equity_gap(
+                min_column=_c(0, "capacity_index"),
+                max_column=_c(1, "priority_index"),
+                id_column=id_col,
+            ),
+            "network-reliability": lambda: a.network_reliability(
+                capacity_column=_c(0, "capacity_index"),
+                failure_proxy_column=_c(1, "demand_index"),
+                id_column=id_col,
+            ),
+            "transit-service-gap": lambda: a.transit_service_gap(
+                service_frequency_column=_c(0, "capacity_index"),
+                coverage_column=_c(1, "demand_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "congestion-hotspots": lambda: a.congestion_hotspots(
+                flow_column=_c(0, "demand_index"),
+                capacity_column=_c(1, "capacity_index"),
+                id_column=id_col,
+            ),
+            "walkability-audit": lambda: a.walkability_audit(
+                connectivity_column=_c(0, "demand_index"),
+                density_column=_c(1, "capacity_index"),
+                amenities_column=_c(2, "priority_index"),
+                id_column=id_col,
+            ),
+            "gentrification-scan": lambda: a.gentrification_scan(
+                appreciation_column=_c(0, "priority_index"),
+                income_column=_c(1, "capacity_index"),
+                displacement_column=_c(2, "demand_index"),
+                id_column=id_col,
+            ),
+            "land-value-surface": lambda: a.land_value_surface(
+                base_value_column=_c(0, "priority_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "pollution-surface": lambda: a.pollution_surface(
+                source_column=_c(0, "priority_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "habitat-fragmentation-map": lambda: a.habitat_fragmentation_map(
+                patch_column=_c(0, "capacity_index"),
+                connectivity_column=_c(1, "demand_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "climate-vulnerability-map": lambda: a.climate_vulnerability_map(
+                exposure_column=_c(0, "priority_index"),
+                sensitivity_column=_c(1, "demand_index"),
+                adaptive_column=_c(2, "capacity_index"),
+                id_column=id_col,
+            ),
+            "migration-pull-map": lambda: a.migration_pull_map(
+                economic_column=_c(0, "demand_index"),
+                quality_column=_c(1, "capacity_index"),
+                cultural_column=_c(2, "priority_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "mortality-risk-map": lambda: a.mortality_risk_map(
+                population_column=_c(0, "priority_index"),
+                disease_column=_c(1, "demand_index"),
+                healthcare_column=_c(2, "capacity_index"),
+                id_column=id_col,
+            ),
+            "market-power-map": lambda: a.market_power_map(
+                largest_share_column=_c(0, "demand_index"),
+                concentration_column=_c(1, "capacity_index"),
+                id_column=id_col,
+            ),
+            "trade-corridor-map": lambda: a.trade_corridor_map(
+                export_column=_c(0, "capacity_index"),
+                import_column=_c(1, "demand_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "community-cohesion-map": lambda: a.community_cohesion_map(
+                internal_column=_c(0, "capacity_index"),
+                external_column=_c(1, "demand_index"),
+                identity_column=_c(2, "priority_index"),
+                id_column=id_col,
+            ),
+            "cultural-similarity-matrix": lambda: a.cultural_similarity_matrix(
+                value_column=_c(0, "demand_index"),
+                language_column=_c(1, "capacity_index"),
+                tradition_column=_c(2, "priority_index"),
+                history_column=_c(3, "demand_index"),
+                id_column=id_col,
+            ),
+            "noise-impact-map": lambda: a.noise_impact_map(
+                source_column=_c(0, "priority_index"),
+                barrier_column=_c(1, "capacity_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+            "visual-prominence-map": lambda: a.visual_prominence_map(
+                vertical_column=_c(0, "priority_index"),
+                range_column=_c(1, "capacity_index"),
+                distinctiveness_column=_c(2, "demand_index"),
+                id_column=id_col,
+                distance_method=dm,
+            ),
+        }
+
+        rows = dispatch[tool]()
+        stem = tool.replace("-", "_")
+        if args.output_format == "csv":
+            output_path = _write_csv(args.output_dir / f"geoprompt_analyze_{stem}.csv", rows)
+        else:
+            output_path = write_json(
+                args.output_dir / f"geoprompt_analyze_{stem}.json",
+                {"schema_version": SCHEMA_VERSION, "tool": tool, "records": rows},
+            )
+        logger.info("Wrote analyze/%s to %s", tool, output_path)
         return
 
     report = build_demo_report(
