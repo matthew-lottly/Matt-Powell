@@ -10,6 +10,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
 - Guarantees contract: [docs/guarantees.md](docs/guarantees.md)
 - V1 execution plan: [docs/v1-execution-plan.md](docs/v1-execution-plan.md)
+- Improvement backlog (50): [docs/next-50-improvements.md](docs/next-50-improvements.md)
 
 ## Snapshot
 
@@ -308,13 +309,34 @@ Run a resumable pipeline from a JSON plan:
 geoprompt-demo pipeline --pipeline-file pipeline.json --resume
 ```
 
+Run the same pipeline over a folder of inputs:
+
+```bash
+geoprompt-demo pipeline --pipeline-file pipeline.json --batch-input-dir data/batch --batch-pattern "*.json"
+```
+
 Example `pipeline.json`:
 
 ```json
 {
     "steps": [
-        {"name": "scan", "command": "analyze", "tool": "hotspot-scan", "format": "json"},
-        {"name": "flow", "command": "analyze", "tool": "gravity-flow", "max_results": 20, "format": "json"},
+        {
+            "name": "scan",
+            "command": "analyze",
+            "tool": "hotspot-scan",
+            "format": "json",
+            "retries": 1,
+            "continue_on_error": false
+        },
+        {
+            "name": "flow",
+            "command": "analyze",
+            "tool": "gravity-flow",
+            "max_results": 20,
+            "format": "json",
+            "retries": 2,
+            "continue_on_error": true
+        },
         {"name": "report", "command": "report", "no_plot": true, "no_asset_copy": true}
     ]
 }

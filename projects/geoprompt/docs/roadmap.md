@@ -1,5 +1,7 @@
 # Roadmap
 
+Extended backlog: see [next-50-improvements.md](next-50-improvements.md).
+
 ## Labels
 
 Use these GitHub labels to categorize issues and PRs:

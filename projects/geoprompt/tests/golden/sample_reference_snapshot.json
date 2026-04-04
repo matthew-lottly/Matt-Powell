@@ -1,0 +1,22 @@
+{
+  "feature_count": 6,
+  "bounds": {
+    "min_x": -112.09,
+    "min_y": 40.55,
+    "max_x": -111.74,
+    "max_y": 40.78
+  },
+  "geometry_types": [
+    "LineString",
+    "Point",
+    "Polygon"
+  ],
+  "nearest_neighbors": [
+    ["north-hub-point", "central-yard-point"],
+    ["central-yard-point", "central-service-zone"],
+    ["west-corridor-line", "central-yard-point"],
+    ["south-corridor-line", "central-service-zone"],
+    ["east-service-zone", "south-corridor-line"],
+    ["central-service-zone", "central-yard-point"]
+  ]
+}

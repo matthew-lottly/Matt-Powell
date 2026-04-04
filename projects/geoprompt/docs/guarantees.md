@@ -20,6 +20,13 @@ This document defines the current reliability contract for Geoprompt.
 - CLI commands that write analysis outputs also write a run manifest in `outputs/manifests/`.
 - Manifest includes input hash, command args, platform, python version, and git commit (when available).
 - Runs are reproducible when input file hash and args are unchanged.
+- Pipeline steps support retry and `continue_on_error` policies, and every step status is recorded in manifest metadata.
+- Batch pipeline mode writes per-input manifests plus a top-level batch summary artifact.
+
+## Regression Contract
+
+- Golden snapshot fixtures in `tests/golden/` are treated as compatibility references for key outputs.
+- Changes to snapshot expectations must be intentional and reviewed with release notes.
 
 ## Stability Levels
 

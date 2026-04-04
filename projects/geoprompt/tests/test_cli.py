@@ -340,3 +340,89 @@ def test_cli_pipeline_resume_skips_completed_steps(tmp_path: Path) -> None:
                 "--resume",
         )
         assert second.returncode == 0, second.stderr
+
+
+def test_cli_pipeline_continue_on_error_with_retries(tmp_path: Path) -> None:
+    pipeline_file = tmp_path / "pipeline_continue.json"
+    pipeline_file.write_text(
+        """
+{
+    "steps": [
+        {
+            "name": "bad-step",
+            "command": "analyze",
+            "tool": "not-a-tool",
+            "retries": 2,
+            "continue_on_error": true
+        },
+        {
+            "name": "good-step",
+            "command": "analyze",
+            "tool": "hotspot-scan",
+            "format": "json"
+        }
+    ]
+}
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    result = _run_demo(
+        "pipeline",
+        "--pipeline-file",
+        str(pipeline_file),
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+
+    checkpoint_payload = json.loads((tmp_path / "checkpoints" / "geoprompt_pipeline_state.json").read_text(encoding="utf-8"))
+    assert checkpoint_payload["failed_steps"] == ["bad-step"]
+    assert checkpoint_payload["completed_steps"] == ["good-step"]
+
+    manifest_payload = json.loads((tmp_path / "manifests" / "geoprompt_pipeline_manifest.json").read_text(encoding="utf-8"))
+    failed = [item for item in manifest_payload["extra"]["step_results"] if item["name"] == "bad-step"]
+    completed = [item for item in manifest_payload["extra"]["step_results"] if item["name"] == "good-step"]
+    assert failed[0]["attempts"] == 3
+    assert failed[0]["status"] == "failed"
+    assert completed[0]["status"] == "completed"
+
+
+def test_cli_pipeline_batch_mode(tmp_path: Path) -> None:
+    batch_dir = tmp_path / "inputs"
+    batch_dir.mkdir(parents=True, exist_ok=True)
+    source = PROJECT_ROOT / "data" / "sample_features.json"
+    (batch_dir / "a.json").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    (batch_dir / "b.json").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    pipeline_file = tmp_path / "pipeline_batch.json"
+    pipeline_file.write_text(
+        """
+{
+    "steps": [
+        {"name": "scan", "command": "analyze", "tool": "hotspot-scan", "format": "json"},
+        {"name": "report", "command": "report", "no_plot": true, "no_asset_copy": true}
+    ]
+}
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    result = _run_demo(
+        "pipeline",
+        "--pipeline-file",
+        str(pipeline_file),
+        "--batch-input-dir",
+        str(batch_dir),
+        "--batch-pattern",
+        "*.json",
+        "--output-dir",
+        str(tmp_path / "batch_outputs"),
+    )
+    assert result.returncode == 0, result.stderr
+
+    base = tmp_path / "batch_outputs" / "batches"
+    assert (base / "a" / "manifests" / "geoprompt_pipeline_manifest.json").exists()
+    assert (base / "b" / "manifests" / "geoprompt_pipeline_manifest.json").exists()
+    summary = tmp_path / "batch_outputs" / "geoprompt_pipeline_batch_summary.json"
+    assert summary.exists()

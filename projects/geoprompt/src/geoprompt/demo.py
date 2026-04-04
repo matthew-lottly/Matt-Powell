@@ -213,86 +213,204 @@ def _run_pipeline(args: argparse.Namespace) -> None:
         print("error: pipeline file must contain a non-empty 'steps' list.", file=sys.stderr)
         raise SystemExit(2)
 
-    checkpoint_dir = args.output_dir / "checkpoints"
-    checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = checkpoint_dir / "geoprompt_pipeline_state.json"
-
-    completed_steps: list[str] = []
-    if args.resume and checkpoint_path.exists():
-        checkpoint_payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-        completed_steps = list(checkpoint_payload.get("completed_steps", []))
-
-    run_results: list[dict[str, Any]] = []
-    for index, step in enumerate(steps, start=1):
-        if not isinstance(step, dict):
-            print(f"error: step {index} is not an object", file=sys.stderr)
+    def _resolve_inputs() -> list[Path]:
+        batch_input_dir = getattr(args, "batch_input_dir", None)
+        if not isinstance(batch_input_dir, Path):
+            return [args.input_path]
+        if not batch_input_dir.exists() or not batch_input_dir.is_dir():
+            print(f"error: --batch-input-dir must be an existing directory: {batch_input_dir}", file=sys.stderr)
             raise SystemExit(2)
-
-        step_name = str(step.get("name") or f"step_{index}")
-        if args.resume and step_name in completed_steps:
-            logger.info("Skipping completed pipeline step: %s", step_name)
-            run_results.append({"name": step_name, "status": "skipped"})
-            continue
-
-        step_command = str(step.get("command", "analyze"))
-        if step_command == "pipeline":
-            print("error: nested 'pipeline' command is not allowed in pipeline steps.", file=sys.stderr)
+        pattern = str(getattr(args, "batch_pattern", "*.json") or "*.json")
+        files = sorted(path for path in batch_input_dir.glob(pattern) if path.is_file())
+        if not files:
+            print(
+                f"error: no input files matched pattern '{pattern}' in {batch_input_dir}",
+                file=sys.stderr,
+            )
             raise SystemExit(2)
+        return files
 
-        cli = [
-            sys.executable,
-            "-m",
-            "geoprompt.demo",
-            step_command,
-            "--input-path",
-            str(args.input_path),
-            "--output-dir",
-            str(args.output_dir),
-        ]
+    def _run_for_input(input_path: Path, output_dir: Path) -> dict[str, Any]:
+        checkpoint_dir = output_dir / "checkpoints"
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        checkpoint_path = checkpoint_dir / "geoprompt_pipeline_state.json"
 
-        for key, value in step.items():
-            if key in {"name", "command"}:
+        completed_steps: list[str] = []
+        failed_steps: list[str] = []
+        if args.resume and checkpoint_path.exists():
+            checkpoint_payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            completed_steps = list(checkpoint_payload.get("completed_steps", []))
+            failed_steps = list(checkpoint_payload.get("failed_steps", []))
+
+        run_results: list[dict[str, Any]] = []
+        for index, step in enumerate(steps, start=1):
+            if not isinstance(step, dict):
+                print(f"error: step {index} is not an object", file=sys.stderr)
+                raise SystemExit(2)
+
+            step_name = str(step.get("name") or f"step_{index}")
+            if args.resume and step_name in completed_steps:
+                logger.info("Skipping completed pipeline step: %s", step_name)
+                run_results.append({"name": step_name, "status": "skipped"})
                 continue
-            flag = f"--{key.replace('_', '-')}"
-            if isinstance(value, bool):
-                if value:
-                    cli.append(flag)
-            elif isinstance(value, list):
-                cli.append(flag)
-                cli.extend(str(item) for item in value)
-            elif value is not None:
-                cli.extend([flag, str(value)])
 
-        result = subprocess.run(
-            cli,
-            capture_output=True,
-            text=True,
-            cwd=str(PROJECT_ROOT),
-            check=False,
+            step_command = str(step.get("command", "analyze"))
+            if step_command == "pipeline":
+                print("error: nested 'pipeline' command is not allowed in pipeline steps.", file=sys.stderr)
+                raise SystemExit(2)
+
+            retries = int(step.get("retries", 0))
+            if retries < 0:
+                print(f"error: step '{step_name}' has invalid retries={retries}; expected >= 0", file=sys.stderr)
+                raise SystemExit(2)
+            continue_on_error = bool(step.get("continue_on_error", False))
+
+            attempt = 0
+            result: subprocess.CompletedProcess[str] | None = None
+            while attempt <= retries:
+                cli = [
+                    sys.executable,
+                    "-m",
+                    "geoprompt.demo",
+                    step_command,
+                    "--input-path",
+                    str(input_path),
+                    "--output-dir",
+                    str(output_dir),
+                ]
+
+                for key, value in step.items():
+                    if key in {"name", "command", "retries", "continue_on_error"}:
+                        continue
+                    flag = f"--{key.replace('_', '-')}"
+                    if isinstance(value, bool):
+                        if value:
+                            cli.append(flag)
+                    elif isinstance(value, list):
+                        cli.append(flag)
+                        cli.extend(str(item) for item in value)
+                    elif value is not None:
+                        cli.extend([flag, str(value)])
+
+                result = subprocess.run(
+                    cli,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(PROJECT_ROOT),
+                    check=False,
+                )
+
+                if result.returncode == 0:
+                    break
+                attempt += 1
+                if attempt <= retries:
+                    logger.warning(
+                        "Retrying pipeline step '%s' (%d/%d)",
+                        step_name,
+                        attempt,
+                        retries,
+                    )
+
+            assert result is not None
+            if result.returncode != 0:
+                if continue_on_error:
+                    if step_name not in failed_steps:
+                        failed_steps.append(step_name)
+                    checkpoint_payload = {
+                        "completed_steps": completed_steps,
+                        "failed_steps": failed_steps,
+                        "last_failed_step": step_name,
+                        "total_steps": len(steps),
+                    }
+                    write_json(checkpoint_path, checkpoint_payload)
+                    run_results.append(
+                        {
+                            "name": step_name,
+                            "status": "failed",
+                            "command": step_command,
+                            "attempts": retries + 1,
+                            "exit_code": result.returncode,
+                        }
+                    )
+                    logger.error(
+                        "Pipeline step '%s' failed with exit code %d; continuing",
+                        step_name,
+                        result.returncode,
+                    )
+                    continue
+
+                print(result.stderr, file=sys.stderr)
+                print(f"error: pipeline step '{step_name}' failed with exit code {result.returncode}", file=sys.stderr)
+                raise SystemExit(result.returncode)
+
+            completed_steps.append(step_name)
+            checkpoint_payload = {
+                "completed_steps": completed_steps,
+                "failed_steps": failed_steps,
+                "last_completed_step": step_name,
+                "total_steps": len(steps),
+            }
+            write_json(checkpoint_path, checkpoint_payload)
+            run_results.append(
+                {
+                    "name": step_name,
+                    "status": "completed",
+                    "command": step_command,
+                    "attempts": attempt + 1,
+                }
+            )
+
+        _write_run_manifest(
+            output_dir=output_dir,
+            command="pipeline",
+            input_path=input_path,
+            output_paths=[checkpoint_path],
+            args=args,
+            extra={
+                "completed_steps": completed_steps,
+                "failed_steps": failed_steps,
+                "step_results": run_results,
+            },
         )
-        if result.returncode != 0:
-            print(result.stderr, file=sys.stderr)
-            print(f"error: pipeline step '{step_name}' failed with exit code {result.returncode}", file=sys.stderr)
-            raise SystemExit(result.returncode)
-
-        completed_steps.append(step_name)
-        checkpoint_payload = {
+        logger.info("Pipeline complete for %s: %d/%d steps complete", input_path.name, len(completed_steps), len(steps))
+        return {
+            "input_path": str(input_path),
+            "output_dir": str(output_dir),
             "completed_steps": completed_steps,
-            "last_completed_step": step_name,
-            "total_steps": len(steps),
+            "failed_steps": failed_steps,
+            "step_results": run_results,
         }
-        write_json(checkpoint_path, checkpoint_payload)
-        run_results.append({"name": step_name, "status": "completed", "command": step_command})
 
+    input_paths = _resolve_inputs()
+    if len(input_paths) == 1 and getattr(args, "batch_input_dir", None) is None:
+        _run_for_input(input_paths[0], args.output_dir)
+        return
+
+    batch_results: list[dict[str, Any]] = []
+    for input_path in input_paths:
+        batch_output_dir = args.output_dir / "batches" / input_path.stem
+        batch_results.append(_run_for_input(input_path, batch_output_dir))
+
+    summary_path = write_json(
+        args.output_dir / "geoprompt_pipeline_batch_summary.json",
+        {
+            "schema_version": SCHEMA_VERSION,
+            "command": "pipeline",
+            "pipeline_file": str(pipeline_file),
+            "batch_input_dir": str(args.batch_input_dir),
+            "batch_pattern": args.batch_pattern,
+            "results": batch_results,
+        },
+    )
     _write_run_manifest(
         output_dir=args.output_dir,
-        command="pipeline",
-        input_path=args.input_path,
-        output_paths=[checkpoint_path],
+        command="pipeline_batch",
+        input_path=pipeline_file,
+        output_paths=[summary_path],
         args=args,
-        extra={"completed_steps": completed_steps, "step_results": run_results},
+        extra={"inputs_processed": len(input_paths)},
     )
-    logger.info("Pipeline complete: %d/%d steps complete", len(completed_steps), len(steps))
+    logger.info("Batch pipeline complete for %d input files", len(input_paths))
 
 
 def export_pressure_plot(
@@ -669,6 +787,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=Path, default=None, help="Path to geoprompt.toml config file (item 30).")
     parser.add_argument("--pipeline-file", type=Path, default=None, help="Path to pipeline JSON file (pipeline command only).")
     parser.add_argument("--resume", action="store_true", help="Resume pipeline execution from checkpoint state.")
+    parser.add_argument("--batch-input-dir", type=Path, default=None, help="Directory of input files for batch pipeline runs.")
+    parser.add_argument("--batch-pattern", default="*.json", help="Glob pattern for files in --batch-input-dir.")
 
     # Output format (item 22)
     parser.add_argument("--format", dest="output_format", default="json", choices=["json", "csv", "geojson"],
