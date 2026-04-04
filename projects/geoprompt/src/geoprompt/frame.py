@@ -6,9 +6,16 @@ from heapq import nlargest, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
 from .equations import (
+    adaptive_capacity_score,
     accessibility_potential,
     area_similarity,
     climate_vulnerability_index,
+    digital_divide_index,
+    drought_stress_index,
+    emergency_response_score,
+    healthcare_access_index,
+    heat_island_intensity,
+    infrastructure_lifecycle_score,
     community_cohesion_score,
     competitive_influence,
     composite_suitability_score,
@@ -34,6 +41,9 @@ from .equations import (
     trade_flow_intensity,
     traffic_congestion_index,
     transit_accessibility_score,
+    school_access_score,
+    food_desert_risk,
+    wildfire_risk_index,
     visual_prominence_score,
     walkability_score,
 )
@@ -651,6 +661,205 @@ class GeoPromptAnalysis:
                 }
             )
         return records
+
+    def drought_stress_map(self, demand_column: str, supply_column: str, reserve_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(demand_column)
+        frame._require_column(supply_column)
+        frame._require_column(reserve_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "drought_stress": drought_stress_index(
+                    water_demand=max(0.0, float(row[demand_column])),
+                    water_supply=max(0.0, float(row[supply_column])),
+                    reserve_ratio=self._unit(float(row[reserve_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def heat_island_map(self, impervious_column: str, canopy_column: str, albedo_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(impervious_column)
+        frame._require_column(canopy_column)
+        frame._require_column(albedo_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "heat_island_intensity": heat_island_intensity(
+                    impervious_ratio=self._unit(float(row[impervious_column])),
+                    tree_canopy_ratio=self._unit(float(row[canopy_column])),
+                    albedo=self._unit(float(row[albedo_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def school_access_map(self, capacity_column: str, demand_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(capacity_column)
+        frame._require_column(demand_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            travel_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "school_access": school_access_score(
+                        seat_capacity=max(0.0, float(row[capacity_column])),
+                        student_population=max(0.0, float(row[demand_column])),
+                        travel_time=travel_time,
+                    ),
+                }
+            )
+        return records
+
+    def healthcare_access_map(self, provider_column: str, population_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(provider_column)
+        frame._require_column(population_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            travel_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "healthcare_access": healthcare_access_index(
+                        provider_count=max(0.0, float(row[provider_column])),
+                        population=max(0.0, float(row[population_column])),
+                        travel_time=travel_time,
+                    ),
+                }
+            )
+        return records
+
+    def food_desert_map(self, grocery_column: str, vehicle_column: str, transit_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(grocery_column)
+        frame._require_column(vehicle_column)
+        frame._require_column(transit_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "food_desert_risk": food_desert_risk(
+                    grocery_density=self._unit(float(row[grocery_column])),
+                    vehicle_access=self._unit(float(row[vehicle_column])),
+                    transit_access=self._unit(float(row[transit_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def digital_divide_map(self, broadband_column: str, device_column: str, literacy_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(broadband_column)
+        frame._require_column(device_column)
+        frame._require_column(literacy_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "digital_divide": digital_divide_index(
+                    broadband_coverage=self._unit(float(row[broadband_column])),
+                    device_access=self._unit(float(row[device_column])),
+                    digital_literacy=self._unit(float(row[literacy_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def wildfire_risk_map(self, fuel_column: str, dryness_column: str, wind_column: str, suppression_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(fuel_column)
+        frame._require_column(dryness_column)
+        frame._require_column(wind_column)
+        frame._require_column(suppression_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "wildfire_risk": wildfire_risk_index(
+                    fuel_load=max(0.0, float(row[fuel_column])),
+                    dryness_index=max(0.0, float(row[dryness_column])),
+                    wind_speed=max(0.0, float(row[wind_column])),
+                    suppression_capacity=self._unit(float(row[suppression_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def emergency_response_map(self, station_column: str, coverage_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(station_column)
+        frame._require_column(coverage_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            response_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "emergency_response": emergency_response_score(
+                        station_density=self._unit(float(row[station_column])),
+                        response_time=response_time,
+                        coverage_ratio=self._unit(float(row[coverage_column])),
+                    ),
+                }
+            )
+        return records
+
+    def infrastructure_lifecycle_map(self, age_column: str, life_column: str, maintenance_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(age_column)
+        frame._require_column(life_column)
+        frame._require_column(maintenance_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "infrastructure_lifecycle": infrastructure_lifecycle_score(
+                    age_years=max(0.0, float(row[age_column])),
+                    design_life_years=max(1e-9, float(row[life_column])),
+                    maintenance_quality=self._unit(float(row[maintenance_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def adaptive_capacity_map(self, income_column: str, education_column: str, health_column: str, governance_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(income_column)
+        frame._require_column(education_column)
+        frame._require_column(health_column)
+        frame._require_column(governance_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "adaptive_capacity": adaptive_capacity_score(
+                    income_index=self._unit(float(row[income_column])),
+                    education_index=self._unit(float(row[education_column])),
+                    health_index=self._unit(float(row[health_column])),
+                    governance_index=self._unit(float(row[governance_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
 
 
 class GeoPromptFrame:

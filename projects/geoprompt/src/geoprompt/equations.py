@@ -866,6 +866,373 @@ def acoustic_reverberation_index(surface_reflectivity: float, room_volume: float
     return min(1.0, max(0.0, reverberation))
 
 
+# ----- Extended equation set (40) -----
+def entropy_evenness_index(values: tuple[float, ...]) -> float:
+    if not values:
+        raise ValueError("values must not be empty")
+    if any(v < 0 for v in values):
+        raise ValueError("values must be zero or greater")
+    total = sum(values)
+    if total == 0:
+        return 0.0
+    probabilities = [v / total for v in values if v > 0]
+    entropy = -sum(p * math.log(p) for p in probabilities)
+    max_entropy = math.log(len(values))
+    return 0.0 if max_entropy == 0 else entropy / max_entropy
+
+
+def gini_inequality_index(values: tuple[float, ...]) -> float:
+    if not values:
+        raise ValueError("values must not be empty")
+    if any(v < 0 for v in values):
+        raise ValueError("values must be zero or greater")
+    ordered = sorted(values)
+    n = len(ordered)
+    total = sum(ordered)
+    if total == 0:
+        return 0.0
+    weighted_sum = sum((i + 1) * value for i, value in enumerate(ordered))
+    return (2.0 * weighted_sum) / (n * total) - (n + 1) / n
+
+
+def normalized_access_gap(expected_service: float, observed_service: float) -> float:
+    if expected_service < 0 or observed_service < 0:
+        raise ValueError("service values must be zero or greater")
+    if expected_service == 0:
+        return 0.0 if observed_service == 0 else 1.0
+    gap = (expected_service - observed_service) / expected_service
+    return max(0.0, min(1.0, gap))
+
+
+def service_reliability_decay(reliability: float, disruption_rate: float, periods: float) -> float:
+    if not (0.0 <= reliability <= 1.0):
+        raise ValueError("reliability must be between 0 and 1")
+    if disruption_rate < 0 or periods < 0:
+        raise ValueError("disruption_rate and periods must be zero or greater")
+    return reliability * math.exp(-disruption_rate * periods)
+
+
+def adaptive_capacity_score(income_index: float, education_index: float, health_index: float, governance_index: float) -> float:
+    if any(v < 0 or v > 1.0 for v in (income_index, education_index, health_index, governance_index)):
+        raise ValueError("all indices must be between 0 and 1")
+    return income_index * 0.25 + education_index * 0.25 + health_index * 0.25 + governance_index * 0.25
+
+
+def hazard_exposure_score(hazard_frequency: float, hazard_intensity: float, population_exposed: float) -> float:
+    if hazard_frequency < 0 or hazard_intensity < 0 or population_exposed < 0:
+        raise ValueError("inputs must be zero or greater")
+    return hazard_frequency * hazard_intensity * math.log1p(population_exposed)
+
+
+def evacuation_time_index(distance_km: float, road_capacity: float, congestion_factor: float = 0.0) -> float:
+    if distance_km < 0 or road_capacity <= 0:
+        raise ValueError("distance_km must be zero or greater and road_capacity must be positive")
+    if congestion_factor < 0:
+        raise ValueError("congestion_factor must be zero or greater")
+    return distance_km * (1.0 + congestion_factor) / road_capacity
+
+
+def flood_storage_effectiveness(storage_volume: float, runoff_volume: float, conveyance_efficiency: float) -> float:
+    if storage_volume < 0 or runoff_volume < 0:
+        raise ValueError("volumes must be zero or greater")
+    if not (0.0 <= conveyance_efficiency <= 1.0):
+        raise ValueError("conveyance_efficiency must be between 0 and 1")
+    if runoff_volume == 0:
+        return 1.0
+    return min(1.0, (storage_volume / runoff_volume) * conveyance_efficiency)
+
+
+def drought_stress_index(water_demand: float, water_supply: float, reserve_ratio: float = 0.0) -> float:
+    if water_demand < 0 or water_supply < 0:
+        raise ValueError("water_demand and water_supply must be zero or greater")
+    if reserve_ratio < 0:
+        raise ValueError("reserve_ratio must be zero or greater")
+    effective_supply = water_supply * (1.0 + reserve_ratio)
+    if effective_supply == 0:
+        return 1.0 if water_demand > 0 else 0.0
+    return min(1.0, water_demand / effective_supply)
+
+
+def heat_island_intensity(impervious_ratio: float, tree_canopy_ratio: float, albedo: float) -> float:
+    if any(v < 0 or v > 1.0 for v in (impervious_ratio, tree_canopy_ratio, albedo)):
+        raise ValueError("all ratios must be between 0 and 1")
+    intensity = impervious_ratio * 0.6 + (1.0 - tree_canopy_ratio) * 0.3 + (1.0 - albedo) * 0.1
+    return max(0.0, min(1.0, intensity))
+
+
+def renewable_penetration_score(renewable_generation: float, total_generation: float, storage_support: float = 0.0) -> float:
+    if renewable_generation < 0 or total_generation < 0:
+        raise ValueError("generation values must be zero or greater")
+    if storage_support < 0:
+        raise ValueError("storage_support must be zero or greater")
+    if total_generation == 0:
+        return 0.0
+    base = renewable_generation / total_generation
+    adjusted = base * (1.0 + min(1.0, storage_support))
+    return min(1.0, adjusted)
+
+
+def energy_burden_score(monthly_energy_cost: float, monthly_income: float) -> float:
+    if monthly_energy_cost < 0 or monthly_income < 0:
+        raise ValueError("cost and income must be zero or greater")
+    if monthly_income == 0:
+        return 1.0 if monthly_energy_cost > 0 else 0.0
+    return min(1.0, monthly_energy_cost / monthly_income)
+
+
+def housing_affordability_pressure(median_rent: float, median_income: float) -> float:
+    if median_rent < 0 or median_income < 0:
+        raise ValueError("median_rent and median_income must be zero or greater")
+    if median_income == 0:
+        return 1.0 if median_rent > 0 else 0.0
+    return min(1.0, (12.0 * median_rent) / median_income)
+
+
+def rental_displacement_risk(rent_growth: float, wage_growth: float, eviction_rate: float) -> float:
+    if rent_growth < 0 or wage_growth < 0:
+        raise ValueError("growth values must be zero or greater")
+    if not (0.0 <= eviction_rate <= 1.0):
+        raise ValueError("eviction_rate must be between 0 and 1")
+    growth_gap = max(0.0, rent_growth - wage_growth)
+    risk = 1.0 - math.exp(-(growth_gap + eviction_rate))
+    return min(1.0, risk)
+
+
+def school_access_score(seat_capacity: float, student_population: float, travel_time: float, scale: float = 30.0) -> float:
+    if seat_capacity < 0 or student_population < 0:
+        raise ValueError("seat_capacity and student_population must be zero or greater")
+    _validate_non_negative_distance(travel_time)
+    if scale <= 0:
+        raise ValueError("scale must be greater than zero")
+    if student_population == 0:
+        capacity_ratio = 1.0
+    else:
+        capacity_ratio = min(1.0, seat_capacity / student_population)
+    return capacity_ratio * exponential_decay(travel_time, scale=scale)
+
+
+def healthcare_access_index(provider_count: float, population: float, travel_time: float, scale: float = 45.0) -> float:
+    if provider_count < 0 or population < 0:
+        raise ValueError("provider_count and population must be zero or greater")
+    _validate_non_negative_distance(travel_time)
+    if scale <= 0:
+        raise ValueError("scale must be greater than zero")
+    providers_per_capita = provider_count / (population + 1e-9)
+    return providers_per_capita * exponential_decay(travel_time, scale=scale)
+
+
+def food_desert_risk(grocery_density: float, vehicle_access: float, transit_access: float) -> float:
+    if grocery_density < 0:
+        raise ValueError("grocery_density must be zero or greater")
+    if not (0.0 <= vehicle_access <= 1.0 and 0.0 <= transit_access <= 1.0):
+        raise ValueError("access values must be between 0 and 1")
+    protection = min(1.0, grocery_density) * 0.5 + vehicle_access * 0.3 + transit_access * 0.2
+    return 1.0 - protection
+
+
+def digital_divide_index(broadband_coverage: float, device_access: float, digital_literacy: float) -> float:
+    if any(v < 0 or v > 1.0 for v in (broadband_coverage, device_access, digital_literacy)):
+        raise ValueError("all inputs must be between 0 and 1")
+    access_score = broadband_coverage * 0.4 + device_access * 0.3 + digital_literacy * 0.3
+    return 1.0 - access_score
+
+
+def emergency_response_score(station_density: float, response_time: float, coverage_ratio: float, scale: float = 10.0) -> float:
+    if station_density < 0:
+        raise ValueError("station_density must be zero or greater")
+    _validate_non_negative_distance(response_time)
+    if not (0.0 <= coverage_ratio <= 1.0):
+        raise ValueError("coverage_ratio must be between 0 and 1")
+    if scale <= 0:
+        raise ValueError("scale must be greater than zero")
+    return min(1.0, station_density) * coverage_ratio * exponential_decay(response_time, scale=scale)
+
+
+def wildfire_risk_index(fuel_load: float, dryness_index: float, wind_speed: float, suppression_capacity: float) -> float:
+    if fuel_load < 0 or dryness_index < 0 or wind_speed < 0:
+        raise ValueError("fuel_load, dryness_index, and wind_speed must be zero or greater")
+    if not (0.0 <= suppression_capacity <= 1.0):
+        raise ValueError("suppression_capacity must be between 0 and 1")
+    base = math.log1p(fuel_load) * dryness_index * math.log1p(wind_speed)
+    mitigation = 1.0 - suppression_capacity
+    return base * mitigation
+
+
+def landslide_susceptibility(slope_degrees: float, soil_erodibility: float, rainfall_intensity: float, vegetation_cover: float) -> float:
+    if slope_degrees < 0 or soil_erodibility < 0 or rainfall_intensity < 0:
+        raise ValueError("slope_degrees, soil_erodibility, and rainfall_intensity must be zero or greater")
+    if not (0.0 <= vegetation_cover <= 1.0):
+        raise ValueError("vegetation_cover must be between 0 and 1")
+    slope_factor = math.tan(math.radians(min(slope_degrees, 89.0)))
+    return slope_factor * soil_erodibility * rainfall_intensity * (1.0 - vegetation_cover)
+
+
+def coastal_inundation_risk(surge_height: float, elevation: float, defense_level: float) -> float:
+    if surge_height < 0 or elevation < 0:
+        raise ValueError("surge_height and elevation must be zero or greater")
+    if not (0.0 <= defense_level <= 1.0):
+        raise ValueError("defense_level must be between 0 and 1")
+    effective_elevation = elevation * (1.0 + defense_level)
+    if effective_elevation == 0:
+        return 1.0 if surge_height > 0 else 0.0
+    return min(1.0, surge_height / effective_elevation)
+
+
+def carbon_intensity_score(emissions: float, activity_output: float) -> float:
+    if emissions < 0 or activity_output < 0:
+        raise ValueError("emissions and activity_output must be zero or greater")
+    if activity_output == 0:
+        return 0.0
+    return emissions / activity_output
+
+
+def circularity_score(recycled_input: float, total_input: float, waste_recovery: float = 0.0) -> float:
+    if recycled_input < 0 or total_input < 0:
+        raise ValueError("recycled_input and total_input must be zero or greater")
+    if not (0.0 <= waste_recovery <= 1.0):
+        raise ValueError("waste_recovery must be between 0 and 1")
+    if total_input == 0:
+        return 0.0
+    return min(1.0, recycled_input / total_input + waste_recovery * 0.2)
+
+
+def supply_chain_resilience(supplier_diversity: float, inventory_days: float, lead_time_variability: float) -> float:
+    if supplier_diversity < 0 or inventory_days < 0 or lead_time_variability < 0:
+        raise ValueError("inputs must be zero or greater")
+    diversity_factor = math.log1p(supplier_diversity)
+    inventory_factor = math.log1p(inventory_days)
+    penalty = 1.0 + lead_time_variability
+    return (diversity_factor * inventory_factor) / penalty
+
+
+def procurement_risk_score(single_source_ratio: float, geopolitical_risk: float, price_volatility: float) -> float:
+    if not (0.0 <= single_source_ratio <= 1.0 and 0.0 <= geopolitical_risk <= 1.0):
+        raise ValueError("single_source_ratio and geopolitical_risk must be between 0 and 1")
+    if price_volatility < 0:
+        raise ValueError("price_volatility must be zero or greater")
+    raw = single_source_ratio * 0.5 + geopolitical_risk * 0.3 + min(1.0, price_volatility) * 0.2
+    return min(1.0, raw)
+
+
+def labor_market_tightness(open_positions: float, active_seekers: float) -> float:
+    if open_positions < 0 or active_seekers < 0:
+        raise ValueError("open_positions and active_seekers must be zero or greater")
+    if active_seekers == 0:
+        return float(open_positions > 0)
+    return open_positions / active_seekers
+
+
+def innovation_velocity(patent_count: float, rnd_spend: float, collaboration_index: float) -> float:
+    if patent_count < 0 or rnd_spend < 0:
+        raise ValueError("patent_count and rnd_spend must be zero or greater")
+    if not (0.0 <= collaboration_index <= 1.0):
+        raise ValueError("collaboration_index must be between 0 and 1")
+    return math.log1p(patent_count) * math.log1p(rnd_spend) * (1.0 + collaboration_index)
+
+
+def productivity_efficiency(output_units: float, labor_hours: float, capital_index: float = 1.0) -> float:
+    if output_units < 0 or labor_hours < 0:
+        raise ValueError("output_units and labor_hours must be zero or greater")
+    if capital_index <= 0:
+        raise ValueError("capital_index must be greater than zero")
+    if labor_hours == 0:
+        return 0.0
+    return output_units / (labor_hours * capital_index)
+
+
+def fiscal_stability_index(revenue: float, expenditure: float, debt_service: float) -> float:
+    if revenue < 0 or expenditure < 0 or debt_service < 0:
+        raise ValueError("revenue, expenditure, and debt_service must be zero or greater")
+    obligations = expenditure + debt_service
+    if obligations == 0:
+        return 1.0
+    return min(1.0, revenue / obligations)
+
+
+def scenario_robustness_score(base_outcome: float, stress_outcomes: tuple[float, ...]) -> float:
+    if base_outcome < 0:
+        raise ValueError("base_outcome must be zero or greater")
+    if not stress_outcomes:
+        raise ValueError("stress_outcomes must not be empty")
+    if any(value < 0 for value in stress_outcomes):
+        raise ValueError("stress outcomes must be zero or greater")
+    if base_outcome == 0:
+        return 0.0
+    min_stress = min(stress_outcomes)
+    return max(0.0, min(1.0, min_stress / base_outcome))
+
+
+def uncertainty_penalty(interval_width: float, estimate_magnitude: float) -> float:
+    if interval_width < 0 or estimate_magnitude < 0:
+        raise ValueError("interval_width and estimate_magnitude must be zero or greater")
+    if estimate_magnitude == 0:
+        return 1.0 if interval_width > 0 else 0.0
+    return min(1.0, interval_width / estimate_magnitude)
+
+
+def bayesian_update_weight(prior_confidence: float, evidence_quality: float, sample_size: float) -> float:
+    if not (0.0 <= prior_confidence <= 1.0 and 0.0 <= evidence_quality <= 1.0):
+        raise ValueError("prior_confidence and evidence_quality must be between 0 and 1")
+    if sample_size < 0:
+        raise ValueError("sample_size must be zero or greater")
+    sample_factor = sample_size / (sample_size + 10.0)
+    return prior_confidence * (1.0 - sample_factor) + evidence_quality * sample_factor
+
+
+def signal_to_noise_ratio_score(signal_strength: float, noise_level: float) -> float:
+    if signal_strength < 0 or noise_level < 0:
+        raise ValueError("signal_strength and noise_level must be zero or greater")
+    if noise_level == 0:
+        return float("inf") if signal_strength > 0 else 0.0
+    return signal_strength / noise_level
+
+
+def calibration_error_score(predicted: float, observed: float) -> float:
+    if predicted < 0 or observed < 0:
+        raise ValueError("predicted and observed must be zero or greater")
+    denom = observed + 1e-9
+    return abs(predicted - observed) / denom
+
+
+def fairness_parity_score(group_a_rate: float, group_b_rate: float) -> float:
+    if group_a_rate < 0 or group_b_rate < 0:
+        raise ValueError("group rates must be zero or greater")
+    max_rate = max(group_a_rate, group_b_rate)
+    if max_rate == 0:
+        return 1.0
+    return min(group_a_rate, group_b_rate) / max_rate
+
+
+def anomaly_severity_score(z_score: float, persistence: float, spatial_extent: float) -> float:
+    if z_score < 0 or persistence < 0 or spatial_extent < 0:
+        raise ValueError("inputs must be zero or greater")
+    return z_score * math.log1p(persistence) * math.log1p(spatial_extent)
+
+
+def trend_momentum_score(recent_change: float, long_term_change: float, volatility: float) -> float:
+    if volatility < 0:
+        raise ValueError("volatility must be zero or greater")
+    return (recent_change - long_term_change) / (1.0 + volatility)
+
+
+def queue_delay_factor(arrival_rate: float, service_rate: float) -> float:
+    if arrival_rate < 0 or service_rate <= 0:
+        raise ValueError("arrival_rate must be zero or greater and service_rate must be positive")
+    utilization = arrival_rate / service_rate
+    if utilization >= 1.0:
+        return float("inf")
+    return utilization / (1.0 - utilization)
+
+
+def infrastructure_lifecycle_score(age_years: float, design_life_years: float, maintenance_quality: float) -> float:
+    if age_years < 0 or design_life_years <= 0:
+        raise ValueError("age_years must be zero or greater and design_life_years must be positive")
+    if not (0.0 <= maintenance_quality <= 1.0):
+        raise ValueError("maintenance_quality must be between 0 and 1")
+    wear = min(1.0, age_years / design_life_years)
+    return max(0.0, 1.0 - wear * (1.0 - 0.5 * maintenance_quality))
+
+
 __all__ = [
     "Coordinate",
     "DistanceMethod",
@@ -963,4 +1330,44 @@ __all__ = [
     "visual_prominence_score",
     "sky_view_factor",
     "acoustic_reverberation_index",
+    "entropy_evenness_index",
+    "gini_inequality_index",
+    "normalized_access_gap",
+    "service_reliability_decay",
+    "adaptive_capacity_score",
+    "hazard_exposure_score",
+    "evacuation_time_index",
+    "flood_storage_effectiveness",
+    "drought_stress_index",
+    "heat_island_intensity",
+    "renewable_penetration_score",
+    "energy_burden_score",
+    "housing_affordability_pressure",
+    "rental_displacement_risk",
+    "school_access_score",
+    "healthcare_access_index",
+    "food_desert_risk",
+    "digital_divide_index",
+    "emergency_response_score",
+    "wildfire_risk_index",
+    "landslide_susceptibility",
+    "coastal_inundation_risk",
+    "carbon_intensity_score",
+    "circularity_score",
+    "supply_chain_resilience",
+    "procurement_risk_score",
+    "labor_market_tightness",
+    "innovation_velocity",
+    "productivity_efficiency",
+    "fiscal_stability_index",
+    "scenario_robustness_score",
+    "uncertainty_penalty",
+    "bayesian_update_weight",
+    "signal_to_noise_ratio_score",
+    "calibration_error_score",
+    "fairness_parity_score",
+    "anomaly_severity_score",
+    "trend_momentum_score",
+    "queue_delay_factor",
+    "infrastructure_lifecycle_score",
 ]

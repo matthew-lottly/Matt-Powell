@@ -42,6 +42,16 @@ def sample_frame():
         ("cultural_similarity_matrix", "cultural_similarity", True),
         ("noise_impact_map", "noise_level", False),
         ("visual_prominence_map", "visual_prominence", False),
+        ("drought_stress_map", "drought_stress", False),
+        ("heat_island_map", "heat_island_intensity", False),
+        ("school_access_map", "school_access", False),
+        ("healthcare_access_map", "healthcare_access", False),
+        ("food_desert_map", "food_desert_risk", False),
+        ("digital_divide_map", "digital_divide", False),
+        ("wildfire_risk_map", "wildfire_risk", False),
+        ("emergency_response_map", "emergency_response", False),
+        ("infrastructure_lifecycle_map", "infrastructure_lifecycle", False),
+        ("adaptive_capacity_map", "adaptive_capacity", False),
     ],
 )
 def test_all_analysis_tools_execute(sample_frame, tool_name: str, expected_key: str, pairwise: bool) -> None:
@@ -125,6 +135,65 @@ def test_all_analysis_tools_execute(sample_frame, tool_name: str, expected_key: 
             vertical_column="priority_index",
             range_column="capacity_index",
             distinctiveness_column="demand_index",
+        )
+    elif tool_name == "drought_stress_map":
+        rows = analysis.drought_stress_map(
+            demand_column="demand_index",
+            supply_column="capacity_index",
+            reserve_column="priority_index",
+        )
+    elif tool_name == "heat_island_map":
+        rows = analysis.heat_island_map(
+            impervious_column="demand_index",
+            canopy_column="capacity_index",
+            albedo_column="priority_index",
+        )
+    elif tool_name == "school_access_map":
+        rows = analysis.school_access_map(
+            capacity_column="capacity_index",
+            demand_column="demand_index",
+        )
+    elif tool_name == "healthcare_access_map":
+        rows = analysis.healthcare_access_map(
+            provider_column="capacity_index",
+            population_column="demand_index",
+        )
+    elif tool_name == "food_desert_map":
+        rows = analysis.food_desert_map(
+            grocery_column="demand_index",
+            vehicle_column="capacity_index",
+            transit_column="priority_index",
+        )
+    elif tool_name == "digital_divide_map":
+        rows = analysis.digital_divide_map(
+            broadband_column="demand_index",
+            device_column="capacity_index",
+            literacy_column="priority_index",
+        )
+    elif tool_name == "wildfire_risk_map":
+        rows = analysis.wildfire_risk_map(
+            fuel_column="demand_index",
+            dryness_column="capacity_index",
+            wind_column="priority_index",
+            suppression_column="capacity_index",
+        )
+    elif tool_name == "emergency_response_map":
+        rows = analysis.emergency_response_map(
+            station_column="capacity_index",
+            coverage_column="demand_index",
+        )
+    elif tool_name == "infrastructure_lifecycle_map":
+        rows = analysis.infrastructure_lifecycle_map(
+            age_column="demand_index",
+            life_column="capacity_index",
+            maintenance_column="priority_index",
+        )
+    elif tool_name == "adaptive_capacity_map":
+        rows = analysis.adaptive_capacity_map(
+            income_column="demand_index",
+            education_column="capacity_index",
+            health_column="priority_index",
+            governance_column="demand_index",
         )
     else:
         raise AssertionError(f"Unknown tool {tool_name}")

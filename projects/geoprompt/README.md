@@ -8,6 +8,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 - Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
 - Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Extended equations catalog: [docs/equations-extended-catalog.md](docs/equations-extended-catalog.md)
 - Guarantees contract: [docs/guarantees.md](docs/guarantees.md)
 - V1 execution plan: [docs/v1-execution-plan.md](docs/v1-execution-plan.md)
 - Improvement backlog (50): [docs/next-50-improvements.md](docs/next-50-improvements.md)
@@ -303,6 +304,12 @@ Run tests:
 pytest
 ```
 
+Run open-source comparison validation against Shapely and GeoPandas:
+
+```bash
+python -m geoprompt.compare --output-dir outputs
+```
+
 Run a resumable pipeline from a JSON plan:
 
 ```bash
@@ -358,6 +365,19 @@ The default demo command writes `outputs/geoprompt_demo_report.json` and `output
 - a bounding-box query count for the default valley review window
 - a GeoJSON export in `outputs/geoprompt_demo_features.geojson`
 - a committed pressure plot in `assets/neighborhood-pressure-review-live.png`
+
+The analyze command now includes additional equation-driven tools for climate, access, and resilience:
+
+- `drought-stress-map`
+- `heat-island-map`
+- `school-access-map`
+- `healthcare-access-map`
+- `food-desert-map`
+- `digital-divide-map`
+- `wildfire-risk-map`
+- `emergency-response-map`
+- `infrastructure-lifecycle-map`
+- `adaptive-capacity-map`
 
 CI validation is defined in `.github/workflows/geoprompt-ci.yml` and runs tests, demo generation, comparison validation, and package builds.
 It also runs `python -m twine check dist/*` so distribution metadata is validated before release.

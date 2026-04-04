@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from geoprompt.demo import build_demo_report
 from geoprompt.io import read_features
@@ -45,7 +45,7 @@ def test_report_summary_snapshot(tmp_path: Path) -> None:
         top_n=5,
         no_plot=True,
     )
-    summary = report["summary"]
+    summary = cast(dict[str, Any], report["summary"])
 
     current = {
         "feature_count": summary["feature_count"],

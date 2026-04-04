@@ -8,7 +8,7 @@ GeoPrompt now supports GeoPandas-style callable analysis from `GeoPromptFrame.an
 2. `gravity_flow(...)`
 3. `suitability(...)`
 
-## 20 additional callable tools
+## Additional callable tools
 
 1. `catchment_competition(...)`
 2. `hotspot_scan(...)`
@@ -30,6 +30,16 @@ GeoPrompt now supports GeoPandas-style callable analysis from `GeoPromptFrame.an
 18. `cultural_similarity_matrix(...)`
 19. `noise_impact_map(...)`
 20. `visual_prominence_map(...)`
+21. `drought_stress_map(...)`
+22. `heat_island_map(...)`
+23. `school_access_map(...)`
+24. `healthcare_access_map(...)`
+25. `food_desert_map(...)`
+26. `digital_divide_map(...)`
+27. `wildfire_risk_map(...)`
+28. `emergency_response_map(...)`
+29. `infrastructure_lifecycle_map(...)`
+30. `adaptive_capacity_map(...)`
 
 ## Usage examples
 

@@ -131,6 +131,16 @@ def test_cli_suitability_command(tmp_path: Path) -> None:
         "cultural-similarity-matrix",
         "noise-impact-map",
         "visual-prominence-map",
+        "drought-stress-map",
+        "heat-island-map",
+        "school-access-map",
+        "healthcare-access-map",
+        "food-desert-map",
+        "digital-divide-map",
+        "wildfire-risk-map",
+        "emergency-response-map",
+        "infrastructure-lifecycle-map",
+        "adaptive-capacity-map",
     ],
 )
 def test_cli_analyze_command_all_tools(tool: str, tmp_path: Path) -> None:

@@ -109,6 +109,16 @@ ANALYZE_TOOLS: list[str] = [
     "cultural-similarity-matrix",
     "noise-impact-map",
     "visual-prominence-map",
+    "drought-stress-map",
+    "heat-island-map",
+    "school-access-map",
+    "healthcare-access-map",
+    "food-desert-map",
+    "digital-divide-map",
+    "wildfire-risk-map",
+    "emergency-response-map",
+    "infrastructure-lifecycle-map",
+    "adaptive-capacity-map",
 ]
 
 
@@ -1188,6 +1198,68 @@ def main() -> None:
                     distinctiveness_column=_c(2, "demand_index"),
                     id_column=id_col,
                     distance_method=dm,
+                ),
+                "drought-stress-map": lambda: _a.drought_stress_map(
+                    demand_column=_c(0, "demand_index"),
+                    supply_column=_c(1, "capacity_index"),
+                    reserve_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                ),
+                "heat-island-map": lambda: _a.heat_island_map(
+                    impervious_column=_c(0, "demand_index"),
+                    canopy_column=_c(1, "capacity_index"),
+                    albedo_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                ),
+                "school-access-map": lambda: _a.school_access_map(
+                    capacity_column=_c(0, "capacity_index"),
+                    demand_column=_c(1, "demand_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "healthcare-access-map": lambda: _a.healthcare_access_map(
+                    provider_column=_c(0, "capacity_index"),
+                    population_column=_c(1, "demand_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "food-desert-map": lambda: _a.food_desert_map(
+                    grocery_column=_c(0, "demand_index"),
+                    vehicle_column=_c(1, "capacity_index"),
+                    transit_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                ),
+                "digital-divide-map": lambda: _a.digital_divide_map(
+                    broadband_column=_c(0, "demand_index"),
+                    device_column=_c(1, "capacity_index"),
+                    literacy_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                ),
+                "wildfire-risk-map": lambda: _a.wildfire_risk_map(
+                    fuel_column=_c(0, "demand_index"),
+                    dryness_column=_c(1, "capacity_index"),
+                    wind_column=_c(2, "priority_index"),
+                    suppression_column=_c(3, "capacity_index"),
+                    id_column=id_col,
+                ),
+                "emergency-response-map": lambda: _a.emergency_response_map(
+                    station_column=_c(0, "capacity_index"),
+                    coverage_column=_c(1, "demand_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "infrastructure-lifecycle-map": lambda: _a.infrastructure_lifecycle_map(
+                    age_column=_c(0, "demand_index"),
+                    life_column=_c(1, "capacity_index"),
+                    maintenance_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                ),
+                "adaptive-capacity-map": lambda: _a.adaptive_capacity_map(
+                    income_column=_c(0, "demand_index"),
+                    education_column=_c(1, "capacity_index"),
+                    health_column=_c(2, "priority_index"),
+                    governance_column=_c(3, "demand_index"),
+                    id_column=id_col,
                 ),
             }
 
