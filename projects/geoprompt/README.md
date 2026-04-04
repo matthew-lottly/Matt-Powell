@@ -4,6 +4,15 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 ![Generated neighborhood pressure plot from the GeoPrompt demo](assets/neighborhood-pressure-review-live.png)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Extended equations catalog: [docs/equations-extended-catalog.md](docs/equations-extended-catalog.md)
+- Guarantees contract: [docs/guarantees.md](docs/guarantees.md)
+- V1 execution plan: [docs/v1-execution-plan.md](docs/v1-execution-plan.md)
+- Improvement backlog (50): [docs/next-50-improvements.md](docs/next-50-improvements.md)
+
 ## Snapshot
 
 - Lane: Spatial package design
@@ -13,9 +22,24 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 ## Overview
 
-This project starts a reusable spatial package lane instead of another one-off analysis repo. The goal is to build a custom package that users can import directly, similar to how they would reach for GeoPandas, but focused first on a small and clear set of spatial equations that can grow over time.
+This project delivers a reusable spatial analysis package rather than another one-off analysis repository. It is designed for direct import, similar to GeoPandas, while staying focused on a clear initial set of spatial equations that can grow over time.
 
 The initial version still stays intentionally simple, but it now goes beyond points: the frame can work with points, lines, and polygons represented through a small GeoJSON-like geometry mapping. That keeps the package small enough to iterate on while still showing a real package design direction.
+
+For portfolio review, the important signal is not just that the package runs. It is that the package exposes a reusable API surface, a benchmarkable behavior set, and a path toward a public spatial package that can be evaluated on usability rather than on one demo alone.
+
+## System Graph
+
+```mermaid
+flowchart TD
+    A[Input data\nJSON or GeoJSON] --> B[Validation and normalization]
+    B --> C[GeoPromptFrame core operations]
+    C --> D[Equation-based scoring]
+    C --> E[Spatial overlays and joins]
+    D --> F[CLI and API outputs]
+    E --> F
+    F --> G[JSON, CSV, GeoJSON, charts, comparison reports]
+```
 
 ## What It Demonstrates
 
@@ -293,6 +317,51 @@ Run tests:
 pytest
 ```
 
+Run open-source comparison validation against Shapely and GeoPandas:
+
+```bash
+python -m geoprompt.compare --output-dir outputs
+```
+
+Run a resumable pipeline from a JSON plan:
+
+```bash
+geoprompt-demo pipeline --pipeline-file pipeline.json --resume
+```
+
+Run the same pipeline over a folder of inputs:
+
+```bash
+geoprompt-demo pipeline --pipeline-file pipeline.json --batch-input-dir data/batch --batch-pattern "*.json"
+```
+
+Example `pipeline.json`:
+
+```json
+{
+    "steps": [
+        {
+            "name": "scan",
+            "command": "analyze",
+            "tool": "hotspot-scan",
+            "format": "json",
+            "retries": 1,
+            "continue_on_error": false
+        },
+        {
+            "name": "flow",
+            "command": "analyze",
+            "tool": "gravity-flow",
+            "max_results": 20,
+            "format": "json",
+            "retries": 2,
+            "continue_on_error": true
+        },
+        {"name": "report", "command": "report", "no_plot": true, "no_asset_copy": true}
+    ]
+}
+```
+
 ## Current Output
 
 The default demo command writes `outputs/geoprompt_demo_report.json` and `outputs/charts/neighborhood-pressure-review.png` with:
@@ -309,6 +378,19 @@ The default demo command writes `outputs/geoprompt_demo_report.json` and `output
 - a bounding-box query count for the default valley review window
 - a GeoJSON export in `outputs/geoprompt_demo_features.geojson`
 - a committed pressure plot in `assets/neighborhood-pressure-review-live.png`
+
+The analyze command now includes additional equation-driven tools for climate, access, and resilience:
+
+- `drought-stress-map`
+- `heat-island-map`
+- `school-access-map`
+- `healthcare-access-map`
+- `food-desert-map`
+- `digital-divide-map`
+- `wildfire-risk-map`
+- `emergency-response-map`
+- `infrastructure-lifecycle-map`
+- `adaptive-capacity-map`
 
 CI validation is defined in `.github/workflows/geoprompt-ci.yml` and runs tests, demo generation, comparison validation, and package builds.
 It also runs `python -m twine check dist/*` so distribution metadata is validated before release.
@@ -327,7 +409,7 @@ See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthro
 These are intentionally simple first equations. The package now supports two distance modes:
 
 - `euclidean` for planar coordinate space and direct comparison with Shapely and GeoPandas raw-coordinate results
-- `haversine` for geographic point-to-point distances in kilometers when your coordinates are longitude/latitude
+- `haversine` for geographic point-to-point distances in kilometers when your coordinates are longitude/latitude (`EPSG:4326` required)
 
 The package now supports CRS tagging and reprojection, but it is still designed so richer CRS handling, overlays, and additional operators can be layered in later.
 
@@ -371,7 +453,7 @@ Before calling Geoprompt production-ready, use the comparison CLI to verify resu
 geoprompt-compare
 ```
 
-This writes `outputs/geoprompt_comparison_report.json` with:
+This writes a comparison report to `outputs/geoprompt_comparison_report.json` with:
 
 - core metric agreement across the built-in sample and benchmark corpora
 - core metric agreement across a generated stress corpus with 93 features and 16 join regions
@@ -388,6 +470,8 @@ Current validated snapshot from the built-in corpora:
 - Geoprompt is consistently faster on geometry metrics, nearest-neighbor lookup, bounds queries, and dissolve
 - the generated stress corpus now shows Geoprompt ahead on both spatial join and clip
 - the smaller benchmark corpus still shows `clip` and `spatial_join` trailing the reference path, which is the clearest target for the next optimization pass
+
+Note: files under `outputs/` are generated artifacts and are intentionally not committed.
 
 Representative relative speed ratios from the latest comparison report:
 
@@ -409,7 +493,7 @@ The project now includes:
 - License: [LICENSE](LICENSE)
 - Standalone publishing notes: [PUBLISHING.md](PUBLISHING.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Release notes: [docs/release-notes-0.1.6.md](docs/release-notes-0.1.6.md)
+- Release notes: [docs/release-notes-0.1.8.md](docs/release-notes-0.1.8.md)
 - Tool roadmap: [docs/tool-roadmap.md](docs/tool-roadmap.md)
 
 ## Repository Notes

@@ -43,7 +43,7 @@
 	- standalone repo: `matthew-lottly/geoprompt` with workflow `.github/workflows/publish-pypi.yml`
 11. If the PyPI publisher entry expects an environment, set it to `pypi` so the OIDC claim matches the workflow.
 12. Confirm `pyproject.toml` has the intended release version and that `README.md` still uses the raw GitHub image URL.
-13. Push a version tag such as `geoprompt-v0.1.7` to trigger the monorepo publish workflow, or run the workflow manually from GitHub Actions.
+13. Push a version tag such as `geoprompt-v0.1.8` to trigger the monorepo publish workflow, or run the workflow manually from GitHub Actions.
 
 ## PyPI Commands
 
@@ -63,14 +63,14 @@ Use this flow when PyPI Trusted Publishing is connected to GitHub:
 1. Ensure the Trusted Publisher entry in PyPI points at the repository that is actually running the workflow.
 2. Set the workflow file to `.github/workflows/publish-pypi.yml`.
 3. Set the environment name to `pypi` when using the current workflow.
-4. Push a tag such as `geoprompt-v0.1.7`.
+4. Push a tag such as `geoprompt-v0.1.8`.
 5. Watch the `Publish To PyPI` workflow in GitHub Actions.
 
 Example tag commands:
 
 ```bash
-git tag geoprompt-v0.1.7
-git push origin geoprompt-v0.1.7
+git tag geoprompt-v0.1.8
+git push origin geoprompt-v0.1.8
 ```
 
 ## First Public Polish Pass

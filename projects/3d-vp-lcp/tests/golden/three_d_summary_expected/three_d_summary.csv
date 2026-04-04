@@ -1,0 +1,3 @@
+run_name,runtime_seconds,path_voxel_count,graph_nodes,graph_edges,mean_corridor_height,z_min,z_max,z_q25,z_q50,z_q75,z_std,unique_xy_columns,x_span,y_span,hband_0_2m,hband_2_5m,hband_5_10m,hband_10m_plus,informative_3d,gate_reason
+run_degenerate,0.5,1,5,0,1.5,1.5,1.5,1.5,1.5,1.5,0.0,1,0.0,0.0,1,0,0,0,False,path_voxel_count<2;z_std<0.05;unique_xy_columns<2
+run_informative,1.2,3,10,20,3.0,1.5,4.5,2.25,3.0,3.75,1.224744871391589,3,6.0,0.0,1,2,0,0,True,ok

@@ -4,6 +4,11 @@ Data science portfolio project recreating the structure of an Arroyo Colorado fl
 
 ![Arroyo flood forecasting preview](assets/flood-forecast-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and flood forecasting
@@ -14,6 +19,8 @@ Data science portfolio project recreating the structure of an Arroyo Colorado fl
 ## Overview
 
 This project translates a MATLAB-era flood forecasting workflow into a lightweight Python lab. It uses a real public USGS gage-height series from South Texas as a reproducible analog for an Arroyo-style flood review, denoises the signal with a discrete wavelet transform, compares autoregressive models on both the raw and denoised series, and exports a review artifact with holdout PMSE and Monte Carlo scenario summaries.
+
+For portfolio review, the value is the decision story around those outputs: whether denoising helps, which model order is defensible on holdout data, and how uncertainty bands change the flood-stage discussion for a reviewer.
 
 ## What It Demonstrates
 
@@ -67,3 +74,4 @@ pytest
 See [docs/architecture.md](docs/architecture.md) for the method notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
 See [docs/case-study-walkthrough.md](docs/case-study-walkthrough.md) for an article-style narrative built around the generated artifacts.
+See [docs/benchmark-summary.md](docs/benchmark-summary.md) for the condensed interpretation of the forecasting comparisons.

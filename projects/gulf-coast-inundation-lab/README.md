@@ -4,6 +4,11 @@ Remote sensing portfolio project recreating a Gulf Coast flood-inundation study 
 
 ![Gulf Coast inundation preview](assets/gulf-coast-inundation-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Remote sensing and inundation mapping

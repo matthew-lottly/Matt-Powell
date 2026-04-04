@@ -4,6 +4,11 @@ Data science portfolio project for detector comparison, labeled-event evaluation
 
 ![Monitoring anomaly detection preview](assets/anomaly-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and anomaly detection
@@ -16,6 +21,8 @@ Data science portfolio project for detector comparison, labeled-event evaluation
 This project shows the operational side of data science: turning raw monitoring telemetry into anomaly candidates that an analyst or downstream alerting system can review quickly.
 
 The current implementation stays public-safe and dependency-light. It uses checked-in observations, compares several detector strategies against labeled events, selects the strongest detector by F1 score, and exports a ranked anomaly report with experiment-style metadata.
+
+The key review question is not whether one detector wins on one seed. It is whether the repository makes the model-selection tradeoff legible through labeled-event metrics, benchmark context, and a ranked output that an analyst could plausibly act on.
 
 ## What It Demonstrates
 
@@ -75,3 +82,4 @@ The default command writes `outputs/anomaly_report.json` with:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/benchmark-context.md](docs/benchmark-context.md) for the detector-comparison framing behind the exported metrics.

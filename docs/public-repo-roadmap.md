@@ -1,6 +1,6 @@
 # Public Repo Roadmap
 
-This roadmap keeps the public side of the account small, coherent, and easy to review.
+This roadmap keeps the public side of the account focused, curated, and easy to evaluate.
 
 ## Public Strategy
 

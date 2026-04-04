@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "3d-vp-lcp"
+version = "0.1.0"
+description = "3-D Vertical Permeability Least-Cost Path: a LiDAR-driven framework for landscape connectivity."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "laspy>=2.5,<3.0",
+    "lazrs>=0.6,<1.0",
+    "networkx>=3.2,<4.0",
+    "numpy>=1.26,<3.0",
+    "scipy>=1.13,<2.0",
+    "tqdm>=4.66,<5.0",
+]
+
+[project.optional-dependencies]
+viz = [
+    "matplotlib>=3.9,<4.0",
+    "open3d>=0.18,<1.0",
+]
+circuit = [
+    "scikit-learn>=1.5,<2.0",
+]
+dev = [
+    "pytest>=8.2,<9.0",
+    "ruff>=0.4,<1.0",
+    "pytest-cov>=5.0,<8.0",
+]
+
+[project.scripts]
+vp-lcp = "vp_lcp.cli:main"
+vp-lcp-fetch-tile = "vp_lcp.scripts.fetch_public_tile:main"
+vp-lcp-benchmark-real = "vp_lcp.scripts.benchmark_real_tile:main"
+vp-lcp-benchmark-cross-site = "vp_lcp.scripts.benchmark_cross_site:main"
+vp-lcp-summarize-3d = "vp_lcp.scripts.summarize_3d_runs:main"
+vp-lcp-reproduce-baseline = "vp_lcp.scripts.reproduce_recommended_baseline:main"
+vp-lcp-check-performance = "vp_lcp.scripts.check_performance_thresholds:main"
+vp-lcp-derive-rasters = "vp_lcp.scripts.derive_rasters_from_lidar:main"
+vp-lcp-plot-corridor = "vp_lcp.scripts.plot_corridor_maps:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.ruff]
+line-length = 100

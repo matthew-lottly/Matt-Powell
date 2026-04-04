@@ -1,6 +1,0 @@
-[
-  "tests/test_lab.py::test_build_risk_report",
-  "tests/test_lab.py::test_export_risk_report",
-  "tests/test_lab.py::test_load_samples",
-  "tests/test_lab.py::test_risk_classification_lab_class"
-]

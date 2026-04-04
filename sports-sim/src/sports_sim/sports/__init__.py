@@ -1,1 +1,0 @@
-"""Sport module plugins."""

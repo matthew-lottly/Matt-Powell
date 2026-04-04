@@ -4,6 +4,12 @@
 
 TSUAN performs cloud removal on Sentinel-2 L2A multispectral imagery by fusing optical data with Sentinel-1 SAR through uncertainty-weighted attention mechanisms. The architecture produces calibrated, hierarchical uncertainty estimates alongside reconstructed cloud-free images.
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Runbook: [docs/runbook.md](docs/runbook.md)
+
 ## Architecture
 
 ```
@@ -121,6 +127,8 @@ data_root/
 | Physical plausibility | < 5% violations |
 | Inference latency | < 1 sec / 256×256 patch (CPU) |
 
+These are intended benchmark targets, not claimed achieved results in the current repository state. They exist to clarify what success should look like when the model is evaluated against the cited remote-sensing baselines.
+
 ## Project Structure
 
 ```
@@ -141,3 +149,7 @@ src/tsuan/
 ## License
 
 MIT
+
+## Deployment Notes
+
+See [docs/deployment-assumptions.md](docs/deployment-assumptions.md) for the expected input-data shape, deployment constraints, and benchmark framing behind the current TSUAN package layout.

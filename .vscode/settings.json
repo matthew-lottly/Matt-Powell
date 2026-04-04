@@ -1,9 +1,9 @@
 {
-  "python.analysis.extraPaths": [
-    "projects/tsuan/src"
-  ],
-  "python.analysis.typeCheckingMode": "basic"
-}
-{
   "python.defaultInterpreterPath": "d:/GitHub/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "d:/GitHub/projects/tsuan/src",
+    "d:/GitHub/projects/3d-vp-lcp/src"
+  ],
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.useNearestConfiguration": false
 }

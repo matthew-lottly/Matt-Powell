@@ -4,6 +4,12 @@ Production-style backend for monitoring stations, environmental observations, an
 
 ![Dashboard preview](assets/dashboard-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Runbook: [docs/runbook.md](docs/runbook.md)
+
 ## Snapshot
 
 - Lane: Backend + GIS
@@ -117,6 +123,8 @@ See [docs/demo-script.md](docs/demo-script.md) for a short presentation flow.
 See [docs/architecture.md](docs/architecture.md) for the project structure overview.
 See [docs/roadmap.md](docs/roadmap.md) for the next planned improvements.
 See [docs/public-issues.md](docs/public-issues.md) for good first public follow-up tasks.
+See [docs/api-examples.md](docs/api-examples.md) for concrete request and response pairs.
+See [docs/rollback-guide.md](docs/rollback-guide.md) for deployment rollback procedures.
 
 ### Docker with PostGIS
 

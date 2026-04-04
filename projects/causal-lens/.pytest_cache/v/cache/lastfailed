@@ -1,3 +1,0 @@
-{
-  "tests/test_public_datasets.py::test_lalonde_placebo_passes_on_pre_treatment_earnings": true
-}

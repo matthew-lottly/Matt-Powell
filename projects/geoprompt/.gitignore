@@ -4,3 +4,8 @@ __pycache__/
 build/
 dist/
 src/geoprompt.egg-info/
+outputs/*.json
+outputs/*.geojson
+outputs/charts/*.png
+!outputs/.gitkeep
+!outputs/charts/.gitkeep

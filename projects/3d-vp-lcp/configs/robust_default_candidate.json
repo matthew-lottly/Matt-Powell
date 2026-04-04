@@ -1,0 +1,47 @@
+{
+  "input": {
+    "bbox": null,
+    "vegetation_classes": [2, 3, 4, 5],
+    "ground_classes": [2],
+    "normalization": "dtm-grid",
+    "ground_percentile": 2.0,
+    "dtm_cell_size": 2.0,
+    "voxel_size": 3.0,
+    "min_height": 0.0,
+    "polygon_clip_path": null,
+    "slope_raster_path": null,
+    "landcover_raster_path": null
+  },
+  "resistance": {
+    "alpha": 1.2,
+    "beta": 0.8,
+    "gamma": 0.0,
+    "delta": 0.0,
+    "normalize": true
+  },
+  "species": {
+    "h_min": 0.0,
+    "h_max": 80.0,
+    "h_clear": 0.0,
+    "w_clear": 1,
+    "vgf_thresh": 0.6,
+    "name": "strict-gate-cross-site-winner",
+    "stratum_weights": null
+  },
+  "routing": {
+    "algorithm": "dijkstra",
+    "neighbours": 26,
+    "source_margin": 1,
+    "target_margin": 1
+  },
+  "output": {
+    "output_dir": "outputs/latest-run",
+    "export_csv": true,
+    "export_geojson": true,
+    "export_report": true,
+    "export_surface": false,
+    "export_occupancy": true,
+    "export_vgf": true,
+    "export_cost_volume": true
+  }
+}

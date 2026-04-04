@@ -2,12 +2,54 @@ from __future__ import annotations
 
 import importlib
 from dataclasses import dataclass
-from heapq import nsmallest
+from heapq import nlargest, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
-from .equations import area_similarity, coordinate_distance, corridor_strength, directional_alignment, prompt_influence, prompt_interaction
+from .equations import (
+    adaptive_capacity_score,
+    accessibility_potential,
+    area_similarity,
+    climate_vulnerability_index,
+    digital_divide_index,
+    drought_stress_index,
+    emergency_response_score,
+    healthcare_access_index,
+    heat_island_intensity,
+    infrastructure_lifecycle_score,
+    community_cohesion_score,
+    competitive_influence,
+    composite_suitability_score,
+    coordinate_distance,
+    corridor_reliability_score,
+    coverage_equity_score,
+    cultural_similarity_index,
+    demand_supply_balance_score,
+    corridor_strength,
+    directional_alignment,
+    gentrification_pressure_index,
+    gravity_interaction,
+    habitat_fragmentation_score,
+    hotspot_intensity_score,
+    land_value_gradient,
+    market_concentration_index,
+    migration_attraction_index,
+    mortality_risk_index,
+    noise_propagation_level,
+    pollution_dispersion_model,
+    prompt_influence,
+    prompt_interaction,
+    trade_flow_intensity,
+    traffic_congestion_index,
+    transit_accessibility_score,
+    school_access_score,
+    food_desert_risk,
+    wildfire_risk_index,
+    visual_prominence_score,
+    walkability_score,
+)
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections
+from .validation import validate_distance_method_crs
 
 
 Record = dict[str, Any]
@@ -50,6 +92,776 @@ class Bounds:
     max_y: float
 
 
+class GeoPromptAnalysis:
+    """GeoPandas-style analysis namespace for callable frame workflows."""
+
+    def __init__(self, frame: "GeoPromptFrame") -> None:
+        self._frame = frame
+
+    @staticmethod
+    def _unit(value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
+
+    def _distance_from_global_centroid(self, row_centroid: Coordinate, distance_method: str) -> float:
+        frame = self._frame
+        center = frame.centroid()
+        return coordinate_distance(row_centroid, center, method=distance_method)
+
+    def accessibility(
+        self,
+        opportunities: str,
+        id_column: str = "site_id",
+        friction: float = 1.0,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+        max_distance: float | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(opportunities)
+        frame._require_column(id_column)
+
+        centroids = frame._cached_centroids
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            score = 0.0
+            for j, destination in enumerate(frame._rows):
+                if not include_self and i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                score += accessibility_potential(
+                    weight=float(destination[opportunities]),
+                    distance_value=dist,
+                    friction=friction,
+                )
+            records.append(
+                {
+                    id_column: origin[id_column],
+                    "accessibility_score": score,
+                    "opportunities_column": opportunities,
+                    "distance_method": distance_method,
+                }
+            )
+        return records
+
+    def gravity_flow(
+        self,
+        origin_weight: str,
+        destination_weight: str,
+        id_column: str = "site_id",
+        beta: float = 2.0,
+        offset: float = 1e-6,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(origin_weight)
+        frame._require_column(destination_weight)
+        frame._require_column(id_column)
+
+        centroids = frame._cached_centroids
+        flows: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if not include_self and i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                flow_value = gravity_interaction(
+                    origin_weight=float(origin[origin_weight]),
+                    destination_weight=float(destination[destination_weight]),
+                    distance_value=dist,
+                    beta=beta,
+                    offset=offset,
+                )
+                flows.append(
+                    {
+                        "origin": origin[id_column],
+                        "destination": destination[id_column],
+                        "distance": dist,
+                        "gravity_flow": flow_value,
+                        "distance_method": distance_method,
+                    }
+                )
+                if max_results is not None and len(flows) >= max_results:
+                    return flows
+        return flows
+
+    def suitability(
+        self,
+        criteria_columns: Sequence[str],
+        id_column: str = "site_id",
+        criteria_weights: Sequence[float] | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._require_column(id_column)
+        if len(criteria_columns) == 0:
+            raise ValueError("criteria_columns must not be empty")
+        for column in criteria_columns:
+            frame._require_column(column)
+
+        if criteria_weights is None:
+            weights = tuple(1.0 for _ in criteria_columns)
+        else:
+            if len(criteria_weights) != len(criteria_columns):
+                raise ValueError("criteria_weights length must match criteria_columns length")
+            weights = tuple(float(weight) for weight in criteria_weights)
+
+        records: list[Record] = []
+        for row in frame._rows:
+            scores = tuple(self._unit(float(row[column])) for column in criteria_columns)
+            suitability_score = composite_suitability_score(scores, criteria_weights=weights)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "suitability_score": suitability_score,
+                    "criteria_columns": list(criteria_columns),
+                }
+            )
+        return records
+
+    def catchment_competition(
+        self,
+        demand_column: str,
+        supply_column: str,
+        id_column: str = "site_id",
+        distance_method: str = "euclidean",
+        max_distance: float | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(demand_column)
+        frame._require_column(supply_column)
+        frame._require_column(id_column)
+
+        centroids = frame._cached_centroids
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            competition = 0.0
+            for j, destination in enumerate(frame._rows):
+                if i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                competition += competitive_influence(
+                    primary_weight=float(origin[supply_column]),
+                    competitor_weight=float(destination[supply_column]),
+                    distance_value=dist,
+                    scale=1.0,
+                )
+            demand_supply = demand_supply_balance_score(float(origin[demand_column]), float(origin[supply_column]))
+            records.append(
+                {
+                    id_column: origin[id_column],
+                    "competition_score": competition,
+                    "demand_supply_balance": demand_supply,
+                }
+            )
+        return records
+
+    def hotspot_scan(self, value_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(value_column)
+        frame._require_column(id_column)
+        baseline = sum(float(row[value_column]) for row in frame._rows) / max(len(frame._rows), 1)
+        baseline = max(baseline, 1e-9)
+        return [
+            {
+                id_column: row[id_column],
+                "hotspot_score": hotspot_intensity_score(float(row[value_column]), baseline),
+            }
+            for row in frame._rows
+        ]
+
+    def equity_gap(self, min_column: str, max_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(min_column)
+        frame._require_column(max_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "coverage_equity": coverage_equity_score(max(0.0, float(row[min_column])), max(0.0, float(row[max_column]))),
+            }
+            for row in frame._rows
+        ]
+
+    def network_reliability(self, capacity_column: str, failure_proxy_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(capacity_column)
+        frame._require_column(failure_proxy_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "network_reliability": corridor_reliability_score(
+                    base_strength=max(0.0, float(row[capacity_column])),
+                    failure_rate=1.0 - self._unit(float(row[failure_proxy_column])),
+                    corridor_length=max(0.0, geometry_length(row[frame.geometry_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def transit_service_gap(
+        self,
+        service_frequency_column: str,
+        coverage_column: str,
+        id_column: str = "site_id",
+        distance_method: str = "euclidean",
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(service_frequency_column)
+        frame._require_column(coverage_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            service_score = transit_accessibility_score(
+                stop_distance=distance_value,
+                service_frequency=max(0.0, float(row[service_frequency_column]) * 60.0),
+                network_coverage=self._unit(float(row[coverage_column])),
+                scale=500.0,
+            )
+            records.append({id_column: row[id_column], "transit_service_gap": 1.0 - self._unit(service_score)})
+        return records
+
+    def congestion_hotspots(self, flow_column: str, capacity_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(flow_column)
+        frame._require_column(capacity_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "congestion_index": traffic_congestion_index(
+                    current_flow=max(0.0, float(row[flow_column])),
+                    capacity=max(1e-9, float(row[capacity_column])),
+                    speed_reduction=0.0,
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def walkability_audit(self, connectivity_column: str, density_column: str, amenities_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(connectivity_column)
+        frame._require_column(density_column)
+        frame._require_column(amenities_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "walkability_score": walkability_score(
+                    sidewalk_connectivity=self._unit(float(row[connectivity_column])),
+                    intersection_density=self._unit(float(row[density_column])),
+                    pedestrian_amenities=self._unit(float(row[amenities_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def gentrification_scan(self, appreciation_column: str, income_column: str, displacement_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(appreciation_column)
+        frame._require_column(income_column)
+        frame._require_column(displacement_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "gentrification_pressure": gentrification_pressure_index(
+                    property_appreciation_rate=self._unit(float(row[appreciation_column])),
+                    income_dynamics=self._unit(float(row[income_column])),
+                    displacement_risk=self._unit(float(row[displacement_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def land_value_surface(self, base_value_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(base_value_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "land_value_estimate": land_value_gradient(
+                        city_center_value=max(0.0, float(row[base_value_column])),
+                        distance_value=distance_value,
+                        scale=1.0,
+                        elasticity=0.5,
+                    ),
+                }
+            )
+        return records
+
+    def pollution_surface(self, source_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(source_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "pollution_intensity": pollution_dispersion_model(
+                        source_intensity=max(0.0, float(row[source_column])),
+                        distance_value=distance_value,
+                        wind_factor=0.1,
+                        scale=1.0,
+                    ),
+                }
+            )
+        return records
+
+    def habitat_fragmentation_map(self, patch_column: str, connectivity_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(patch_column)
+        frame._require_column(connectivity_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "fragmentation_score": habitat_fragmentation_score(
+                        patch_size=max(0.0, float(row[patch_column])),
+                        nearest_patch_distance=distance_value,
+                        connectivity_index=max(0.0, float(row[connectivity_column])),
+                    ),
+                }
+            )
+        return records
+
+    def climate_vulnerability_map(self, exposure_column: str, sensitivity_column: str, adaptive_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(exposure_column)
+        frame._require_column(sensitivity_column)
+        frame._require_column(adaptive_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "climate_vulnerability": climate_vulnerability_index(
+                    exposure_level=self._unit(float(row[exposure_column])),
+                    sensitivity_level=self._unit(float(row[sensitivity_column])),
+                    adaptive_capacity=self._unit(float(row[adaptive_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def migration_pull_map(self, economic_column: str, quality_column: str, cultural_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(economic_column)
+        frame._require_column(quality_column)
+        frame._require_column(cultural_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "migration_attraction": migration_attraction_index(
+                        economic_opportunity=self._unit(float(row[economic_column])),
+                        quality_of_life=self._unit(float(row[quality_column])),
+                        cultural_alignment=self._unit(float(row[cultural_column])),
+                        distance_value=distance_value,
+                    ),
+                }
+            )
+        return records
+
+    def mortality_risk_map(self, population_column: str, disease_column: str, healthcare_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(population_column)
+        frame._require_column(disease_column)
+        frame._require_column(healthcare_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "mortality_risk": mortality_risk_index(
+                    age_weighted_population=max(0.0, float(row[population_column])),
+                    disease_burden=max(0.0, float(row[disease_column])),
+                    healthcare_access=self._unit(float(row[healthcare_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def market_power_map(self, largest_share_column: str, concentration_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(largest_share_column)
+        frame._require_column(concentration_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "market_power": market_concentration_index(
+                    largest_firm_share=self._unit(float(row[largest_share_column])),
+                    herfindahl_index=self._unit(float(row[concentration_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def trade_corridor_map(self, export_column: str, import_column: str, id_column: str = "site_id", distance_method: str = "euclidean", max_distance: float | None = None, max_results: int | None = None) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(export_column)
+        frame._require_column(import_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                records.append(
+                    {
+                        "origin": origin[id_column],
+                        "destination": destination[id_column],
+                        "trade_intensity": trade_flow_intensity(
+                            export_value=max(0.0, float(origin[export_column])),
+                            import_value=max(0.0, float(destination[import_column])),
+                            distance_value=dist,
+                            bilateral_agreement=0.2,
+                        ),
+                    }
+                )
+                if max_results is not None and len(records) >= max_results:
+                    return records
+        return records
+
+    def community_cohesion_map(self, internal_column: str, external_column: str, identity_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(internal_column)
+        frame._require_column(external_column)
+        frame._require_column(identity_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "community_cohesion": community_cohesion_score(
+                    internal_ties=max(0.0, float(row[internal_column])),
+                    external_ties=max(0.0, float(row[external_column])),
+                    shared_identity_strength=self._unit(float(row[identity_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def cultural_similarity_matrix(self, value_column: str, language_column: str, tradition_column: str, history_column: str, id_column: str = "site_id", max_results: int | None = None) -> list[Record]:
+        frame = self._frame
+        frame._require_column(value_column)
+        frame._require_column(language_column)
+        frame._require_column(tradition_column)
+        frame._require_column(history_column)
+        frame._require_column(id_column)
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if i == j:
+                    continue
+                records.append(
+                    {
+                        "origin": origin[id_column],
+                        "destination": destination[id_column],
+                        "cultural_similarity": cultural_similarity_index(
+                            value_alignment=self._unit((float(origin[value_column]) + float(destination[value_column])) / 2.0),
+                            language_similarity=self._unit((float(origin[language_column]) + float(destination[language_column])) / 2.0),
+                            tradition_overlap=self._unit((float(origin[tradition_column]) + float(destination[tradition_column])) / 2.0),
+                            history_shared=self._unit((float(origin[history_column]) + float(destination[history_column])) / 2.0),
+                        ),
+                    }
+                )
+                if max_results is not None and len(records) >= max_results:
+                    return records
+        return records
+
+    def noise_impact_map(self, source_column: str, barrier_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(source_column)
+        frame._require_column(barrier_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "noise_level": noise_propagation_level(
+                        source_decibels=max(0.0, float(row[source_column]) * 100.0),
+                        distance_value=distance_value,
+                        atmospheric_conditions=0.1,
+                        barriers=max(0.0, float(row[barrier_column])),
+                    ),
+                }
+            )
+        return records
+
+    def visual_prominence_map(self, vertical_column: str, range_column: str, distinctiveness_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(vertical_column)
+        frame._require_column(range_column)
+        frame._require_column(distinctiveness_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "visual_prominence": visual_prominence_score(
+                        vertical_extent=max(0.0, float(row[vertical_column]) * 100.0),
+                        visibility_range=max(0.0, float(row[range_column]) * 1000.0),
+                        distinctiveness=self._unit(float(row[distinctiveness_column])),
+                        distance_value=distance_value,
+                        scale=1.0,
+                    ),
+                }
+            )
+        return records
+
+    def drought_stress_map(self, demand_column: str, supply_column: str, reserve_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(demand_column)
+        frame._require_column(supply_column)
+        frame._require_column(reserve_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "drought_stress": drought_stress_index(
+                    water_demand=max(0.0, float(row[demand_column])),
+                    water_supply=max(0.0, float(row[supply_column])),
+                    reserve_ratio=self._unit(float(row[reserve_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def heat_island_map(self, impervious_column: str, canopy_column: str, albedo_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(impervious_column)
+        frame._require_column(canopy_column)
+        frame._require_column(albedo_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "heat_island_intensity": heat_island_intensity(
+                    impervious_ratio=self._unit(float(row[impervious_column])),
+                    tree_canopy_ratio=self._unit(float(row[canopy_column])),
+                    albedo=self._unit(float(row[albedo_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def school_access_map(self, capacity_column: str, demand_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(capacity_column)
+        frame._require_column(demand_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            travel_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "school_access": school_access_score(
+                        seat_capacity=max(0.0, float(row[capacity_column])),
+                        student_population=max(0.0, float(row[demand_column])),
+                        travel_time=travel_time,
+                    ),
+                }
+            )
+        return records
+
+    def healthcare_access_map(self, provider_column: str, population_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(provider_column)
+        frame._require_column(population_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            travel_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "healthcare_access": healthcare_access_index(
+                        provider_count=max(0.0, float(row[provider_column])),
+                        population=max(0.0, float(row[population_column])),
+                        travel_time=travel_time,
+                    ),
+                }
+            )
+        return records
+
+    def food_desert_map(self, grocery_column: str, vehicle_column: str, transit_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(grocery_column)
+        frame._require_column(vehicle_column)
+        frame._require_column(transit_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "food_desert_risk": food_desert_risk(
+                    grocery_density=self._unit(float(row[grocery_column])),
+                    vehicle_access=self._unit(float(row[vehicle_column])),
+                    transit_access=self._unit(float(row[transit_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def digital_divide_map(self, broadband_column: str, device_column: str, literacy_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(broadband_column)
+        frame._require_column(device_column)
+        frame._require_column(literacy_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "digital_divide": digital_divide_index(
+                    broadband_coverage=self._unit(float(row[broadband_column])),
+                    device_access=self._unit(float(row[device_column])),
+                    digital_literacy=self._unit(float(row[literacy_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def wildfire_risk_map(self, fuel_column: str, dryness_column: str, wind_column: str, suppression_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(fuel_column)
+        frame._require_column(dryness_column)
+        frame._require_column(wind_column)
+        frame._require_column(suppression_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "wildfire_risk": wildfire_risk_index(
+                    fuel_load=max(0.0, float(row[fuel_column])),
+                    dryness_index=max(0.0, float(row[dryness_column])),
+                    wind_speed=max(0.0, float(row[wind_column])),
+                    suppression_capacity=self._unit(float(row[suppression_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def emergency_response_map(self, station_column: str, coverage_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(station_column)
+        frame._require_column(coverage_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            response_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "emergency_response": emergency_response_score(
+                        station_density=self._unit(float(row[station_column])),
+                        response_time=response_time,
+                        coverage_ratio=self._unit(float(row[coverage_column])),
+                    ),
+                }
+            )
+        return records
+
+    def infrastructure_lifecycle_map(self, age_column: str, life_column: str, maintenance_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(age_column)
+        frame._require_column(life_column)
+        frame._require_column(maintenance_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "infrastructure_lifecycle": infrastructure_lifecycle_score(
+                    age_years=max(0.0, float(row[age_column])),
+                    design_life_years=max(1e-9, float(row[life_column])),
+                    maintenance_quality=self._unit(float(row[maintenance_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def adaptive_capacity_map(self, income_column: str, education_column: str, health_column: str, governance_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(income_column)
+        frame._require_column(education_column)
+        frame._require_column(health_column)
+        frame._require_column(governance_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "adaptive_capacity": adaptive_capacity_score(
+                    income_index=self._unit(float(row[income_column])),
+                    education_index=self._unit(float(row[education_column])),
+                    health_index=self._unit(float(row[health_column])),
+                    governance_index=self._unit(float(row[governance_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+
 class GeoPromptFrame:
     def __init__(self, rows: Sequence[Record], geometry_column: str = "geometry", crs: str | None = None) -> None:
         self.geometry_column = geometry_column
@@ -57,6 +869,7 @@ class GeoPromptFrame:
         self._rows = [dict(row) for row in rows]
         for row in self._rows:
             row[self.geometry_column] = normalize_geometry(row[self.geometry_column])
+        self._centroid_cache: list[Coordinate] | None = None
 
     @classmethod
     def from_records(cls, records: Iterable[Record], geometry: str = "geometry", crs: str | None = None) -> "GeoPromptFrame":
@@ -73,6 +886,7 @@ class GeoPromptFrame:
         frame.geometry_column = geometry_column
         frame.crs = crs
         frame._rows = [dict(row) for row in rows]
+        frame._centroid_cache = None
         return frame
 
     def __len__(self) -> int:
@@ -80,6 +894,10 @@ class GeoPromptFrame:
 
     def __iter__(self):
         return iter(self._rows)
+
+    @property
+    def analysis(self) -> GeoPromptAnalysis:
+        return GeoPromptAnalysis(self)
 
     @property
     def columns(self) -> list[str]:
@@ -101,10 +919,19 @@ class GeoPromptFrame:
         return Bounds(min_x=min(xs), min_y=min(ys), max_x=max(xs), max_y=max(ys))
 
     def centroid(self) -> Coordinate:
-        centroids = [geometry_centroid(row[self.geometry_column]) for row in self._rows]
+        centroids = self._cached_centroids
         xs = [coord[0] for coord in centroids]
         ys = [coord[1] for coord in centroids]
         return (sum(xs) / len(xs), sum(ys) / len(ys))
+
+    @property
+    def _cached_centroids(self) -> list[Coordinate]:
+        """Pre-computed centroids for all rows; reused across all pairwise operations."""
+        if self._centroid_cache is None:
+            self._centroid_cache = [
+                geometry_centroid(row[self.geometry_column]) for row in self._rows
+            ]
+        return self._centroid_cache
 
     def _centroids(self, rows: Sequence[Record] | None = None, geometry_column: str | None = None) -> list[Coordinate]:
         active_rows = rows if rows is not None else self._rows
@@ -150,6 +977,7 @@ class GeoPromptFrame:
         return aggregate_values
 
     def distance_matrix(self, distance_method: str = "euclidean") -> list[list[float]]:
+        self._validate_distance_method(distance_method)
         return [
             [
                 geometry_distance(origin=row[self.geometry_column], destination=other[self.geometry_column], method=distance_method)
@@ -173,6 +1001,7 @@ class GeoPromptFrame:
         k: int = 1,
         distance_method: str = "euclidean",
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(id_column)
         if k <= 0:
             raise ValueError("k must be greater than zero")
@@ -236,6 +1065,7 @@ class GeoPromptFrame:
         max_distance: float | None = None,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=other.crs)
         if k <= 0:
             raise ValueError("k must be greater than zero")
         if how not in {"inner", "left"}:
@@ -293,6 +1123,7 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         origin_suffix: str = "origin",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=targets.crs)
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -317,6 +1148,7 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         assignment_suffix: str = "assigned",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=targets.crs)
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -378,6 +1210,7 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -409,6 +1242,7 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> list[bool]:
+        self._validate_distance_method(distance_method)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -432,6 +1266,7 @@ class GeoPromptFrame:
         rsuffix: str = "right",
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=other.crs)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
         if how not in {"inner", "left"}:
@@ -836,6 +1671,11 @@ class GeoPromptFrame:
         if name not in self.columns:
             raise KeyError(f"column '{name}' is not present")
 
+    def _validate_distance_method(self, distance_method: str, other_crs: str | None = None) -> None:
+        validate_distance_method_crs(distance_method, self.crs)
+        if other_crs is not None:
+            validate_distance_method_crs(distance_method, other_crs)
+
     def neighborhood_pressure(
         self,
         weight_column: str,
@@ -844,6 +1684,7 @@ class GeoPromptFrame:
         include_self: bool = False,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         pressures: list[float] = []
         for row in self._rows:
@@ -870,6 +1711,7 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -895,6 +1737,7 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -918,27 +1761,37 @@ class GeoPromptFrame:
         scale: float = 1.0,
         power: float = 1.0,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(id_column)
+        centroids = self._cached_centroids
+        areas = [geometry_area(row[self.geometry_column]) for row in self._rows]
         interactions: list[Record] = []
-        for origin in self._rows:
-            for destination in self._rows:
-                if origin is destination:
+        for i, origin in enumerate(self._rows):
+            for j, destination in enumerate(self._rows):
+                if i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
                     continue
                 interactions.append(
                     {
                         "origin": origin[id_column],
                         "destination": destination[id_column],
                         "area_similarity": area_similarity(
-                            origin_area=geometry_area(origin[self.geometry_column]),
-                            destination_area=geometry_area(destination[self.geometry_column]),
-                            distance_value=geometry_distance(origin[self.geometry_column], destination[self.geometry_column], method=distance_method),
+                            origin_area=areas[i],
+                            destination_area=areas[j],
+                            distance_value=dist,
                             scale=scale,
                             power=power,
                         ),
                         "distance_method": distance_method,
                     }
                 )
+                if max_results is not None and len(interactions) >= max_results:
+                    return interactions
         return interactions
 
     def interaction_table(
@@ -950,39 +1803,95 @@ class GeoPromptFrame:
         power: float = 2.0,
         preferred_bearing: float | None = None,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(origin_weight)
         self._require_column(destination_weight)
         self._require_column(id_column)
 
+        centroids = self._cached_centroids
         interactions: list[Record] = []
-        for origin in self._rows:
-            for destination in self._rows:
-                if origin is destination:
+        for i, origin in enumerate(self._rows):
+            for j, destination in enumerate(self._rows):
+                if i == j:
                     continue
-                distance_value = geometry_distance(origin[self.geometry_column], destination[self.geometry_column], method=distance_method)
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
                 interaction = prompt_interaction(
                     origin_weight=float(origin[origin_weight]),
                     destination_weight=float(destination[destination_weight]),
-                    distance_value=distance_value,
+                    distance_value=dist,
                     scale=scale,
                     power=power,
                 )
                 record: Record = {
                     "origin": origin[id_column],
                     "destination": destination[id_column],
-                    "distance": distance_value,
+                    "distance": dist,
                     "interaction": interaction,
                     "distance_method": distance_method,
                 }
                 if preferred_bearing is not None:
                     record["directional_alignment"] = directional_alignment(
-                        origin=geometry_centroid(origin[self.geometry_column]),
-                        destination=geometry_centroid(destination[self.geometry_column]),
+                        origin=centroids[i],
+                        destination=centroids[j],
                         preferred_bearing=preferred_bearing,
                     )
                 interactions.append(record)
+                if max_results is not None and len(interactions) >= max_results:
+                    return interactions
         return interactions
 
+    def accessibility_analysis(
+        self,
+        opportunities: str,
+        id_column: str = "site_id",
+        friction: float = 1.0,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+    ) -> list[Record]:
+        return self.analysis.accessibility(
+            opportunities=opportunities,
+            id_column=id_column,
+            friction=friction,
+            include_self=include_self,
+            distance_method=distance_method,
+        )
 
-__all__ = ["Bounds", "GeoPromptFrame"]
+    def gravity_flow_analysis(
+        self,
+        origin_weight: str,
+        destination_weight: str,
+        id_column: str = "site_id",
+        beta: float = 2.0,
+        offset: float = 1e-6,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+    ) -> list[Record]:
+        return self.analysis.gravity_flow(
+            origin_weight=origin_weight,
+            destination_weight=destination_weight,
+            id_column=id_column,
+            beta=beta,
+            offset=offset,
+            include_self=include_self,
+            distance_method=distance_method,
+        )
+
+    def suitability_analysis(
+        self,
+        criteria_columns: Sequence[str],
+        id_column: str = "site_id",
+        criteria_weights: Sequence[float] | None = None,
+    ) -> list[Record]:
+        return self.analysis.suitability(
+            criteria_columns=criteria_columns,
+            id_column=id_column,
+            criteria_weights=criteria_weights,
+        )
+
+
+__all__ = ["Bounds", "GeoPromptAnalysis", "GeoPromptFrame"]

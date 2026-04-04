@@ -4,13 +4,17 @@ Database-engineering project for modeling, building, and validating a monitoring
 
 ![Warehouse preview](assets/warehouse-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Database engineering
 - Domain: Environmental monitoring
 - Stack: DuckDB, SQL, Python
-- Includes: dimensional model, fact table, alert mart, quality checks, model metadata, tests
-- Includes: dimensional model, fact table, alert mart, quality checks, source SLA validation, CI-ready build artifact
+- Includes: dimensional model, fact table, alert mart, quality checks, source SLA validation, CI-ready build artifact, model metadata, tests
 
 ## Overview
 
@@ -82,6 +86,7 @@ See [docs/architecture.md](docs/architecture.md) for the warehouse build flow.
 See [docs/model-catalog.md](docs/model-catalog.md) for model dependencies, grains, and contract coverage.
 See [docs/postgresql-migration-strategy.md](docs/postgresql-migration-strategy.md) for concrete partitioning and retention notes for a PostgreSQL migration path.
 See [docs/schema-diagram.md](docs/schema-diagram.md) for a quick view of the warehouse structure.
+See [docs/schema-walkthrough.md](docs/schema-walkthrough.md) for a guided tour of each table and its role in the warehouse.
 
 ## Next Steps
 

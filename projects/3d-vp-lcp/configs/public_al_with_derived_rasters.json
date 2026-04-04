@@ -1,0 +1,59 @@
+{
+  "input": {
+    "bbox": [
+      -9646098.526999999,
+      4118552.868,
+      -9644098.526999999,
+      4120552.868
+    ],
+    "vegetation_classes": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "ground_classes": [
+      2
+    ],
+    "normalization": "dtm-grid",
+    "ground_percentile": 2.0,
+    "dtm_cell_size": 2.0,
+    "voxel_size": 3.0,
+    "min_height": 0.0,
+    "polygon_clip_path": null,
+    "slope_raster_path": "outputs/public-raster-layers/al_northal/slope_raster.npy",
+    "landcover_raster_path": "outputs/public-raster-layers/al_northal/landcover_raster.npy"
+  },
+  "resistance": {
+    "alpha": 1.2,
+    "beta": 0.8,
+    "gamma": 0.25,
+    "delta": 0.25,
+    "normalize": true
+  },
+  "species": {
+    "h_min": 0.0,
+    "h_max": 80.0,
+    "h_clear": 0.0,
+    "w_clear": 1,
+    "vgf_thresh": 0.6,
+    "name": "strict-gate-cross-site-winner",
+    "stratum_weights": null
+  },
+  "routing": {
+    "algorithm": "dijkstra",
+    "neighbours": 26,
+    "source_margin": 1,
+    "target_margin": 1
+  },
+  "output": {
+    "output_dir": "outputs/latest-run",
+    "export_csv": true,
+    "export_geojson": true,
+    "export_report": true,
+    "export_surface": true,
+    "export_occupancy": true,
+    "export_vgf": true,
+    "export_cost_volume": true
+  }
+}
