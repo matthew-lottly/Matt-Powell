@@ -1,0 +1,6 @@
+{
+  "name": "usgs-ca-alamedaco-1-2021-ept-node-0-0-0-0",
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_AlamedaCo_1_2021/ept-data/0-0-0-0.laz",
+  "output_file": "CA_AlamedaCo_1_2021_ept_0-0-0-0.laz",
+  "sha256": null
+}

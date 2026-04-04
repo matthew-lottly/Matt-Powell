@@ -1,0 +1,55 @@
+{
+  "run_count": 2,
+  "informative_count": 1,
+  "non_informative_count": 1,
+  "informative_runs": [
+    {
+      "run_name": "run_informative",
+      "runtime_seconds": 1.2,
+      "path_voxel_count": 3,
+      "graph_nodes": 10,
+      "graph_edges": 20,
+      "mean_corridor_height": 3.0,
+      "z_min": 1.5,
+      "z_max": 4.5,
+      "z_q25": 2.25,
+      "z_q50": 3.0,
+      "z_q75": 3.75,
+      "z_std": 1.224744871391589,
+      "unique_xy_columns": 3,
+      "x_span": 6.0,
+      "y_span": 0.0,
+      "hband_0_2m": 1,
+      "hband_2_5m": 2,
+      "hband_5_10m": 0,
+      "hband_10m_plus": 0,
+      "informative_3d": true,
+      "gate_reason": "ok"
+    }
+  ],
+  "non_informative_runs": [
+    {
+      "run_name": "run_degenerate",
+      "runtime_seconds": 0.5,
+      "path_voxel_count": 1,
+      "graph_nodes": 5,
+      "graph_edges": 0,
+      "mean_corridor_height": 1.5,
+      "z_min": 1.5,
+      "z_max": 1.5,
+      "z_q25": 1.5,
+      "z_q50": 1.5,
+      "z_q75": 1.5,
+      "z_std": 0.0,
+      "unique_xy_columns": 1,
+      "x_span": 0.0,
+      "y_span": 0.0,
+      "hband_0_2m": 1,
+      "hband_2_5m": 0,
+      "hband_5_10m": 0,
+      "hband_10m_plus": 0,
+      "informative_3d": false,
+      "gate_reason": "path_voxel_count<2;z_std<0.05;unique_xy_columns<2"
+    }
+  ]
+}

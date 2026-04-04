@@ -13,7 +13,13 @@ def corridor_to_points(
     grid: VoxelGrid,
 ) -> NDArray[np.float64]:
     """Convert a voxel-key path into an (N, 3) array of world coordinates."""
-    pts = np.array([grid.world_coord(k) for k in path])
+    dx, dy, dz = grid.voxel_dims
+    pts = np.array(
+        [
+            grid.origin + np.array([(i + 0.5) * dx, (j + 0.5) * dy, (k + 0.5) * dz])
+            for i, j, k in path
+        ]
+    )
     return pts
 
 

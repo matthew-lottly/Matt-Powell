@@ -1,0 +1,6 @@
+{
+  "name": "usgs-ia-fullstate-ept-node-0-0-0-0-154",
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/IA_FullState/ept-data/0-0-0-0-154.laz",
+  "output_file": "IA_FullState_ept_0-0-0-0-154.laz",
+  "sha256": null
+}

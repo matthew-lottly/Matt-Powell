@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import math
+from typing import Any, TypeAlias, cast
 
 import networkx as nx
-import numpy as np
+
+
+VoxelKey: TypeAlias = tuple[int, int, int]
+SuperKey: TypeAlias = tuple[str]
 
 
 def build_graph(
-    resistance: dict[tuple[int, int, int], float],
+    resistance: dict[VoxelKey, float],
     voxel_size: float,
     neighbours: int = 6,
 ) -> nx.Graph:
@@ -65,16 +69,18 @@ def build_graph(
 
 def least_cost_path(
     g: nx.Graph,
-    source_nodes: list[tuple[int, int, int]],
-    target_nodes: list[tuple[int, int, int]],
-) -> list[tuple[int, int, int]]:
-    """Multi-source / multi-target Dijkstra via super-nodes.
+    source_nodes: list[VoxelKey],
+    target_nodes: list[VoxelKey],
+    algorithm: str = "dijkstra",
+) -> list[VoxelKey]:
+    """Multi-source / multi-target shortest path via super-nodes.
 
-    Returns the voxel-key sequence of the least-cost path (excluding the
-    dummy super-nodes).
+    Supported algorithms are ``dijkstra`` and ``astar``.  A* uses a zero
+    heuristic for the super-node routing setup, which preserves correctness
+    while allowing a consistent algorithm switch from the CLI and config.
     """
-    super_s = ("__super_source__",)
-    super_t = ("__super_target__",)
+    super_s: SuperKey = ("__super_source__",)
+    super_t: SuperKey = ("__super_target__",)
     g_copy = g.copy()
     g_copy.add_node(super_s)
     g_copy.add_node(super_t)
@@ -85,5 +91,38 @@ def least_cost_path(
         if t in g_copy:
             g_copy.add_edge(super_t, t, weight=0.0)
 
-    path = nx.shortest_path(g_copy, super_s, super_t, weight="weight")
-    return [n for n in path if n not in (super_s, super_t)]
+    if algorithm == "astar":
+        raw_path = nx.astar_path(
+            g_copy, super_s, super_t, heuristic=lambda _u, _v: 0.0, weight="weight"
+        )
+    else:
+        raw_path = nx.shortest_path(g_copy, super_s, super_t, weight="weight")
+
+    path = cast(list[Any], raw_path)
+    voxel_path: list[VoxelKey] = []
+    for node in path:
+        if isinstance(node, tuple) and len(node) == 3 and all(isinstance(part, int) for part in node):
+            voxel_path.append(cast(VoxelKey, node))
+    return voxel_path
+
+
+def accumulated_cost_volume(
+    g: nx.Graph,
+    source_nodes: list[VoxelKey],
+) -> dict[VoxelKey, float]:
+    """Compute the minimum travel cost from any source to every reachable voxel."""
+    cost_src: SuperKey = ("__cost_source__",)
+    g_copy = g.copy()
+    g_copy.add_node(cost_src)
+    for s in source_nodes:
+        if s in g_copy:
+            g_copy.add_edge(cost_src, s, weight=0.0)
+    raw_costs = nx.single_source_dijkstra_path_length(g_copy, cost_src, weight="weight")
+    result: dict[VoxelKey, float] = {}
+    for node, cost in raw_costs.items():
+        if isinstance(node, tuple) and len(node) == 3:
+            vk = cast(VoxelKey, node)
+            i, j, k = vk
+            if isinstance(i, int) and isinstance(j, int) and isinstance(k, int):
+                result[vk] = cost
+    return result

@@ -1,0 +1,6 @@
+{
+  "name": "usgs-al-northal-2019-ept-node-0-0-0-0",
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/AL_NorthAL_2019/ept-data/0-0-0-0.laz",
+  "output_file": "AL_NorthAL_2019_ept_0-0-0-0.laz",
+  "sha256": null
+}

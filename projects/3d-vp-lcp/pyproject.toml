@@ -28,10 +28,19 @@ circuit = [
 dev = [
     "pytest>=8.2,<9.0",
     "ruff>=0.4,<1.0",
+    "pytest-cov>=5.0,<8.0",
 ]
 
 [project.scripts]
 vp-lcp = "vp_lcp.cli:main"
+vp-lcp-fetch-tile = "vp_lcp.scripts.fetch_public_tile:main"
+vp-lcp-benchmark-real = "vp_lcp.scripts.benchmark_real_tile:main"
+vp-lcp-benchmark-cross-site = "vp_lcp.scripts.benchmark_cross_site:main"
+vp-lcp-summarize-3d = "vp_lcp.scripts.summarize_3d_runs:main"
+vp-lcp-reproduce-baseline = "vp_lcp.scripts.reproduce_recommended_baseline:main"
+vp-lcp-check-performance = "vp_lcp.scripts.check_performance_thresholds:main"
+vp-lcp-derive-rasters = "vp_lcp.scripts.derive_rasters_from_lidar:main"
+vp-lcp-plot-corridor = "vp_lcp.scripts.plot_corridor_maps:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

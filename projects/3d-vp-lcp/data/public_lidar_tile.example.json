@@ -1,0 +1,6 @@
+{
+  "name": "replace-with-tile-name",
+  "url": "https://example.org/path/to/public_tile.laz",
+  "output_file": "public_tile.laz",
+  "sha256": null
+}

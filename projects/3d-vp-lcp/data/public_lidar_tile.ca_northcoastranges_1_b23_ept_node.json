@@ -1,0 +1,6 @@
+{
+  "name": "usgs-ca-northcoastranges-1-b23-ept-node-0-0-0-0",
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_NorthCoastRanges_1_B23/ept-data/0-0-0-0.laz",
+  "output_file": "CA_NorthCoastRanges_1_B23_ept_0-0-0-0.laz",
+  "sha256": null
+}

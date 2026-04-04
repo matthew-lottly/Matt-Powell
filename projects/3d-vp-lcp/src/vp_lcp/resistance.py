@@ -45,3 +45,22 @@ def compute_resistance(
         resistance[key] = alpha * (1.0 - gap) + beta * occ + gamma * slope + delta * lc
 
     return resistance
+
+
+def normalize_resistance(
+    resistance: dict[tuple[int, int, int], float],
+) -> dict[tuple[int, int, int], float]:
+    """Normalize resistance values to [0, 1] using min-max scaling.
+
+    If all values are equal the original dict is returned unchanged to avoid
+    division by zero.
+    """
+    if not resistance:
+        return resistance
+    vals = list(resistance.values())
+    r_min = min(vals)
+    r_max = max(vals)
+    if r_max == r_min:
+        return dict(resistance)
+    span = r_max - r_min
+    return {key: (v - r_min) / span for key, v in resistance.items()}

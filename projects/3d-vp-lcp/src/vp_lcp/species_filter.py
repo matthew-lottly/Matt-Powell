@@ -2,12 +2,23 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
-
 import numpy as np
-from numpy.typing import NDArray
 
 from .voxelizer import VoxelGrid
+
+_STRATUM_BANDS = [
+    ("0-2m", 0.0, 2.0),
+    ("2-5m", 2.0, 5.0),
+    ("5-10m", 5.0, 10.0),
+    ("10m+", 10.0, float("inf")),
+]
+
+
+def _stratum_weight(z_centre: float, stratum_weights: dict[str, float]) -> float:
+    for label, lo, hi in _STRATUM_BANDS:
+        if lo <= z_centre < hi:
+            return stratum_weights.get(label, 1.0)
+    return 1.0
 
 
 def apply_species_filter(
@@ -19,6 +30,7 @@ def apply_species_filter(
     h_clear: float = 2.0,
     w_clear: int = 2,
     vgf_thresh: float = 0.6,
+    stratum_weights: dict[str, float] | None = None,
 ) -> dict[tuple[int, int, int], float]:
     """Filter voxels that do not satisfy height, clearance, and width criteria.
 
@@ -34,23 +46,31 @@ def apply_species_filter(
         Usable height band above ground (metres).
     h_clear:
         Required vertical clearance (metres).  The voxel must sit beneath at
-        least *h_clear / voxel_size* consecutive low-density voxels.
+        least ``h_clear / voxel_size`` consecutive low-density voxels.
     w_clear:
         Minimum horizontal corridor width (in voxels).  Isolated voxels in a
-        connected component smaller than w_clear × w_clear are removed.
+        3-D connected component smaller than ``w_clear * w_clear`` are removed;
+        an additional erosion step requires at least ``w_clear - 1`` horizontal
+        neighbours at the same height level.
     vgf_thresh:
         VGF threshold above which a voxel is considered passable for the
         clearance check.
+    stratum_weights:
+        Optional dict mapping stratum labels (``"0-2m"``, ``"2-5m"``,
+        ``"5-10m"``, ``"10m+"``) to resistance multipliers applied before
+        filtering.  Values > 1.0 make that band harder to traverse.
     """
     vs = grid.voxel_size
     origin_z = float(grid.origin[2])
 
-    # Step 1: height-band filter
+    # Step 1: height-band filter (with optional stratum weighting)
     filtered: dict[tuple[int, int, int], float] = {}
     for key, r in resistance.items():
         _i, _j, k = key
         z_centre = origin_z + (k + 0.5) * vs
         if h_min <= z_centre <= h_max:
+            if stratum_weights is not None:
+                r = r * _stratum_weight(z_centre, stratum_weights)
             filtered[key] = r
 
     # Step 2: vertical clearance filter
@@ -70,7 +90,7 @@ def apply_species_filter(
         for key in to_remove:
             del filtered[key]
 
-    # Step 3: horizontal width filter (flood-fill connected components)
+    # Step 3: flood-fill component filter (removes isolated small clusters)
     if w_clear > 1:
         min_component = w_clear * w_clear
         remaining = set(filtered)
@@ -97,6 +117,23 @@ def apply_species_filter(
                 to_remove_w.extend(component)
 
         for key in to_remove_w:
+            filtered.pop(key, None)
+
+    # Step 4: erosion pass — each voxel must have at least (w_clear - 1)
+    # horizontal neighbours at the same height level (stronger local width check)
+    if w_clear > 1:
+        min_xy_neighbours = w_clear - 1
+        remaining_keys = set(filtered)
+        to_erode: list[tuple[int, int, int]] = []
+        for key in list(filtered):
+            i, j, k = key
+            count = 0
+            for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                if (i + di, j + dj, k) in remaining_keys:
+                    count += 1
+            if count < min_xy_neighbours:
+                to_erode.append(key)
+        for key in to_erode:
             filtered.pop(key, None)
 
     return filtered

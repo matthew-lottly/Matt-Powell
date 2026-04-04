@@ -20,7 +20,10 @@ class VoxelGrid:
     origin : NDArray
         (3,) world-coordinate origin of the grid.
     voxel_size : float
-        Edge length of each cubic voxel in metres.
+        Edge length in metres — the x-axis dimension (for backward compat).
+    voxel_dims : tuple[float, float, float]
+        Per-axis voxel dimensions ``(dx, dy, dz)`` in metres.  Equal to
+        ``(voxel_size, voxel_size, voxel_size)`` for cubic grids.
     """
 
     def __init__(
@@ -29,11 +32,15 @@ class VoxelGrid:
         veg: dict[tuple[int, int, int], int],
         origin: NDArray[np.float64],
         voxel_size: float,
+        voxel_dims: tuple[float, float, float] | None = None,
     ) -> None:
         self.counts = counts
         self.veg = veg
         self.origin = origin
-        self.voxel_size = voxel_size
+        self.voxel_dims: tuple[float, float, float] = (
+            voxel_dims if voxel_dims is not None else (voxel_size, voxel_size, voxel_size)
+        )
+        self.voxel_size = self.voxel_dims[0]
 
     def occupancy(self, key: tuple[int, int, int]) -> float:
         total = self.counts.get(key, 0)
@@ -43,16 +50,16 @@ class VoxelGrid:
 
     def world_coord(self, key: tuple[int, int, int]) -> NDArray[np.float64]:
         i, j, k = key
-        return self.origin + np.array(
-            [(i + 0.5) * self.voxel_size, (j + 0.5) * self.voxel_size, (k + 0.5) * self.voxel_size]
-        )
+        dx, dy, dz = self.voxel_dims
+        return self.origin + np.array([(i + 0.5) * dx, (j + 0.5) * dy, (k + 0.5) * dz])
 
 
 def voxelize(
     points: NDArray[np.float64],
-    voxel_size: float,
+    voxel_size: float = 2.0,
     origin: NDArray[np.float64] | None = None,
     veg_mask: NDArray[np.bool_] | None = None,
+    voxel_dims: tuple[float, float, float] | None = None,
 ) -> VoxelGrid:
     """Convert an (N, 3) point array into a sparse voxel grid.
 
@@ -61,17 +68,29 @@ def voxelize(
     points:
         (N, 3) array of [x, y, z] coordinates (height-normalised).
     voxel_size:
-        Edge length of each cubic voxel in metres.
+        Edge length of each cubic voxel in metres.  Ignored when
+        *voxel_dims* is provided.
     origin:
-        Optional explicit origin; defaults to the point-cloud minimum.
+        Optional explicit grid origin (3,).  Defaults to ``points.min(axis=0)``.
     veg_mask:
         Boolean array of length N.  True marks vegetation returns.
         If *None*, all points are treated as vegetation.
+    voxel_dims:
+        Optional ``(dx, dy, dz)`` for non-cubic voxels.  When set, overrides
+        *voxel_size*.
     """
-    if origin is None:
-        origin = points.min(axis=0)
+    if voxel_dims is not None:
+        dims = voxel_dims
+    else:
+        dims = (voxel_size, voxel_size, voxel_size)
 
-    indices = np.floor((points - origin) / voxel_size).astype(np.int64)
+    grid_origin: NDArray[np.float64] = points.min(axis=0) if origin is None else origin
+
+    dx, dy, dz = dims
+    ix = np.floor((points[:, 0] - grid_origin[0]) / dx).astype(np.int64)
+    iy = np.floor((points[:, 1] - grid_origin[1]) / dy).astype(np.int64)
+    iz = np.floor((points[:, 2] - grid_origin[2]) / dz).astype(np.int64)
+    indices = np.column_stack([ix, iy, iz])
 
     counts: dict[tuple[int, int, int], int] = defaultdict(int)
     veg: dict[tuple[int, int, int], int] = defaultdict(int)
@@ -85,4 +104,4 @@ def voxelize(
         if veg_mask[row_idx]:
             veg[key] += 1
 
-    return VoxelGrid(dict(counts), dict(veg), origin.copy(), voxel_size)
+    return VoxelGrid(dict(counts), dict(veg), grid_origin.copy(), voxel_size=dims[0], voxel_dims=dims)

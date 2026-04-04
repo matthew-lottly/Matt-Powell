@@ -1,0 +1,7 @@
+{
+  "runtime_seconds": 1.2,
+  "path_voxel_count": 3,
+  "graph_nodes": 10,
+  "graph_edges": 20,
+  "mean_corridor_height": 3.0
+}
