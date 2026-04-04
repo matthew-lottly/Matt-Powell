@@ -251,3 +251,29 @@ def test_cli_analyze_command_with_max_distance(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     output_path = tmp_path / "geoprompt_analyze_gravity_flow.json"
     assert _read_output_records(output_path) == []
+
+
+def test_cli_report_writes_manifest(tmp_path: Path) -> None:
+    result = _run_demo(
+        "report",
+        "--no-plot",
+        "--no-asset-copy",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    manifest = tmp_path / "manifests" / "geoprompt_report_manifest.json"
+    assert manifest.exists()
+
+
+def test_cli_analyze_writes_manifest(tmp_path: Path) -> None:
+    result = _run_demo(
+        "analyze",
+        "--tool",
+        "hotspot-scan",
+        "--output-dir",
+        str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+    manifest = tmp_path / "manifests" / "geoprompt_analyze_hotspot_scan_manifest.json"
+    assert manifest.exists()

@@ -69,6 +69,10 @@ jobs:
       - name: Run tests with coverage
         run: python -m pytest --cov=geoprompt --cov-report=xml --cov-report=term --cov-fail-under=70
 
+      - name: Run benchmark regression gate
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: python benchmarks/profile_runner.py
+
       - name: Generate demo outputs
         run: python -m geoprompt.demo --no-asset-copy
 

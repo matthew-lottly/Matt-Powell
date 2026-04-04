@@ -9,12 +9,16 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import logging
+import platform
 import random as _random
+import subprocess
 from heapq import nlargest
 from pathlib import Path
 from typing import Any
+from datetime import datetime, timezone
 
 import matplotlib.pyplot as plt
 
@@ -105,6 +109,69 @@ ANALYZE_TOOLS: list[str] = [
     "noise-impact-map",
     "visual-prominence-map",
 ]
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        while True:
+            chunk = fh.read(8192)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _current_git_commit() -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(PROJECT_ROOT), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def _write_run_manifest(
+    *,
+    output_dir: Path,
+    command: str,
+    input_path: Path,
+    output_paths: list[Path],
+    args: argparse.Namespace,
+    extra: dict[str, Any] | None = None,
+) -> Path:
+    manifest_dir = output_dir / "manifests"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = manifest_dir / f"geoprompt_{command.replace('-', '_')}_manifest.json"
+
+    payload: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "package": "geoprompt",
+        "command": command,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "python_version": platform.python_version(),
+        "platform": platform.platform(),
+        "git_commit": _current_git_commit(),
+        "input": {
+            "path": str(input_path),
+            "sha256": _sha256_file(input_path),
+        },
+        "arguments": {
+            key: (str(value) if isinstance(value, Path) else value)
+            for key, value in vars(args).items()
+        },
+        "outputs": [str(path) for path in output_paths],
+    }
+    if extra:
+        payload["extra"] = extra
+
+    return write_json(manifest_path, payload)
 
 
 def export_pressure_plot(
@@ -553,7 +620,7 @@ def main() -> None:
         frame = read_features(args.input_path, crs="EPSG:4326")
         pressure = frame.neighborhood_pressure(weight_column="demand_index", scale=args.scale, power=args.power)
         enriched = frame.assign(neighborhood_pressure=pressure)
-        export_pressure_plot(
+        chart_path = export_pressure_plot(
             enriched.to_records(),
             args.output_dir / "charts" / "neighborhood-pressure-review.png",
             colormap=args.colormap,
@@ -561,6 +628,13 @@ def main() -> None:
             title=args.chart_title,
             subtitle=args.chart_subtitle,
             export_formats=args.export_formats,
+        )
+        _write_run_manifest(
+            output_dir=args.output_dir,
+            command="plot",
+            input_path=args.input_path,
+            output_paths=[chart_path],
+            args=args,
         )
         logger.info("Wrote chart to %s", args.output_dir / "charts")
         return
@@ -592,6 +666,13 @@ def main() -> None:
                     "records": rows,
                 },
             )
+        _write_run_manifest(
+            output_dir=args.output_dir,
+            command="accessibility",
+            input_path=args.input_path,
+            output_paths=[output_path],
+            args=args,
+        )
         logger.info("Wrote accessibility analysis to %s", output_path)
         return
 
@@ -618,6 +699,13 @@ def main() -> None:
                     "records": rows,
                 },
             )
+        _write_run_manifest(
+            output_dir=args.output_dir,
+            command="gravity-flow",
+            input_path=args.input_path,
+            output_paths=[output_path],
+            args=args,
+        )
         logger.info("Wrote gravity-flow analysis to %s", output_path)
         return
 
@@ -646,6 +734,13 @@ def main() -> None:
                     "records": rows,
                 },
             )
+        _write_run_manifest(
+            output_dir=args.output_dir,
+            command="suitability",
+            input_path=args.input_path,
+            output_paths=[output_path],
+            args=args,
+        )
         logger.info("Wrote suitability analysis to %s", output_path)
         return
 
@@ -845,6 +940,14 @@ def main() -> None:
                 args.output_dir / f"geoprompt_analyze_{stem}.json",
                 {"schema_version": SCHEMA_VERSION, "tool": tool, "records": rows},
             )
+        _write_run_manifest(
+            output_dir=args.output_dir,
+            command=f"analyze_{stem}",
+            input_path=args.input_path,
+            output_paths=[output_path],
+            args=args,
+            extra={"tool": tool, "row_count": len(rows)},
+        )
         logger.info("Wrote analyze/%s to %s", tool, output_path)
         return
 
@@ -889,6 +992,17 @@ def main() -> None:
     if not args.no_asset_copy and not args.no_plot:
         export_pressure_plot(report["records"], args.asset_path)
         logger.info("Wrote GeoPrompt asset to %s", args.asset_path)
+
+    output_paths = [report_path, geojson_path]
+    if report.get("outputs", {}).get("chart"):
+        output_paths.append(Path(report["outputs"]["chart"]))
+    _write_run_manifest(
+        output_dir=args.output_dir,
+        command="report",
+        input_path=args.input_path,
+        output_paths=output_paths,
+        args=args,
+    )
 
     logger.info("Wrote GeoPrompt report to %s", report_path)
     logger.info("Wrote GeoPrompt GeoJSON to %s", geojson_path)

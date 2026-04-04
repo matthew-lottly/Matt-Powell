@@ -8,6 +8,8 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 - Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
 - Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Guarantees contract: [docs/guarantees.md](docs/guarantees.md)
+- V1 execution plan: [docs/v1-execution-plan.md](docs/v1-execution-plan.md)
 
 ## Snapshot
 
