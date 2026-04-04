@@ -1,5 +1,3 @@
-import process from "node:process";
-
 import { defineConfig, devices } from "@playwright/test";
 
 
@@ -13,7 +11,7 @@ export default defineConfig({
   webServer: {
     command: "npm run build && npx vite preview --host 127.0.0.1 --port 4174",
     port: 4174,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
   },
   projects: [
     {

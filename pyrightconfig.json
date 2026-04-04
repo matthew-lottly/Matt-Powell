@@ -1,7 +1,31 @@
 {
-  "include": [],
+  "include": [
+    "projects/3d-vp-lcp/src",
+    "projects/3d-vp-lcp/tests",
+    "projects/3d-vp-lcp/examples",
+    "projects/tsuan/src"
+  ],
+  "extraPaths": [
+    "projects/3d-vp-lcp/src",
+    "projects/tsuan/src"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "executionEnvironments": [
+    {
+      "root": "projects/3d-vp-lcp",
+      "extraPaths": [
+        "projects/3d-vp-lcp/src"
+      ]
+    },
+    {
+      "root": "projects/tsuan",
+      "extraPaths": [
+        "projects/tsuan/src"
+      ]
+    }
+  ],
   "exclude": [
-    "projects",
     "standalone-checkouts",
     "**/node_modules",
     "**/__pycache__",
