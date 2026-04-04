@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 from dataclasses import dataclass
-from heapq import nsmallest
+from heapq import nlargest, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
 from .equations import (
@@ -91,14 +91,10 @@ class GeoPromptAnalysis:
     def _unit(value: float) -> float:
         return max(0.0, min(1.0, float(value)))
 
-    def _distance_from_global_centroid(self, row: Record, distance_method: str) -> float:
+    def _distance_from_global_centroid(self, row_centroid: Coordinate, distance_method: str) -> float:
         frame = self._frame
         center = frame.centroid()
-        return geometry_distance(
-            row[frame.geometry_column],
-            {"type": "Point", "coordinates": [center[0], center[1]]},
-            method=distance_method,
-        )
+        return coordinate_distance(row_centroid, center, method=distance_method)
 
     def accessibility(
         self,
@@ -107,25 +103,25 @@ class GeoPromptAnalysis:
         friction: float = 1.0,
         include_self: bool = False,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
     ) -> list[Record]:
         frame = self._frame
         frame._require_column(opportunities)
         frame._require_column(id_column)
 
+        centroids = frame._cached_centroids
         records: list[Record] = []
-        for origin in frame._rows:
+        for i, origin in enumerate(frame._rows):
             score = 0.0
-            for destination in frame._rows:
-                if not include_self and origin is destination:
+            for j, destination in enumerate(frame._rows):
+                if not include_self and i == j:
                     continue
-                distance_value = geometry_distance(
-                    origin[frame.geometry_column],
-                    destination[frame.geometry_column],
-                    method=distance_method,
-                )
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
                 score += accessibility_potential(
                     weight=float(destination[opportunities]),
-                    distance_value=distance_value,
+                    distance_value=dist,
                     friction=friction,
                 )
             records.append(
@@ -147,26 +143,27 @@ class GeoPromptAnalysis:
         offset: float = 1e-6,
         include_self: bool = False,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
     ) -> list[Record]:
         frame = self._frame
         frame._require_column(origin_weight)
         frame._require_column(destination_weight)
         frame._require_column(id_column)
 
+        centroids = frame._cached_centroids
         flows: list[Record] = []
-        for origin in frame._rows:
-            for destination in frame._rows:
-                if not include_self and origin is destination:
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if not include_self and i == j:
                     continue
-                distance_value = geometry_distance(
-                    origin[frame.geometry_column],
-                    destination[frame.geometry_column],
-                    method=distance_method,
-                )
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
                 flow_value = gravity_interaction(
                     origin_weight=float(origin[origin_weight]),
                     destination_weight=float(destination[destination_weight]),
-                    distance_value=distance_value,
+                    distance_value=dist,
                     beta=beta,
                     offset=offset,
                 )
@@ -174,11 +171,13 @@ class GeoPromptAnalysis:
                     {
                         "origin": origin[id_column],
                         "destination": destination[id_column],
-                        "distance": distance_value,
+                        "distance": dist,
                         "gravity_flow": flow_value,
                         "distance_method": distance_method,
                     }
                 )
+                if max_results is not None and len(flows) >= max_results:
+                    return flows
         return flows
 
     def suitability(
@@ -220,23 +219,27 @@ class GeoPromptAnalysis:
         supply_column: str,
         id_column: str = "site_id",
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
     ) -> list[Record]:
         frame = self._frame
         frame._require_column(demand_column)
         frame._require_column(supply_column)
         frame._require_column(id_column)
 
+        centroids = frame._cached_centroids
         records: list[Record] = []
-        for origin in frame._rows:
+        for i, origin in enumerate(frame._rows):
             competition = 0.0
-            for destination in frame._rows:
-                if origin is destination:
+            for j, destination in enumerate(frame._rows):
+                if i == j:
                     continue
-                distance_value = geometry_distance(origin[frame.geometry_column], destination[frame.geometry_column], method=distance_method)
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
                 competition += competitive_influence(
                     primary_weight=float(origin[supply_column]),
                     competitor_weight=float(destination[supply_column]),
-                    distance_value=distance_value,
+                    distance_value=dist,
                     scale=1.0,
                 )
             demand_supply = demand_supply_balance_score(float(origin[demand_column]), float(origin[supply_column]))
@@ -304,9 +307,11 @@ class GeoPromptAnalysis:
         frame._require_column(service_frequency_column)
         frame._require_column(coverage_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
         records: list[Record] = []
-        for row in frame._rows:
-            distance_value = self._distance_from_global_centroid(row, distance_method=distance_method)
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
             service_score = transit_accessibility_score(
                 stop_distance=distance_value,
                 service_frequency=max(0.0, float(row[service_frequency_column]) * 60.0),
@@ -373,9 +378,11 @@ class GeoPromptAnalysis:
         frame = self._frame
         frame._require_column(base_value_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
         records: list[Record] = []
-        for row in frame._rows:
-            distance_value = self._distance_from_global_centroid(row, distance_method=distance_method)
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
             records.append(
                 {
                     id_column: row[id_column],
@@ -393,9 +400,11 @@ class GeoPromptAnalysis:
         frame = self._frame
         frame._require_column(source_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
         records: list[Record] = []
-        for row in frame._rows:
-            distance_value = self._distance_from_global_centroid(row, distance_method=distance_method)
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
             records.append(
                 {
                     id_column: row[id_column],
@@ -414,9 +423,11 @@ class GeoPromptAnalysis:
         frame._require_column(patch_column)
         frame._require_column(connectivity_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
         records: list[Record] = []
-        for row in frame._rows:
-            distance_value = self._distance_from_global_centroid(row, distance_method=distance_method)
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
             records.append(
                 {
                     id_column: row[id_column],
@@ -453,9 +464,11 @@ class GeoPromptAnalysis:
         frame._require_column(quality_column)
         frame._require_column(cultural_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
         records: list[Record] = []
-        for row in frame._rows:
-            distance_value = self._distance_from_global_centroid(row, distance_method=distance_method)
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
             records.append(
                 {
                     id_column: row[id_column],
@@ -503,17 +516,20 @@ class GeoPromptAnalysis:
             for row in frame._rows
         ]
 
-    def trade_corridor_map(self, export_column: str, import_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+    def trade_corridor_map(self, export_column: str, import_column: str, id_column: str = "site_id", distance_method: str = "euclidean", max_distance: float | None = None, max_results: int | None = None) -> list[Record]:
         frame = self._frame
         frame._require_column(export_column)
         frame._require_column(import_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
         records: list[Record] = []
-        for origin in frame._rows:
-            for destination in frame._rows:
-                if origin is destination:
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if i == j:
                     continue
-                distance_value = geometry_distance(origin[frame.geometry_column], destination[frame.geometry_column], method=distance_method)
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
                 records.append(
                     {
                         "origin": origin[id_column],
@@ -521,11 +537,13 @@ class GeoPromptAnalysis:
                         "trade_intensity": trade_flow_intensity(
                             export_value=max(0.0, float(origin[export_column])),
                             import_value=max(0.0, float(destination[import_column])),
-                            distance_value=distance_value,
+                            distance_value=dist,
                             bilateral_agreement=0.2,
                         ),
                     }
                 )
+                if max_results is not None and len(records) >= max_results:
+                    return records
         return records
 
     def community_cohesion_map(self, internal_column: str, external_column: str, identity_column: str, id_column: str = "site_id") -> list[Record]:
@@ -546,7 +564,7 @@ class GeoPromptAnalysis:
             for row in frame._rows
         ]
 
-    def cultural_similarity_matrix(self, value_column: str, language_column: str, tradition_column: str, history_column: str, id_column: str = "site_id") -> list[Record]:
+    def cultural_similarity_matrix(self, value_column: str, language_column: str, tradition_column: str, history_column: str, id_column: str = "site_id", max_results: int | None = None) -> list[Record]:
         frame = self._frame
         frame._require_column(value_column)
         frame._require_column(language_column)
@@ -554,9 +572,9 @@ class GeoPromptAnalysis:
         frame._require_column(history_column)
         frame._require_column(id_column)
         records: list[Record] = []
-        for origin in frame._rows:
-            for destination in frame._rows:
-                if origin is destination:
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if i == j:
                     continue
                 records.append(
                     {
@@ -570,6 +588,8 @@ class GeoPromptAnalysis:
                         ),
                     }
                 )
+                if max_results is not None and len(records) >= max_results:
+                    return records
         return records
 
     def noise_impact_map(self, source_column: str, barrier_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
@@ -577,9 +597,11 @@ class GeoPromptAnalysis:
         frame._require_column(source_column)
         frame._require_column(barrier_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
         records: list[Record] = []
-        for row in frame._rows:
-            distance_value = self._distance_from_global_centroid(row, distance_method=distance_method)
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
             records.append(
                 {
                     id_column: row[id_column],
@@ -599,9 +621,11 @@ class GeoPromptAnalysis:
         frame._require_column(range_column)
         frame._require_column(distinctiveness_column)
         frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
         records: list[Record] = []
-        for row in frame._rows:
-            distance_value = self._distance_from_global_centroid(row, distance_method=distance_method)
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
             records.append(
                 {
                     id_column: row[id_column],
@@ -624,6 +648,7 @@ class GeoPromptFrame:
         self._rows = [dict(row) for row in rows]
         for row in self._rows:
             row[self.geometry_column] = normalize_geometry(row[self.geometry_column])
+        self._centroid_cache: list[Coordinate] | None = None
 
     @classmethod
     def from_records(cls, records: Iterable[Record], geometry: str = "geometry", crs: str | None = None) -> "GeoPromptFrame":
@@ -640,6 +665,7 @@ class GeoPromptFrame:
         frame.geometry_column = geometry_column
         frame.crs = crs
         frame._rows = [dict(row) for row in rows]
+        frame._centroid_cache = None
         return frame
 
     def __len__(self) -> int:
@@ -672,10 +698,19 @@ class GeoPromptFrame:
         return Bounds(min_x=min(xs), min_y=min(ys), max_x=max(xs), max_y=max(ys))
 
     def centroid(self) -> Coordinate:
-        centroids = [geometry_centroid(row[self.geometry_column]) for row in self._rows]
+        centroids = self._cached_centroids
         xs = [coord[0] for coord in centroids]
         ys = [coord[1] for coord in centroids]
         return (sum(xs) / len(xs), sum(ys) / len(ys))
+
+    @property
+    def _cached_centroids(self) -> list[Coordinate]:
+        """Pre-computed centroids for all rows; reused across all pairwise operations."""
+        if self._centroid_cache is None:
+            self._centroid_cache = [
+                geometry_centroid(row[self.geometry_column]) for row in self._rows
+            ]
+        return self._centroid_cache
 
     def _centroids(self, rows: Sequence[Record] | None = None, geometry_column: str | None = None) -> list[Coordinate]:
         active_rows = rows if rows is not None else self._rows
@@ -1489,27 +1524,36 @@ class GeoPromptFrame:
         scale: float = 1.0,
         power: float = 1.0,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
     ) -> list[Record]:
         self._require_column(id_column)
+        centroids = self._cached_centroids
+        areas = [geometry_area(row[self.geometry_column]) for row in self._rows]
         interactions: list[Record] = []
-        for origin in self._rows:
-            for destination in self._rows:
-                if origin is destination:
+        for i, origin in enumerate(self._rows):
+            for j, destination in enumerate(self._rows):
+                if i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
                     continue
                 interactions.append(
                     {
                         "origin": origin[id_column],
                         "destination": destination[id_column],
                         "area_similarity": area_similarity(
-                            origin_area=geometry_area(origin[self.geometry_column]),
-                            destination_area=geometry_area(destination[self.geometry_column]),
-                            distance_value=geometry_distance(origin[self.geometry_column], destination[self.geometry_column], method=distance_method),
+                            origin_area=areas[i],
+                            destination_area=areas[j],
+                            distance_value=dist,
                             scale=scale,
                             power=power,
                         ),
                         "distance_method": distance_method,
                     }
                 )
+                if max_results is not None and len(interactions) >= max_results:
+                    return interactions
         return interactions
 
     def interaction_table(
@@ -1521,38 +1565,45 @@ class GeoPromptFrame:
         power: float = 2.0,
         preferred_bearing: float | None = None,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
     ) -> list[Record]:
         self._require_column(origin_weight)
         self._require_column(destination_weight)
         self._require_column(id_column)
 
+        centroids = self._cached_centroids
         interactions: list[Record] = []
-        for origin in self._rows:
-            for destination in self._rows:
-                if origin is destination:
+        for i, origin in enumerate(self._rows):
+            for j, destination in enumerate(self._rows):
+                if i == j:
                     continue
-                distance_value = geometry_distance(origin[self.geometry_column], destination[self.geometry_column], method=distance_method)
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
                 interaction = prompt_interaction(
                     origin_weight=float(origin[origin_weight]),
                     destination_weight=float(destination[destination_weight]),
-                    distance_value=distance_value,
+                    distance_value=dist,
                     scale=scale,
                     power=power,
                 )
                 record: Record = {
                     "origin": origin[id_column],
                     "destination": destination[id_column],
-                    "distance": distance_value,
+                    "distance": dist,
                     "interaction": interaction,
                     "distance_method": distance_method,
                 }
                 if preferred_bearing is not None:
                     record["directional_alignment"] = directional_alignment(
-                        origin=geometry_centroid(origin[self.geometry_column]),
-                        destination=geometry_centroid(destination[self.geometry_column]),
+                        origin=centroids[i],
+                        destination=centroids[j],
                         preferred_bearing=preferred_bearing,
                     )
                 interactions.append(record)
+                if max_results is not None and len(interactions) >= max_results:
+                    return interactions
         return interactions
 
     def accessibility_analysis(

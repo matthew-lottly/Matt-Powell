@@ -89,7 +89,7 @@ from .equations import (
 from .exceptions import AnchorError, CRSError, ColumnError, ConfigError, GeoPromptError, GeometryError, IOError_, PluginError, ValidationError
 from .frame import Bounds, GeoPromptAnalysis, GeoPromptFrame
 from .geometry import geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, transform_geometry
-from .io import frame_to_geojson, read_features, read_geojson, read_points, write_geojson
+from .io import frame_to_geojson, read_features, read_features_chunked, read_geojson, read_points, write_geojson
 from .logging_ import configure_logging, log_timing, log_trace
 from .normalization import normalize, normalize_min_max, normalize_robust, normalize_z_score
 from .overlay import buffer_geometries, dissolve_geometries, geometry_from_shapely, geometry_to_geojson, geometry_to_shapely

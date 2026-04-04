@@ -1,4 +1,4 @@
-"""GeoPrompt demo report and review plot generation.
+﻿"""GeoPrompt demo report and review plot generation.
 
 Generates enriched spatial analytics reports with neighborhood pressure,
 anchor influence, corridor accessibility, interaction tables, and
@@ -11,6 +11,8 @@ import argparse
 import csv
 import json
 import logging
+import random as _random
+from heapq import nlargest
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from .config import GeoPromptConfig, load_config
 from .geometry import geometry_centroid, geometry_type, geometry_vertices
-from .io import read_features, write_geojson, write_json
+from .io import read_features, read_features_chunked, write_geojson, write_json
 from .logging_ import configure_logging, log_timing, log_trace
 from .validation import SCHEMA_VERSION, add_schema_version, validate_non_empty_features
 
@@ -349,7 +351,8 @@ def build_demo_report(
             logger.info("Skipped expensive pairwise computations (--skip-expensive)")
         else:
             with log_timing("interaction_table"):
-                top_interactions = sorted(
+                top_interactions = nlargest(
+                    top_n,
                     enriched.interaction_table(
                         origin_weight="capacity_index",
                         destination_weight="demand_index",
@@ -358,15 +361,14 @@ def build_demo_report(
                         preferred_bearing=135.0,
                     ),
                     key=lambda item: float(item["interaction"]),
-                    reverse=True,
-                )[:top_n]
+                )
 
             with log_timing("area_similarity_table"):
-                top_area_similarity = sorted(
+                top_area_similarity = nlargest(
+                    top_n,
                     enriched.area_similarity_table(scale=0.2, power=1.2),
                     key=lambda item: float(item["area_similarity"]),
-                    reverse=True,
-                )[:top_n]
+                )
 
         top_nearest_neighbors = enriched.nearest_neighbors(k=1)
         top_geographic_neighbors = enriched.nearest_neighbors(k=1, distance_method="haversine")
@@ -488,6 +490,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include-self", action="store_true", help="Include origin-to-origin self links in analysis commands.")
     parser.add_argument("--criteria-columns", nargs="*", default=["demand_index", "capacity_index", "priority_index"], help="Criteria columns for suitability command.")
     parser.add_argument("--criteria-weights", nargs="*", type=float, default=None, help="Optional weights for suitability criteria.")
+
+    # Large-data options
+    parser.add_argument("--max-distance", type=float, default=None, help="Skip feature pairs beyond this distance (degrees or meters).")
+    parser.add_argument("--max-results", type=int, default=None, help="Return at most this many results from pairwise tools.")
+    parser.add_argument("--chunk-size", type=int, default=None, help="Process input in chunks of this many features.")
+    parser.add_argument("--sample", type=float, default=None, help="Random sample fraction (0 < sample <= 1) of input features.")
 
     # Unified analyze command options
     parser.add_argument(
@@ -647,7 +655,27 @@ def main() -> None:
             print("error: --tool is required for the analyze command.", file=_sys.stderr)
             print(f"  Available tools: {', '.join(ANALYZE_TOOLS)}", file=_sys.stderr)
             raise SystemExit(2)
-        frame = read_features(args.input_path, crs="EPSG:4326")
+
+        _chunk_size: int | None = getattr(args, "chunk_size", None)
+        _max_distance: float | None = getattr(args, "max_distance", None)
+        _max_results: int | None = getattr(args, "max_results", None)
+        _sample_frac: float | None = getattr(args, "sample", None)
+
+        if _chunk_size is not None:
+            _frames_to_process = list(read_features_chunked(args.input_path, chunk_size=_chunk_size, crs="EPSG:4326"))
+        else:
+            _raw_frame = read_features(args.input_path, crs="EPSG:4326")
+            if _sample_frac is not None:
+                if not (0.0 < _sample_frac <= 1.0):
+                    import sys as _sys2
+                    print("error: --sample must be between 0 and 1 (exclusive of 0).", file=_sys2.stderr)
+                    raise SystemExit(2)
+                _all_rows = _raw_frame.to_records()
+                _k = max(1, int(len(_all_rows) * _sample_frac))
+                from .frame import GeoPromptFrame as _GPF
+                _raw_frame = _GPF.from_records(_random.sample(_all_rows, _k), crs=_raw_frame.crs)
+            _frames_to_process = [_raw_frame]
+
         cols = list(args.columns or [])
 
         def _c(idx: int, default: str) -> str:
@@ -655,149 +683,160 @@ def main() -> None:
 
         id_col = args.id_column
         dm = args.distance_method
-        a = frame.analysis
         tool = args.tool
 
-        dispatch = {
-            "accessibility": lambda: a.accessibility(
-                opportunities=_c(0, "demand_index"),
-                id_column=id_col,
-                friction=args.friction,
-                include_self=args.include_self,
-                distance_method=dm,
-            ),
-            "gravity-flow": lambda: a.gravity_flow(
-                origin_weight=_c(0, "capacity_index"),
-                destination_weight=_c(1, "demand_index"),
-                id_column=id_col,
-                beta=args.beta,
-                offset=args.offset,
-                include_self=args.include_self,
-                distance_method=dm,
-            ),
-            "suitability": lambda: a.suitability(
-                criteria_columns=cols if cols else args.criteria_columns,
-                id_column=id_col,
-                criteria_weights=args.criteria_weights,
-            ),
-            "catchment-competition": lambda: a.catchment_competition(
-                demand_column=_c(0, "demand_index"),
-                supply_column=_c(1, "capacity_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "hotspot-scan": lambda: a.hotspot_scan(
-                value_column=_c(0, "demand_index"),
-                id_column=id_col,
-            ),
-            "equity-gap": lambda: a.equity_gap(
-                min_column=_c(0, "capacity_index"),
-                max_column=_c(1, "priority_index"),
-                id_column=id_col,
-            ),
-            "network-reliability": lambda: a.network_reliability(
-                capacity_column=_c(0, "capacity_index"),
-                failure_proxy_column=_c(1, "demand_index"),
-                id_column=id_col,
-            ),
-            "transit-service-gap": lambda: a.transit_service_gap(
-                service_frequency_column=_c(0, "capacity_index"),
-                coverage_column=_c(1, "demand_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "congestion-hotspots": lambda: a.congestion_hotspots(
-                flow_column=_c(0, "demand_index"),
-                capacity_column=_c(1, "capacity_index"),
-                id_column=id_col,
-            ),
-            "walkability-audit": lambda: a.walkability_audit(
-                connectivity_column=_c(0, "demand_index"),
-                density_column=_c(1, "capacity_index"),
-                amenities_column=_c(2, "priority_index"),
-                id_column=id_col,
-            ),
-            "gentrification-scan": lambda: a.gentrification_scan(
-                appreciation_column=_c(0, "priority_index"),
-                income_column=_c(1, "capacity_index"),
-                displacement_column=_c(2, "demand_index"),
-                id_column=id_col,
-            ),
-            "land-value-surface": lambda: a.land_value_surface(
-                base_value_column=_c(0, "priority_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "pollution-surface": lambda: a.pollution_surface(
-                source_column=_c(0, "priority_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "habitat-fragmentation-map": lambda: a.habitat_fragmentation_map(
-                patch_column=_c(0, "capacity_index"),
-                connectivity_column=_c(1, "demand_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "climate-vulnerability-map": lambda: a.climate_vulnerability_map(
-                exposure_column=_c(0, "priority_index"),
-                sensitivity_column=_c(1, "demand_index"),
-                adaptive_column=_c(2, "capacity_index"),
-                id_column=id_col,
-            ),
-            "migration-pull-map": lambda: a.migration_pull_map(
-                economic_column=_c(0, "demand_index"),
-                quality_column=_c(1, "capacity_index"),
-                cultural_column=_c(2, "priority_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "mortality-risk-map": lambda: a.mortality_risk_map(
-                population_column=_c(0, "priority_index"),
-                disease_column=_c(1, "demand_index"),
-                healthcare_column=_c(2, "capacity_index"),
-                id_column=id_col,
-            ),
-            "market-power-map": lambda: a.market_power_map(
-                largest_share_column=_c(0, "demand_index"),
-                concentration_column=_c(1, "capacity_index"),
-                id_column=id_col,
-            ),
-            "trade-corridor-map": lambda: a.trade_corridor_map(
-                export_column=_c(0, "capacity_index"),
-                import_column=_c(1, "demand_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "community-cohesion-map": lambda: a.community_cohesion_map(
-                internal_column=_c(0, "capacity_index"),
-                external_column=_c(1, "demand_index"),
-                identity_column=_c(2, "priority_index"),
-                id_column=id_col,
-            ),
-            "cultural-similarity-matrix": lambda: a.cultural_similarity_matrix(
-                value_column=_c(0, "demand_index"),
-                language_column=_c(1, "capacity_index"),
-                tradition_column=_c(2, "priority_index"),
-                history_column=_c(3, "demand_index"),
-                id_column=id_col,
-            ),
-            "noise-impact-map": lambda: a.noise_impact_map(
-                source_column=_c(0, "priority_index"),
-                barrier_column=_c(1, "capacity_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-            "visual-prominence-map": lambda: a.visual_prominence_map(
-                vertical_column=_c(0, "priority_index"),
-                range_column=_c(1, "capacity_index"),
-                distinctiveness_column=_c(2, "demand_index"),
-                id_column=id_col,
-                distance_method=dm,
-            ),
-        }
+        def _make_dispatch(frame_obj: Any) -> dict:
+            _a = frame_obj.analysis
+            return {
+                "accessibility": lambda: _a.accessibility(
+                    opportunities=_c(0, "demand_index"),
+                    id_column=id_col,
+                    friction=args.friction,
+                    include_self=args.include_self,
+                    distance_method=dm,
+                    max_distance=_max_distance,
+                ),
+                "gravity-flow": lambda: _a.gravity_flow(
+                    origin_weight=_c(0, "capacity_index"),
+                    destination_weight=_c(1, "demand_index"),
+                    id_column=id_col,
+                    beta=args.beta,
+                    offset=args.offset,
+                    include_self=args.include_self,
+                    distance_method=dm,
+                    max_distance=_max_distance,
+                    max_results=_max_results,
+                ),
+                "suitability": lambda: _a.suitability(
+                    criteria_columns=cols if cols else args.criteria_columns,
+                    id_column=id_col,
+                    criteria_weights=args.criteria_weights,
+                ),
+                "catchment-competition": lambda: _a.catchment_competition(
+                    demand_column=_c(0, "demand_index"),
+                    supply_column=_c(1, "capacity_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                    max_distance=_max_distance,
+                ),
+                "hotspot-scan": lambda: _a.hotspot_scan(
+                    value_column=_c(0, "demand_index"),
+                    id_column=id_col,
+                ),
+                "equity-gap": lambda: _a.equity_gap(
+                    min_column=_c(0, "capacity_index"),
+                    max_column=_c(1, "priority_index"),
+                    id_column=id_col,
+                ),
+                "network-reliability": lambda: _a.network_reliability(
+                    capacity_column=_c(0, "capacity_index"),
+                    failure_proxy_column=_c(1, "demand_index"),
+                    id_column=id_col,
+                ),
+                "transit-service-gap": lambda: _a.transit_service_gap(
+                    service_frequency_column=_c(0, "capacity_index"),
+                    coverage_column=_c(1, "demand_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "congestion-hotspots": lambda: _a.congestion_hotspots(
+                    flow_column=_c(0, "demand_index"),
+                    capacity_column=_c(1, "capacity_index"),
+                    id_column=id_col,
+                ),
+                "walkability-audit": lambda: _a.walkability_audit(
+                    connectivity_column=_c(0, "demand_index"),
+                    density_column=_c(1, "capacity_index"),
+                    amenities_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                ),
+                "gentrification-scan": lambda: _a.gentrification_scan(
+                    appreciation_column=_c(0, "priority_index"),
+                    income_column=_c(1, "capacity_index"),
+                    displacement_column=_c(2, "demand_index"),
+                    id_column=id_col,
+                ),
+                "land-value-surface": lambda: _a.land_value_surface(
+                    base_value_column=_c(0, "priority_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "pollution-surface": lambda: _a.pollution_surface(
+                    source_column=_c(0, "priority_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "habitat-fragmentation-map": lambda: _a.habitat_fragmentation_map(
+                    patch_column=_c(0, "capacity_index"),
+                    connectivity_column=_c(1, "demand_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "climate-vulnerability-map": lambda: _a.climate_vulnerability_map(
+                    exposure_column=_c(0, "priority_index"),
+                    sensitivity_column=_c(1, "demand_index"),
+                    adaptive_column=_c(2, "capacity_index"),
+                    id_column=id_col,
+                ),
+                "migration-pull-map": lambda: _a.migration_pull_map(
+                    economic_column=_c(0, "demand_index"),
+                    quality_column=_c(1, "capacity_index"),
+                    cultural_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "mortality-risk-map": lambda: _a.mortality_risk_map(
+                    population_column=_c(0, "priority_index"),
+                    disease_column=_c(1, "demand_index"),
+                    healthcare_column=_c(2, "capacity_index"),
+                    id_column=id_col,
+                ),
+                "market-power-map": lambda: _a.market_power_map(
+                    largest_share_column=_c(0, "demand_index"),
+                    concentration_column=_c(1, "capacity_index"),
+                    id_column=id_col,
+                ),
+                "trade-corridor-map": lambda: _a.trade_corridor_map(
+                    export_column=_c(0, "capacity_index"),
+                    import_column=_c(1, "demand_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                    max_distance=_max_distance,
+                    max_results=_max_results,
+                ),
+                "community-cohesion-map": lambda: _a.community_cohesion_map(
+                    internal_column=_c(0, "capacity_index"),
+                    external_column=_c(1, "demand_index"),
+                    identity_column=_c(2, "priority_index"),
+                    id_column=id_col,
+                ),
+                "cultural-similarity-matrix": lambda: _a.cultural_similarity_matrix(
+                    value_column=_c(0, "demand_index"),
+                    language_column=_c(1, "capacity_index"),
+                    tradition_column=_c(2, "priority_index"),
+                    history_column=_c(3, "demand_index"),
+                    id_column=id_col,
+                    max_results=_max_results,
+                ),
+                "noise-impact-map": lambda: _a.noise_impact_map(
+                    source_column=_c(0, "priority_index"),
+                    barrier_column=_c(1, "capacity_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+                "visual-prominence-map": lambda: _a.visual_prominence_map(
+                    vertical_column=_c(0, "priority_index"),
+                    range_column=_c(1, "capacity_index"),
+                    distinctiveness_column=_c(2, "demand_index"),
+                    id_column=id_col,
+                    distance_method=dm,
+                ),
+            }
 
-        rows = dispatch[tool]()
+        _all_output_rows: list[dict] = []
+        for _chunk_f in _frames_to_process:
+            _all_output_rows.extend(_make_dispatch(_chunk_f)[tool]())
+        rows = _all_output_rows
         stem = tool.replace("-", "_")
         if args.output_format == "csv":
             output_path = _write_csv(args.output_dir / f"geoprompt_analyze_{stem}.csv", rows)

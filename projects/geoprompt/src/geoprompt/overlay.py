@@ -116,11 +116,36 @@ def buffer_geometries(geometries: list[Geometry], distance: float, resolution: i
 
 
 def overlay_intersections(left_geometries: list[Geometry], right_geometries: list[Geometry]) -> list[tuple[int, int, list[Geometry]]]:
+    # Pre-compute right bounds once; used to skip clearly non-intersecting pairs
+    # before the more expensive Shapely intersection call.
+    right_bounds = [geometry_bounds(g) for g in right_geometries]
+
+    # Attempt to build an rtree spatial index for O(n log n) candidate lookup.
+    # Falls back silently to bounds-only pre-filter if rtree is not installed.
+    _rtree_index: Any | None = None
+    try:
+        _rtree_mod = importlib.import_module("rtree.index")
+        _rtree_index = _rtree_mod.Index()
+        for right_index, rb in enumerate(right_bounds):
+            _rtree_index.insert(right_index, rb)
+    except Exception:
+        _rtree_index = None
+
     intersections: list[tuple[int, int, list[Geometry]]] = []
     for left_index, left_geometry in enumerate(left_geometries):
+        left_bounds = geometry_bounds(left_geometry)
         left_shape = geometry_to_shapely(left_geometry)
-        for right_index, right_geometry in enumerate(right_geometries):
-            intersection = left_shape.intersection(geometry_to_shapely(right_geometry))
+
+        if _rtree_index is not None:
+            candidates = list(_rtree_index.intersection(left_bounds))
+        else:
+            candidates = [
+                ri for ri, rb in enumerate(right_bounds)
+                if _bounds_intersect(left_bounds, rb)
+            ]
+
+        for right_index in candidates:
+            intersection = left_shape.intersection(geometry_to_shapely(right_geometries[right_index]))
             exploded = geometry_from_shapely(intersection)
             if exploded:
                 intersections.append((left_index, right_index, exploded))
