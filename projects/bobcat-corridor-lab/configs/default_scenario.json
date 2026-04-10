@@ -1,0 +1,20 @@
+{
+  "raster_shape": [
+    180,
+    220
+  ],
+  "random_seed": 44,
+  "suitability_weights": {
+    "land_cover": 0.4,
+    "water_distance": 0.2,
+    "slope": 0.15,
+    "human_footprint": 0.15,
+    "prey": 0.1
+  },
+  "barrier_costs": {
+    "road_cost": 10.0,
+    "urban_cost": 8.0,
+    "agriculture_cost": 3.0
+  },
+  "corridor_quantile": 0.1
+}
