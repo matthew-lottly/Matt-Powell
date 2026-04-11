@@ -475,3 +475,100 @@ options = outage_restoration_tie_options(
 )
 # options sorted by restored_target_count descending.
 ```
+
+### `n_minus_k_edge_contingency_screen`
+
+Generalized N-k screening for simultaneous outages (for example N-2).
+
+```python
+from geoprompt.network import n_minus_k_edge_contingency_screen
+
+rows = n_minus_k_edge_contingency_screen(
+    graph,
+    source_nodes=["substation-A"],
+    k=2,
+    critical_nodes=["hospital-1", "fire-station-1"],
+)
+```
+
+### `crew_dispatch_optimizer`
+
+Create a repair sequence that restores the most critical service per repair hour.
+
+```python
+from geoprompt.network import crew_dispatch_optimizer
+
+plan = crew_dispatch_optimizer(
+    graph,
+    source_nodes=["substation-A"],
+    failed_edges=["sw-12", "line-44", "line-51"],
+    repair_time_by_edge={"sw-12": 1.5, "line-44": 3.0, "line-51": 2.0},
+)
+```
+
+### `pressure_zone_reconfiguration_planner`
+
+Evaluate valve operations and rank actions that improve pressure-band compliance.
+
+```python
+from geoprompt.network import pressure_zone_reconfiguration_planner
+
+actions = pressure_zone_reconfiguration_planner(
+    graph,
+    source_nodes=["treatment-plant-A"],
+    pressure_min=35.0,
+    pressure_max=95.0,
+)
+```
+
+### `pump_station_failure_cascade`
+
+Simulate cascading pump failures through dependency links and optional isolation.
+
+```python
+from geoprompt.network import pump_station_failure_cascade
+
+cascade = pump_station_failure_cascade(
+    graph,
+    pump_nodes=["pump-1", "pump-2", "pump-3"],
+    initial_failed_pumps=["pump-1"],
+    dependency_map={"pump-1": ["pump-2"], "pump-2": ["pump-3"]},
+)
+```
+
+### `feeder_reconfiguration_optimizer`
+
+Recommend a tie-switch closure sequence to recover the most customers/critical load.
+
+```python
+from geoprompt.network import feeder_reconfiguration_optimizer
+
+result = feeder_reconfiguration_optimizer(
+    graph,
+    source_nodes=["substation-A"],
+    tie_edge_ids=["tie-1", "tie-2", "tie-3"],
+    max_switch_actions=2,
+)
+```
+
+### `resilience_capex_prioritization`
+
+Rank proposed capital projects by resilience gain per capex cost.
+
+```python
+from geoprompt.network import resilience_capex_prioritization
+
+ranking = resilience_capex_prioritization(
+    graph,
+    source_nodes=["substation-A"],
+    project_candidates=[
+        {
+            "project_id": "new-loop-tie",
+            "capex_cost": 250000.0,
+            "add_edges": [
+                {"edge_id": "tie-new", "from_node": "n1", "to_node": "n9", "cost": 1.0}
+            ],
+        }
+    ],
+)
+```

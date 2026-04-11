@@ -18,7 +18,9 @@ from geoprompt.network import (
     critical_customer_coverage_audit,
     criticality_ranking_by_node_removal,
     detention_basin_overflow_trace,
+    crew_dispatch_optimizer,
     edge_impedance_cost,
+    feeder_reconfiguration_optimizer,
     feeder_load_balance_swap,
     fiber_cut_impact_matrix,
     fiber_splice_node_trace,
@@ -33,11 +35,15 @@ from geoprompt.network import (
     landmark_lower_bound,
     load_transfer_feasibility,
     multi_criteria_shortest_path,
+    n_minus_k_edge_contingency_screen,
     n_minus_one_edge_contingency_screen,
     od_cost_matrix,
     outage_restoration_tie_options,
     pipe_break_isolation_zones,
+    pressure_zone_reconfiguration_planner,
     pressure_reducing_valve_trace,
+    pump_station_failure_cascade,
+    resilience_capex_prioritization,
     ring_redundancy_check,
     run_utility_scenarios,
     service_area,
@@ -389,6 +395,110 @@ class TestOutageRestorationTieOptions:
         g = _linear_graph()
         with pytest.raises(ValueError):
             outage_restoration_tie_options(g, source_nodes=[], affected_nodes=["B"])
+
+
+class TestNMinusKEdgeContingency:
+    def test_k2_screen_returns_combinations(self):
+        g = _linear_graph()
+        rows = n_minus_k_edge_contingency_screen(
+            g,
+            source_nodes=["A"],
+            k=2,
+            candidate_edge_ids=["e0", "e1", "e2"],
+        )
+        assert len(rows) == 3
+        assert all(r["k"] == 2 for r in rows)
+
+    def test_invalid_k_raises(self):
+        g = _linear_graph()
+        with pytest.raises(ValueError):
+            n_minus_k_edge_contingency_screen(g, source_nodes=["A"], k=0)
+
+
+class TestCrewDispatchOptimizer:
+    def test_prioritizes_high_impact_repair(self):
+        g = _linear_graph()
+        result = crew_dispatch_optimizer(
+            g,
+            source_nodes=["A"],
+            failed_edges=["e0", "e1"],
+            repair_time_by_edge={"e0": 1.0, "e1": 8.0},
+            demand_by_node={"B": 10.0, "C": 50.0, "D": 10.0, "E": 10.0},
+            critical_nodes=["C"],
+        )
+        assert result["total_repairs_planned"] == 2
+        assert result["repair_plan"][0]["repair_edge_id"] == "e0"
+
+
+class TestPressureZoneReconfigurationPlanner:
+    def test_returns_ranked_actions(self):
+        g = build_network_graph(
+            [
+                {"edge_id": "e1", "from_node": "S", "to_node": "A", "cost": 1.0},
+                {"edge_id": "v1", "from_node": "A", "to_node": "B", "cost": 1.0, "device_type": "valve", "state": "open"},
+                {"edge_id": "v2", "from_node": "A", "to_node": "C", "cost": 4.0, "device_type": "valve", "state": "closed"},
+            ],
+            directed=False,
+        )
+        rows = pressure_zone_reconfiguration_planner(g, source_nodes=["S"])
+        assert len(rows) >= 2
+        assert "delta_within_pressure_band" in rows[0]
+
+
+class TestPumpStationFailureCascade:
+    def test_dependency_cascade(self):
+        g = _linear_graph()
+        result = pump_station_failure_cascade(
+            g,
+            pump_nodes=["B", "C", "D"],
+            initial_failed_pumps=["B"],
+            dependency_map={"B": ["C"], "C": ["D"]},
+        )
+        assert result["final_failed_count"] == 3
+        assert "D" in result["final_failed_pumps"]
+
+
+class TestFeederReconfigurationOptimizer:
+    def test_selects_best_tie(self):
+        g = build_network_graph(
+            [
+                {"edge_id": "s1", "from_node": "S", "to_node": "A", "cost": 1.0},
+                {"edge_id": "t1", "from_node": "A", "to_node": "B", "cost": 1.0, "device_type": "tie", "state": "normally_open"},
+                {"edge_id": "t2", "from_node": "A", "to_node": "C", "cost": 1.0, "device_type": "tie", "state": "normally_open"},
+            ],
+            directed=False,
+        )
+        result = feeder_reconfiguration_optimizer(
+            g,
+            source_nodes=["S"],
+            tie_edge_ids=["t1", "t2"],
+            demand_by_node={"B": 100.0, "C": 10.0},
+            max_switch_actions=1,
+        )
+        assert result["switch_actions"][0]["tie_edge_id"] == "t1"
+
+
+class TestResilienceCapexPrioritization:
+    def test_ranks_project_with_new_tie_higher(self):
+        g = _linear_graph()
+        rows = resilience_capex_prioritization(
+            g,
+            source_nodes=["A"],
+            demand_by_node={"B": 10.0, "C": 20.0, "D": 30.0, "E": 40.0},
+            project_candidates=[
+                {
+                    "project_id": "add-tie",
+                    "capex_cost": 100.0,
+                    "add_edges": [{"edge_id": "tie", "from_node": "A", "to_node": "E", "cost": 1.0}],
+                },
+                {
+                    "project_id": "no-op",
+                    "capex_cost": 100.0,
+                    "add_edges": [],
+                },
+            ],
+        )
+        assert rows[0]["project_id"] == "add-tie"
 
 
 # ─── Water Domain ────────────────────────────────────────────────────────────

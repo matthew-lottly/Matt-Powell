@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from heapq import heappop, heappush
+from itertools import combinations
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from .equations import utility_capacity_stress_index, utility_headloss_hazen_williams, utility_service_deficit
@@ -2593,6 +2594,449 @@ def outage_restoration_tie_options(
     return results
 
 
+def n_minus_k_edge_contingency_screen(
+    graph: NetworkGraph,
+    source_nodes: list[str],
+    k: int = 2,
+    demand_by_node: dict[str, float] | None = None,
+    candidate_edge_ids: list[str] | None = None,
+    critical_nodes: list[str] | None = None,
+    max_cost: float = math.inf,
+    max_combinations: int = 5000,
+) -> list[dict[str, Any]]:
+    """Screen k-edge outage combinations and rank impact severity."""
+    if not source_nodes:
+        raise ValueError("source_nodes must include at least one node")
+    if k < 1:
+        raise ValueError("k must be >= 1")
+
+    blocked = _device_state_blocked_edges(graph)
+    baseline_dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, blocked, {})
+    baseline_served = set(baseline_dist.keys())
+
+    demand_map = demand_by_node or {}
+    baseline_served_demand = sum(
+        float(demand_map.get(n, 0) or 0) for n in baseline_served
+    )
+    critical_set = set(critical_nodes or [])
+
+    candidates = candidate_edge_ids or sorted(graph.edge_attributes.keys())
+    if k > len(candidates):
+        return []
+
+    rows: list[dict[str, Any]] = []
+    for idx, cut_combo in enumerate(combinations(candidates, k)):
+        if idx >= max_combinations:
+            break
+        test_blocked = set(blocked) | set(cut_combo)
+        dist_after_cut, _, _, _ = _dijkstra(
+            graph, source_nodes, max_cost, test_blocked, {}
+        )
+        served_after_cut = set(dist_after_cut.keys())
+
+        lost_nodes = sorted(baseline_served - served_after_cut)
+        lost_critical = sorted(n for n in lost_nodes if n in critical_set)
+        lost_demand = sum(float(demand_map.get(n, 0) or 0) for n in lost_nodes)
+        severity = (1000.0 * len(lost_critical)) + lost_demand
+
+        rows.append(
+            {
+                "k": k,
+                "cut_edge_ids": list(cut_combo),
+                "lost_node_count": len(lost_nodes),
+                "lost_nodes": lost_nodes,
+                "lost_critical_count": len(lost_critical),
+                "lost_critical_nodes": lost_critical,
+                "lost_demand": round(lost_demand, 4),
+                "baseline_served_demand": round(baseline_served_demand, 4),
+                "severity_score": round(severity, 4),
+            }
+        )
+
+    rows.sort(
+        key=lambda r: (r["lost_critical_count"], r["lost_demand"], r["lost_node_count"]),
+        reverse=True,
+    )
+    return rows
+
+
+def crew_dispatch_optimizer(
+    graph: NetworkGraph,
+    source_nodes: list[str],
+    failed_edges: list[str],
+    repair_time_by_edge: dict[str, float] | None = None,
+    critical_nodes: list[str] | None = None,
+    demand_by_node: dict[str, float] | None = None,
+    max_cost: float = math.inf,
+) -> dict[str, Any]:
+    """Greedy repair ordering that maximizes restored service per hour."""
+    if not source_nodes:
+        raise ValueError("source_nodes must include at least one node")
+
+    blocked_base = _device_state_blocked_edges(graph)
+    repair_hours = repair_time_by_edge or {}
+    critical_set = set(critical_nodes or [])
+    demand_map = demand_by_node or {}
+
+    remaining_failed = [e for e in failed_edges if e in graph.edge_attributes]
+    current_blocked = blocked_base | set(remaining_failed)
+    current_dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, current_blocked, {})
+    current_served = set(current_dist.keys())
+
+    plan: list[dict[str, Any]] = []
+    total_hours = 0.0
+
+    while remaining_failed:
+        best_row: dict[str, Any] | None = None
+        best_served: set[str] | None = None
+
+        for candidate in remaining_failed:
+            test_failed = set(remaining_failed)
+            test_failed.discard(candidate)
+            test_blocked = blocked_base | test_failed
+            test_dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, test_blocked, {})
+            test_served = set(test_dist.keys())
+
+            restored_nodes = sorted(test_served - current_served)
+            restored_critical = sorted(n for n in restored_nodes if n in critical_set)
+            restored_demand = sum(float(demand_map.get(n, 0) or 0) for n in restored_nodes)
+
+            hours = float(repair_hours.get(candidate, 1.0) or 1.0)
+            benefit = (1000.0 * len(restored_critical)) + restored_demand + len(restored_nodes)
+            score = benefit / max(0.01, hours)
+
+            row = {
+                "repair_edge_id": candidate,
+                "repair_hours": round(hours, 4),
+                "restored_node_count": len(restored_nodes),
+                "restored_nodes": restored_nodes,
+                "restored_critical_count": len(restored_critical),
+                "restored_critical_nodes": restored_critical,
+                "restored_demand": round(restored_demand, 4),
+                "benefit_per_hour": round(score, 6),
+            }
+
+            if best_row is None or score > float(best_row["benefit_per_hour"]):
+                best_row = row
+                best_served = test_served
+
+        if best_row is None or best_served is None:
+            break
+
+        remaining_failed.remove(str(best_row["repair_edge_id"]))
+        total_hours += float(best_row["repair_hours"])
+        current_served = best_served
+        best_row["remaining_failed_edges"] = len(remaining_failed)
+        best_row["cumulative_repair_hours"] = round(total_hours, 4)
+        plan.append(best_row)
+
+    return {
+        "repair_plan": plan,
+        "final_served_node_count": len(current_served),
+        "total_repairs_planned": len(plan),
+        "total_repair_hours": round(total_hours, 4),
+    }
+
+
+def pressure_zone_reconfiguration_planner(
+    graph: NetworkGraph,
+    source_nodes: list[str],
+    pressure_min: float = 30.0,
+    pressure_max: float = 120.0,
+    valve_edge_ids: list[str] | None = None,
+    source_pressure: float = 80.0,
+    pressure_drop_per_cost: float = 2.0,
+    max_cost: float = math.inf,
+) -> list[dict[str, Any]]:
+    """Rank valve operations by pressure-band compliance improvement."""
+    if not source_nodes:
+        raise ValueError("source_nodes must include at least one node")
+
+    blocked = _device_state_blocked_edges(graph)
+
+    if valve_edge_ids is None:
+        valve_edge_ids = []
+        for edge_id, attrs in graph.edge_attributes.items():
+            if str(attrs.get("device_type", "")).lower() in {"valve", "switch", "prv"}:
+                valve_edge_ids.append(edge_id)
+
+    def _evaluate(blocked_edges: set[str]) -> tuple[int, int, dict[str, float]]:
+        dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, blocked_edges, {})
+        estimates: dict[str, float] = {}
+        within = 0
+        for node, cost in dist.items():
+            pressure = source_pressure - (pressure_drop_per_cost * float(cost))
+            estimates[node] = round(pressure, 4)
+            if pressure_min <= pressure <= pressure_max:
+                within += 1
+        return len(dist), within, estimates
+
+    baseline_reachable, baseline_within, _ = _evaluate(set(blocked))
+
+    rows: list[dict[str, Any]] = []
+    for valve_edge_id in valve_edge_ids:
+        attrs = graph.edge_attributes.get(valve_edge_id)
+        if attrs is None:
+            continue
+
+        state = str(attrs.get("state", "")).lower()
+        if state in {"open", "normally_open"}:
+            operation = "close"
+            test_blocked = set(blocked)
+            test_blocked.add(valve_edge_id)
+        else:
+            operation = "open"
+            test_blocked = set(blocked)
+            test_blocked.discard(valve_edge_id)
+
+        reach_after, within_after, _ = _evaluate(test_blocked)
+        rows.append(
+            {
+                "valve_edge_id": valve_edge_id,
+                "operation": operation,
+                "from_node": str(attrs.get("from_node", "")),
+                "to_node": str(attrs.get("to_node", "")),
+                "baseline_reachable_nodes": baseline_reachable,
+                "baseline_within_pressure_band": baseline_within,
+                "reachable_nodes_after": reach_after,
+                "within_pressure_band_after": within_after,
+                "delta_within_pressure_band": within_after - baseline_within,
+            }
+        )
+
+    rows.sort(
+        key=lambda r: (r["delta_within_pressure_band"], r["within_pressure_band_after"]),
+        reverse=True,
+    )
+    return rows
+
+
+def pump_station_failure_cascade(
+    graph: NetworkGraph,
+    pump_nodes: list[str],
+    initial_failed_pumps: list[str],
+    dependency_map: dict[str, list[str]] | None = None,
+    source_nodes: list[str] | None = None,
+    max_rounds: int = 5,
+    max_cost: float = math.inf,
+) -> dict[str, Any]:
+    """Simulate cascading pump failures through dependencies and isolation."""
+    pump_set = set(pump_nodes)
+    failed = set(initial_failed_pumps) & pump_set
+    dependencies = dependency_map or {}
+    sources = source_nodes or []
+
+    rounds: list[dict[str, Any]] = []
+
+    for round_idx in range(1, max_rounds + 1):
+        newly_failed: set[str] = set()
+
+        for failed_pump in list(failed):
+            for dep in dependencies.get(failed_pump, []):
+                if dep in pump_set and dep not in failed:
+                    newly_failed.add(dep)
+
+        if sources:
+            blocked = _device_state_blocked_edges(graph)
+            for pump in failed:
+                for step in graph.adjacency.get(pump, []):
+                    blocked.add(step.edge_id)
+
+            dist, _, _, _ = _dijkstra(graph, sources, max_cost, blocked, {})
+            reachable = set(dist.keys())
+            for pump in pump_set:
+                if pump not in failed and pump not in reachable:
+                    newly_failed.add(pump)
+
+        if not newly_failed:
+            break
+
+        failed |= newly_failed
+        rounds.append(
+            {
+                "round": round_idx,
+                "newly_failed_pumps": sorted(newly_failed),
+                "total_failed_pumps": sorted(failed),
+                "total_failed_count": len(failed),
+            }
+        )
+
+    return {
+        "initial_failed_pumps": sorted(set(initial_failed_pumps) & pump_set),
+        "final_failed_pumps": sorted(failed),
+        "final_failed_count": len(failed),
+        "rounds": rounds,
+    }
+
+
+def feeder_reconfiguration_optimizer(
+    graph: NetworkGraph,
+    source_nodes: list[str],
+    tie_edge_ids: list[str],
+    demand_by_node: dict[str, float] | None = None,
+    critical_nodes: list[str] | None = None,
+    max_switch_actions: int = 2,
+    max_cost: float = math.inf,
+) -> dict[str, Any]:
+    """Greedy tie-switch closure sequence to maximize restored value."""
+    if not source_nodes:
+        raise ValueError("source_nodes must include at least one node")
+
+    blocked = _device_state_blocked_edges(graph)
+    demand_map = demand_by_node or {}
+    critical_set = set(critical_nodes or [])
+
+    open_ties = [e for e in tie_edge_ids if e in graph.edge_attributes]
+    closed_ties: set[str] = set()
+
+    def _served_for_closed(closed: set[str]) -> set[str]:
+        test_blocked = set(blocked)
+        for tie in open_ties:
+            attrs = graph.edge_attributes.get(tie, {})
+            state = str(attrs.get("state", "")).lower()
+            if state in {"open", "normally_open"} and tie not in closed:
+                test_blocked.add(tie)
+            elif tie in closed:
+                test_blocked.discard(tie)
+        dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, test_blocked, {})
+        return set(dist.keys())
+
+    current_served = _served_for_closed(closed_ties)
+    actions: list[dict[str, Any]] = []
+
+    for _ in range(max_switch_actions):
+        best_tie: str | None = None
+        best_row: dict[str, Any] | None = None
+        best_served: set[str] | None = None
+
+        for tie in open_ties:
+            if tie in closed_ties:
+                continue
+            test_closed = set(closed_ties)
+            test_closed.add(tie)
+            test_served = _served_for_closed(test_closed)
+
+            restored = sorted(test_served - current_served)
+            restored_critical = sorted(n for n in restored if n in critical_set)
+            restored_demand = sum(float(demand_map.get(n, 0) or 0) for n in restored)
+            objective = (1000.0 * len(restored_critical)) + restored_demand + len(restored)
+
+            row = {
+                "tie_edge_id": tie,
+                "restored_node_count": len(restored),
+                "restored_nodes": restored,
+                "restored_critical_count": len(restored_critical),
+                "restored_critical_nodes": restored_critical,
+                "restored_demand": round(restored_demand, 4),
+                "objective_gain": round(objective, 4),
+            }
+
+            if best_row is None or objective > float(best_row["objective_gain"]):
+                best_row = row
+                best_tie = tie
+                best_served = test_served
+
+        if best_tie is None or best_row is None or best_served is None:
+            break
+        if best_row["restored_node_count"] <= 0:
+            break
+
+        closed_ties.add(best_tie)
+        current_served = best_served
+        actions.append(best_row)
+
+    return {
+        "switch_actions": actions,
+        "closed_tie_edges": sorted(closed_ties),
+        "final_served_node_count": len(current_served),
+    }
+
+
+def resilience_capex_prioritization(
+    graph: NetworkGraph,
+    project_candidates: list[dict[str, Any]],
+    source_nodes: list[str],
+    demand_by_node: dict[str, float] | None = None,
+    critical_nodes: list[str] | None = None,
+    max_cost: float = math.inf,
+) -> list[dict[str, Any]]:
+    """Rank candidate capital projects by resilience gain per capex unit."""
+    demand_map = demand_by_node or {}
+    critical = critical_nodes or []
+
+    base_rows = n_minus_one_edge_contingency_screen(
+        graph,
+        source_nodes=source_nodes,
+        demand_by_node=demand_map,
+        critical_nodes=critical,
+        max_cost=max_cost,
+    )
+    if base_rows:
+        base_avg_lost_demand = sum(float(r["lost_demand"]) for r in base_rows) / len(base_rows)
+        base_avg_lost_critical = sum(float(r["lost_critical_count"]) for r in base_rows) / len(base_rows)
+    else:
+        base_avg_lost_demand = 0.0
+        base_avg_lost_critical = 0.0
+
+    existing_edges: list[NetworkEdge] = [dict(attrs) for attrs in graph.edge_attributes.values()]
+    output: list[dict[str, Any]] = []
+
+    for project in project_candidates:
+        project_id = str(project.get("project_id", ""))
+        capex = float(project.get("capex_cost", 1.0) or 1.0)
+        add_edges = [dict(e) for e in project.get("add_edges", [])]
+        hardened_edges = set(str(e) for e in project.get("hardened_edge_ids", []))
+
+        test_edges = existing_edges + add_edges
+        test_graph = build_network_graph(test_edges, directed=graph.directed)
+
+        candidates = [
+            edge_id
+            for edge_id in test_graph.edge_attributes.keys()
+            if edge_id not in hardened_edges
+        ]
+
+        test_rows = n_minus_one_edge_contingency_screen(
+            test_graph,
+            source_nodes=source_nodes,
+            demand_by_node=demand_map,
+            candidate_edge_ids=candidates,
+            critical_nodes=critical,
+            max_cost=max_cost,
+        )
+
+        if test_rows:
+            test_avg_lost_demand = sum(float(r["lost_demand"]) for r in test_rows) / len(test_rows)
+            test_avg_lost_critical = sum(float(r["lost_critical_count"]) for r in test_rows) / len(test_rows)
+        else:
+            test_avg_lost_demand = 0.0
+            test_avg_lost_critical = 0.0
+
+        avoided_demand = max(0.0, base_avg_lost_demand - test_avg_lost_demand)
+        avoided_critical = max(0.0, base_avg_lost_critical - test_avg_lost_critical)
+        value = (1000.0 * avoided_critical) + avoided_demand
+        score = value / max(1.0, capex)
+
+        output.append(
+            {
+                "project_id": project_id,
+                "capex_cost": round(capex, 4),
+                "added_edge_count": len(add_edges),
+                "hardened_edge_count": len(hardened_edges),
+                "avg_lost_demand_baseline": round(base_avg_lost_demand, 4),
+                "avg_lost_demand_with_project": round(test_avg_lost_demand, 4),
+                "avg_lost_critical_baseline": round(base_avg_lost_critical, 4),
+                "avg_lost_critical_with_project": round(test_avg_lost_critical, 4),
+                "avoided_lost_demand": round(avoided_demand, 4),
+                "avoided_lost_critical": round(avoided_critical, 4),
+                "resilience_value_per_capex": round(score, 8),
+            }
+        )
+
+    output.sort(key=lambda r: r["resilience_value_per_capex"], reverse=True)
+    return output
+
+
 __all__ = [
     "NetworkEdge",
     "NetworkGraph",
@@ -2623,9 +3067,15 @@ __all__ = [
     "landmark_lower_bound",
     "load_transfer_feasibility",
     "multi_criteria_shortest_path",
+    "n_minus_k_edge_contingency_screen",
     "n_minus_one_edge_contingency_screen",
     "od_cost_matrix",
+    "crew_dispatch_optimizer",
     "outage_restoration_tie_options",
+    "pressure_zone_reconfiguration_planner",
+    "pump_station_failure_cascade",
+    "feeder_reconfiguration_optimizer",
+    "resilience_capex_prioritization",
     "pipe_break_isolation_zones",
     "pressure_reducing_valve_trace",
     "ring_redundancy_check",
