@@ -414,6 +414,17 @@ class TestNMinusKEdgeContingency:
         with pytest.raises(ValueError):
             n_minus_k_edge_contingency_screen(g, source_nodes=["A"], k=0)
 
+    def test_prefilter_limits_combination_count(self):
+        g = _linear_graph(8)
+        rows = n_minus_k_edge_contingency_screen(
+            g,
+            source_nodes=["A"],
+            k=2,
+            max_combinations=5,
+            prefilter_with_n_minus_one=True,
+        )
+        assert len(rows) <= 5
+
 
 class TestCrewDispatchOptimizer:
     def test_prioritizes_high_impact_repair(self):
@@ -428,6 +439,15 @@ class TestCrewDispatchOptimizer:
         )
         assert result["total_repairs_planned"] == 2
         assert result["repair_plan"][0]["repair_edge_id"] == "e0"
+
+    def test_empty_failures_returns_empty_plan(self):
+        g = _linear_graph()
+        result = crew_dispatch_optimizer(
+            g,
+            source_nodes=["A"],
+            failed_edges=[],
+        )
+        assert result["repair_plan"] == []
 
 
 class TestPressureZoneReconfigurationPlanner:
@@ -476,6 +496,15 @@ class TestFeederReconfigurationOptimizer:
             max_switch_actions=1,
         )
         assert result["switch_actions"][0]["tie_edge_id"] == "t1"
+
+    def test_no_benefit_returns_no_actions(self):
+        g = _linear_graph()
+        result = feeder_reconfiguration_optimizer(
+            g,
+            source_nodes=["A"],
+            tie_edge_ids=[],
+        )
+        assert result["switch_actions"] == []
 
 
 class TestResilienceCapexPrioritization:

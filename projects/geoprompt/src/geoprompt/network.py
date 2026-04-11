@@ -1049,16 +1049,36 @@ def run_utility_scenarios(
     def _delta(current: dict[str, Any], previous: dict[str, Any], key: str) -> int:
         return int(current[key]) - int(previous[key])
 
+    metric_cache: dict[frozenset[str], dict[str, int]] = {}
+
+    def _cached_outage_metrics(failed_edge_ids: set[str]) -> dict[str, int]:
+        cache_key = frozenset(failed_edge_ids)
+        cached = metric_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        blocked_edges = set(failed_edge_ids) | _device_blocked
+        distances, _, _, _ = _dijkstra(
+            graph,
+            origins=list(source_nodes),
+            blocked_edges=blocked_edges,
+        )
+        supplied_nodes = set(distances.keys())
+        deenergized_nodes = graph.nodes - supplied_nodes
+        critical_impacted = [node for node in critical if node in deenergized_nodes]
+
+        resolved = {
+            "supplied_count": len(supplied_nodes),
+            "deenergized_count": len(deenergized_nodes),
+            "critical_impacted_count": len(critical_impacted),
+        }
+        metric_cache[cache_key] = resolved
+        return resolved
+
     tracked_edges = list(candidate_critical_edges or graph.edge_attributes.keys())
     edge_rankings: list[dict[str, Any]] = []
     for edge_id in tracked_edges:
-        edge_outage = utility_outage_isolation(
-            graph,
-            source_nodes=source_nodes,
-            failed_edges=sorted({edge_id} | static_blocked),
-            critical_nodes=critical,
-            **_shared_kw,
-        )
+        edge_outage = _cached_outage_metrics({edge_id} | static_blocked)
         edge_rankings.append(
             {
                 "edge_id": edge_id,
@@ -1079,13 +1099,7 @@ def run_utility_scenarios(
 
     for node in sorted(graph.nodes):
         simulated_failed = sorted(node_to_incident_edges.get(node, set()) | static_blocked)
-        node_outage = utility_outage_isolation(
-            graph,
-            source_nodes=source_nodes,
-            failed_edges=simulated_failed,
-            critical_nodes=critical,
-            **_shared_kw,
-        )
+        node_outage = _cached_outage_metrics(set(simulated_failed))
         node_rankings.append(
             {
                 "node": node,
@@ -2603,6 +2617,7 @@ def n_minus_k_edge_contingency_screen(
     critical_nodes: list[str] | None = None,
     max_cost: float = math.inf,
     max_combinations: int = 5000,
+    prefilter_with_n_minus_one: bool = True,
 ) -> list[dict[str, Any]]:
     """Screen k-edge outage combinations and rank impact severity."""
     if not source_nodes:
@@ -2623,6 +2638,27 @@ def n_minus_k_edge_contingency_screen(
     candidates = candidate_edge_ids or sorted(graph.edge_attributes.keys())
     if k > len(candidates):
         return []
+
+    total_combinations = math.comb(len(candidates), k)
+    if prefilter_with_n_minus_one and total_combinations > max_combinations:
+        ranked_edges = n_minus_one_edge_contingency_screen(
+            graph,
+            source_nodes=source_nodes,
+            demand_by_node=demand_map,
+            candidate_edge_ids=candidates,
+            critical_nodes=list(critical_set),
+            max_cost=max_cost,
+        )
+        ranked_ids = [str(row["cut_edge_id"]) for row in ranked_edges]
+
+        # Select the largest candidate set whose k-combinations fit max_combinations.
+        reduced_count = k
+        while (
+            reduced_count < len(ranked_ids)
+            and math.comb(reduced_count + 1, k) <= max_combinations
+        ):
+            reduced_count += 1
+        candidates = ranked_ids[:reduced_count]
 
     rows: list[dict[str, Any]] = []
     for idx, cut_combo in enumerate(combinations(candidates, k)):
@@ -2679,9 +2715,21 @@ def crew_dispatch_optimizer(
     demand_map = demand_by_node or {}
 
     remaining_failed = [e for e in failed_edges if e in graph.edge_attributes]
-    current_blocked = blocked_base | set(remaining_failed)
-    current_dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, current_blocked, {})
-    current_served = set(current_dist.keys())
+    served_cache: dict[frozenset[str], set[str]] = {}
+
+    def _served_with_failed(failed_set: set[str]) -> set[str]:
+        cache_key = frozenset(failed_set)
+        cached = served_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        test_blocked = blocked_base | failed_set
+        test_dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, test_blocked, {})
+        resolved = set(test_dist.keys())
+        served_cache[cache_key] = resolved
+        return resolved
+
+    current_failed = set(remaining_failed)
+    current_served = _served_with_failed(current_failed)
 
     plan: list[dict[str, Any]] = []
     total_hours = 0.0
@@ -2691,11 +2739,9 @@ def crew_dispatch_optimizer(
         best_served: set[str] | None = None
 
         for candidate in remaining_failed:
-            test_failed = set(remaining_failed)
+            test_failed = set(current_failed)
             test_failed.discard(candidate)
-            test_blocked = blocked_base | test_failed
-            test_dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, test_blocked, {})
-            test_served = set(test_dist.keys())
+            test_served = _served_with_failed(test_failed)
 
             restored_nodes = sorted(test_served - current_served)
             restored_critical = sorted(n for n in restored_nodes if n in critical_set)
@@ -2723,7 +2769,9 @@ def crew_dispatch_optimizer(
         if best_row is None or best_served is None:
             break
 
-        remaining_failed.remove(str(best_row["repair_edge_id"]))
+        repaired_edge = str(best_row["repair_edge_id"])
+        remaining_failed.remove(repaired_edge)
+        current_failed.discard(repaired_edge)
         total_hours += float(best_row["repair_hours"])
         current_served = best_served
         best_row["remaining_failed_edges"] = len(remaining_failed)
@@ -2888,8 +2936,13 @@ def feeder_reconfiguration_optimizer(
 
     open_ties = [e for e in tie_edge_ids if e in graph.edge_attributes]
     closed_ties: set[str] = set()
+    served_cache: dict[frozenset[str], set[str]] = {}
 
     def _served_for_closed(closed: set[str]) -> set[str]:
+        cache_key = frozenset(closed)
+        cached = served_cache.get(cache_key)
+        if cached is not None:
+            return cached
         test_blocked = set(blocked)
         for tie in open_ties:
             attrs = graph.edge_attributes.get(tie, {})
@@ -2899,7 +2952,9 @@ def feeder_reconfiguration_optimizer(
             elif tie in closed:
                 test_blocked.discard(tie)
         dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, test_blocked, {})
-        return set(dist.keys())
+        resolved = set(dist.keys())
+        served_cache[cache_key] = resolved
+        return resolved
 
     current_served = _served_for_closed(closed_ties)
     actions: list[dict[str, Any]] = []
