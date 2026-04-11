@@ -45,6 +45,30 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 
 ## Example Usage
 
+Unified data-loading example (GeoJSON, CSV/TSV, and optional geospatial files):
+
+```python
+import geoprompt as gp
+
+# GeoJSON / JSON FeatureCollection
+features = gp.read_data("data/sample_features.json", limit_rows=100000)
+
+# CSV/TSV with point columns
+points = gp.read_data(
+    "assets.csv",
+    x_column="longitude",
+    y_column="latitude",
+    use_columns=["asset_id", "longitude", "latitude", "demand"],
+    sample_step=2,
+)
+
+# Optional geospatial formats (requires geopandas extras): .shp, .gpkg, .gdb, .fgb
+# parcels = gp.read_data("city.gdb", layer="parcels", bbox=(-112.1, 40.5, -111.7, 40.9))
+
+gp.write_data("outputs/points_out.csv", points)
+gp.write_data("outputs/features_out.geojson", features)
+```
+
 ```python
 import geoprompt as gp
 

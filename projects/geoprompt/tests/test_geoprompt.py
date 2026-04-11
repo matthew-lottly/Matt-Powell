@@ -5,7 +5,7 @@ from geoprompt.compare import _stress_feature_records, _stress_region_records
 from geoprompt import GeoPromptFrame, geometry_centroid
 from geoprompt.demo import build_demo_report
 from geoprompt.equations import area_similarity, corridor_strength, directional_alignment, euclidean_distance, haversine_distance, prompt_decay, prompt_interaction
-from geoprompt.io import frame_to_geojson, read_features, read_geojson, read_points, write_geojson
+from geoprompt.io import frame_to_geojson, read_data, read_features, read_geojson, read_points, read_table, write_data, write_geojson
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -83,6 +83,53 @@ def test_geojson_round_trip_and_nearest_neighbors(tmp_path: Path) -> None:
     assert feature_collection["type"] == "FeatureCollection"
     assert feature_collection["crs"]["properties"]["name"] == "EPSG:4326"
     assert len(feature_collection["features"]) == len(frame)
+
+
+def test_read_data_supports_limit_rows_and_sampling() -> None:
+    frame = read_data(
+        PROJECT_ROOT / "data" / "sample_points.json",
+        limit_rows=3,
+        sample_step=2,
+    )
+    assert len(frame) == 3
+
+
+def test_read_table_csv_points_and_write_data_csv(tmp_path: Path) -> None:
+    csv_path = tmp_path / "points.csv"
+    csv_path.write_text(
+        "site_id,x,y,demand\n"
+        "a,-111.95,40.70,10\n"
+        "b,-111.96,40.71,20\n"
+        "c,-111.97,40.72,30\n",
+        encoding="utf-8",
+    )
+
+    frame = read_table(
+        csv_path,
+        x_column="x",
+        y_column="y",
+        use_columns=["site_id", "demand", "x", "y"],
+        limit_rows=2,
+    )
+    assert len(frame) == 2
+    assert frame.geometry_types() == ["Point", "Point"]
+
+    output_csv = tmp_path / "points_out.csv"
+    written = write_data(output_csv, frame)
+    assert written.exists()
+    assert "geometry" in written.read_text(encoding="utf-8")
+
+
+def test_read_data_csv_requires_geometry_hints(tmp_path: Path) -> None:
+    csv_path = tmp_path / "bad.csv"
+    csv_path.write_text("site_id,demand\na,10\n", encoding="utf-8")
+
+    try:
+        read_data(csv_path)
+    except ValueError as exc:
+        assert "x_column/y_column or geometry_column" in str(exc)
+    else:
+        raise AssertionError("read_data should require geometry hints for CSV")
 
 
 def test_query_bounds_modes() -> None:

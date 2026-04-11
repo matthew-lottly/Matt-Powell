@@ -27,6 +27,11 @@ dependencies = [
 dev = [
     "pytest>=8.2,<9.0",
 ]
+io = [
+    "pandas>=2.2,<3.0",
+    "pyarrow>=16,<20",
+    "geopandas>=1.0,<2.0",
+]
 compare = [
     "geopandas>=1.0,<2.0",
     "pyproj>=3.6,<4.0",
