@@ -207,6 +207,38 @@ class TestODCostMatrix:
         ]
         assert sorted(streamed_rows, key=lambda r: (r["origin"], r["destination"])) == full_rows
 
+    def test_iter_od_cost_matrix_batches_validation_and_progress(self) -> None:
+        graph = _linear_graph()
+        events: list[dict[str, object]] = []
+
+        rows = list(
+            iter_od_cost_matrix_batches(
+                graph,
+                ["A", "B", "C"],
+                ["D", "E"],
+                origin_batch_size=2,
+                progress_callback=events.append,
+            )
+        )
+
+        assert len(rows) == 2
+        assert len(events) == 2
+        assert events[0]["event"] == "origin_batch"
+        assert events[0]["origin_batch_size"] == 2
+        assert events[0]["processed_origins"] == 2
+        assert events[1]["origin_batch_size"] == 1
+        assert events[1]["processed_origins"] == 3
+
+        with pytest.raises(ValueError, match="origin_batch_size"):
+            list(
+                iter_od_cost_matrix_batches(
+                    graph,
+                    ["A"],
+                    ["D"],
+                    origin_batch_size=0,
+                )
+            )
+
 
 # ─── Network Topology ───────────────────────────────────────────────────────
 
@@ -289,6 +321,33 @@ class TestUtilityBottlenecks:
         base_map = {r["edge_id"]: r["flow_load"] for r in base}
         streamed_map = {r["edge_id"]: r["flow_load"] for r in streamed}
         assert streamed_map == base_map
+
+    def test_utility_bottlenecks_stream_validation_and_progress(self) -> None:
+        graph = _linear_graph()
+        od_demands = [
+            ("A", "E", 1.0),
+            ("B", "E", 2.0),
+            ("C", "E", 3.0),
+        ]
+        events: list[dict[str, object]] = []
+
+        result = utility_bottlenecks_stream(
+            graph,
+            od_demands,
+            demand_batch_size=2,
+            progress_callback=events.append,
+        )
+
+        assert result
+        assert len(events) == 2
+        assert events[0]["event"] == "demand_batch"
+        assert events[0]["batch_size"] == 2
+        assert events[0]["processed_demands"] == 2
+        assert events[1]["batch_size"] == 1
+        assert events[1]["processed_demands"] == 3
+
+        with pytest.raises(ValueError, match="demand_batch_size"):
+            utility_bottlenecks_stream(graph, od_demands, demand_batch_size=0)
 
 
 # ─── Electric Domain ────────────────────────────────────────────────────────

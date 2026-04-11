@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from .equations import utility_capacity_stress_index, utility_headloss_hazen_williams, utility_service_deficit
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
 
 
 class NetworkEdge(TypedDict, total=False):
@@ -307,13 +307,17 @@ def iter_od_cost_matrix_batches(
     max_cost: float | None = None,
     blocked_edges: Sequence[str] | None = None,
     edge_cost_overrides: dict[str, float] | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> Iterable[list[dict[str, Any]]]:
     """Yield OD least-cost rows in origin-sized batches.
 
     This is intended for large workloads where materializing the full
     |origins| x |destinations| matrix at once is expensive.
     """
+    if origin_batch_size <= 0:
+        raise ValueError("origin_batch_size must be >= 1")
     blocked = set(blocked_edges or [])
+    processed_origins = 0
     for origin_batch in _iter_chunks(origins, origin_batch_size):
         batch_rows: list[dict[str, Any]] = []
         for origin in origin_batch:
@@ -336,6 +340,16 @@ def iter_od_cost_matrix_batches(
                         "least_cost": total_cost,
                     }
                 )
+            processed_origins += 1
+        if progress_callback is not None:
+            progress_callback(
+                {
+                    "event": "origin_batch",
+                    "origin_batch_size": len(origin_batch),
+                    "processed_origins": processed_origins,
+                    "rows_emitted": len(batch_rows),
+                }
+            )
         yield batch_rows
 
 
@@ -1180,12 +1194,17 @@ def utility_bottlenecks_stream(
     blocked_edges: Sequence[str] | None = None,
     edge_cost_overrides: dict[str, float] | None = None,
     demand_batch_size: int = 50000,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> list[dict[str, Any]]:
     """Streaming version of ``utility_bottlenecks`` for large OD demand sets."""
+    if demand_batch_size <= 0:
+        raise ValueError("demand_batch_size must be >= 1")
     edge_loads: dict[str, float] = {edge_id: 0.0 for edge_id in graph.edge_attributes}
     blocked = set(blocked_edges or [])
+    processed_demands = 0
 
     for demand_batch in _iter_chunks(od_demands, demand_batch_size):
+        processed_demands += len(demand_batch)
         origin_groups: dict[str, list[tuple[str, float]]] = {}
         for origin, destination, demand in demand_batch:
             demand_value = max(0.0, float(demand))
@@ -1213,6 +1232,14 @@ def utility_bottlenecks_stream(
                         break
                     edge_loads[edge_id] += demand_value
                     current = prev_node[current]
+        if progress_callback is not None:
+            progress_callback(
+                {
+                    "event": "demand_batch",
+                    "batch_size": len(demand_batch),
+                    "processed_demands": processed_demands,
+                }
+            )
 
     rows: list[dict[str, Any]] = []
     for edge_id, edge in graph.edge_attributes.items():

@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 from .frame import GeoPromptFrame
 from .geometry import geometry_type
@@ -11,6 +11,23 @@ from .geometry import geometry_type
 
 def _read_json(path: str | Path) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _validate_read_options(
+    *,
+    data_path: Path,
+    sample_step: int,
+    limit_rows: int | None,
+    chunk_size: int | None = None,
+) -> None:
+    if not data_path.exists():
+        raise FileNotFoundError(f"input path does not exist: {data_path}")
+    if sample_step <= 0:
+        raise ValueError("sample_step must be >= 1")
+    if limit_rows is not None and limit_rows <= 0:
+        raise ValueError("limit_rows must be >= 1 when provided")
+    if chunk_size is not None and chunk_size <= 0:
+        raise ValueError("chunk_size must be >= 1")
 
 
 def _parse_point_wkt(value: str) -> dict[str, Any] | None:
@@ -315,6 +332,11 @@ def read_data(
     - ``bbox`` and ``layer`` for geospatial stores
     """
     data_path = Path(path)
+    _validate_read_options(
+        data_path=data_path,
+        sample_step=sample_step,
+        limit_rows=limit_rows,
+    )
     suffix = data_path.suffix.lower()
 
     if suffix in {".json", ".geojson"}:
@@ -376,10 +398,35 @@ def iter_data(
     chunk_size: int = 50000,
     delimiter: str = ",",
     encoding: str = "utf-8",
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> Iterable[GeoPromptFrame]:
     """Yield data as chunked ``GeoPromptFrame`` batches for large datasets."""
     data_path = Path(path)
+    _validate_read_options(
+        data_path=data_path,
+        sample_step=sample_step,
+        limit_rows=limit_rows,
+        chunk_size=chunk_size,
+    )
     suffix = data_path.suffix.lower()
+
+    emitted_chunks = 0
+    emitted_rows = 0
+
+    def _notify(chunk: GeoPromptFrame) -> None:
+        nonlocal emitted_chunks, emitted_rows
+        emitted_chunks += 1
+        emitted_rows += len(chunk)
+        if progress_callback is not None:
+            progress_callback(
+                {
+                    "event": "chunk",
+                    "path": str(data_path),
+                    "chunk_index": emitted_chunks,
+                    "chunk_rows": len(chunk),
+                    "rows_emitted": emitted_rows,
+                }
+            )
 
     if suffix in {".json", ".geojson"}:
         payload = _read_json(data_path)
@@ -390,13 +437,15 @@ def iter_data(
                 {**{k: v for k, v in row.items() if k in keep}, geometry: row[geometry]}
                 for row in rows
             ]
-        yield from _iter_frame_chunks(
+        for chunk in _iter_frame_chunks(
             rows,
             geometry=geometry,
             crs=crs or _extract_crs(payload),
             chunk_size=chunk_size,
             limit_rows=limit_rows,
-        )
+        ):
+            _notify(chunk)
+            yield chunk
         return
 
     if suffix in {".csv", ".tsv", ".txt"}:
@@ -412,13 +461,15 @@ def iter_data(
             delimiter=delim,
             encoding=encoding,
         )
-        yield from _iter_frame_chunks(
+        for chunk in _iter_frame_chunks(
             rows_iter,
             geometry=geometry,
             crs=crs,
             chunk_size=chunk_size,
             limit_rows=limit_rows,
-        )
+        ):
+            _notify(chunk)
+            yield chunk
         return
 
     if suffix in {".shp", ".gpkg", ".fgb", ".gdb", ".parquet"}:
@@ -432,13 +483,15 @@ def iter_data(
             limit_rows=limit_rows,
             sample_step=sample_step,
         )
-        yield from _iter_frame_chunks(
+        for chunk in _iter_frame_chunks(
             frame.to_records(),
             geometry=geometry,
             crs=frame.crs,
             chunk_size=chunk_size,
             limit_rows=limit_rows,
-        )
+        ):
+            _notify(chunk)
+            yield chunk
         return
 
     raise ValueError(f"unsupported input format for path: {data_path}")
