@@ -112,6 +112,51 @@ def directional_alignment(origin: Coordinate, destination: Coordinate, preferred
     return math.cos(delta)
 
 
+# ─── Utility network helpers ─────────────────────────────────────────────────
+
+
+def utility_capacity_stress_index(
+    load: float, capacity: float, stress_power: float = 2.0
+) -> float:
+    """Return a stress index in [0, ∞) comparing *load* to *capacity*.
+
+    ``stress = (load / capacity) ** stress_power`` when capacity > 0, else 0.
+    """
+    if capacity <= 0:
+        return 0.0
+    return (load / capacity) ** stress_power
+
+
+def utility_service_deficit(demand: float, delivered: float) -> float:
+    """Return the fraction of *demand* that was **not** delivered.
+
+    Result is clamped to [0, 1].
+    """
+    if demand <= 0:
+        return 0.0
+    return max(0.0, min(1.0, (demand - delivered) / demand))
+
+
+def utility_headloss_hazen_williams(
+    length: float,
+    flow: float,
+    diameter: float,
+    roughness_coefficient: float = 130.0,
+) -> float:
+    """Simplified Hazen-Williams head-loss for a single pipe segment.
+
+    ``headloss = 10.67 * length * (flow / roughness)^1.852 / diameter^4.87``
+    """
+    if diameter <= 0 or roughness_coefficient <= 0:
+        return 0.0
+    return (
+        10.67
+        * length
+        * (flow / roughness_coefficient) ** 1.852
+        / diameter ** 4.87
+    )
+
+
 __all__ = [
     "Coordinate",
     "DistanceMethod",
@@ -126,4 +171,7 @@ __all__ = [
     "prompt_decay",
     "prompt_influence",
     "prompt_interaction",
+    "utility_capacity_stress_index",
+    "utility_headloss_hazen_williams",
+    "utility_service_deficit",
 ]
