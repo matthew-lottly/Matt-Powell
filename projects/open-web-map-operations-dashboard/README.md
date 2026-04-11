@@ -4,6 +4,14 @@ Open-stack GIS frontend project for reviewing operational layers, regional filte
 
 ![Dashboard preview](assets/dashboard-preview.svg)
 
+![Browser screenshot of the operations dashboard](assets/dashboard-live-screenshot.png)
+
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+- Runbook: [docs/runbook.md](docs/runbook.md)
+
 ## Snapshot
 
 - Lane: Open web mapping
@@ -80,6 +88,8 @@ The current dashboard includes:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/screenshots.md](docs/screenshots.md) for the capture workflow and additional planned visual review artifacts.
+See [docs/accessibility-checklist.md](docs/accessibility-checklist.md) for accessibility requirements and validation.
 
 ## Publication
 

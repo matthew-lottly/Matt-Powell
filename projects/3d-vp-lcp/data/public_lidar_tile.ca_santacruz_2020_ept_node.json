@@ -1,0 +1,6 @@
+{
+  "name": "usgs-ca-santacruz-2020-ept-node-0-0-0-0",
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_SantaCruzCounty_2020/ept-data/0-0-0-0.laz",
+  "output_file": "CA_SantaCruzCounty_2020_ept_0-0-0-0.laz",
+  "sha256": null
+}

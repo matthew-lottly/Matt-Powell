@@ -2,6 +2,11 @@
 
 Data science portfolio project for causal effect estimation, observational-study diagnostics, and reviewable treatment-effect outputs.
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and causal inference
@@ -13,6 +18,8 @@ Data science portfolio project for causal effect estimation, observational-study
 ## Overview
 
 CausalLens packages core causal-inference workflows for observational tabular data into a small, testable Python library. The initial release is designed around practical treatment-effect estimation rather than theory-heavy experimentation: estimate treatment effects, inspect overlap and balance, and compare estimators with consistent result objects.
+
+The benchmark story matters as much as the API surface here. Reviewers should be able to see not only that the estimators run, but that their behavior is anchored against public datasets, synthetic known-effect checks, and externally recognizable reference comparisons.
 
 The current repository now uses four complementary evidence tracks:
 

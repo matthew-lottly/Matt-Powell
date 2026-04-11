@@ -4,6 +4,13 @@ Desktop GIS portfolio project for packaging repeatable QGIS-oriented review work
 
 ![Workbench preview](assets/workbench-preview.svg)
 
+![Desktop review preview generated from the packaged GIS outputs](assets/qgis-review-preview.png)
+
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Desktop GIS and operations workflows
@@ -94,6 +101,9 @@ With `--export-geopackage`, the command also writes `outputs/qgis_review_bundle.
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the review walkthrough.
 See [docs/geopackage-workflow.md](docs/geopackage-workflow.md) for the desktop handoff details.
+See [docs/analyst-workflow.md](docs/analyst-workflow.md) for the analyst review session guide.
+See [docs/packaging-guide.md](docs/packaging-guide.md) for distribution and packaging notes.
+See [docs/screenshots.md](docs/screenshots.md) for the current review preview and the desktop capture checklist for fuller QGIS screenshots.
 
 ## Publication
 

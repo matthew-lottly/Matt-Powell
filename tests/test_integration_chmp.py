@@ -1,6 +1,5 @@
 import os
 import sys
-import pytest
 
 # Ensure local package path is importable when tests run locally (CI installs package)
 sys.path.insert(0, os.path.abspath("_strata_temp/src"))
@@ -31,6 +30,5 @@ def test_chmp_integration_small_graph():
         covs.append(result.marginal_cov)
 
     mean_cov = sum(covs) / len(covs)
-    target = 1.0 - cfg.alpha
     # For very small graphs allow wider slack; ensure mean coverage is not trivially low
     assert mean_cov >= 0.6

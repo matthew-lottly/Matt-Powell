@@ -4,6 +4,11 @@ Data science portfolio project for station risk scoring, candidate classifier co
 
 ![Station risk classification lab preview](assets/classification-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and classification
@@ -16,6 +21,8 @@ Data science portfolio project for station risk scoring, candidate classifier co
 This project extends the portfolio from time-series review and anomaly detection into classification. It treats each station snapshot as a compact feature vector, compares a few public-safe candidate classifiers, and exports a report that can support analyst queues, escalation rules, or downstream model expansion.
 
 The implementation stays dependency-light while still following the same object-oriented report workflow used in the other data-science repos.
+
+The important explainability signal is that the selected prediction is accompanied by explicit risk drivers and holdout metrics, so a reviewer can evaluate whether the classifier is only accurate or also interpretable enough for operational triage.
 
 ## What It Demonstrates
 
@@ -74,3 +81,4 @@ The default command writes `outputs/station_risk_report.json` with:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/classification-evaluation.md](docs/classification-evaluation.md) for the evaluation and explainability framing behind the exported report.

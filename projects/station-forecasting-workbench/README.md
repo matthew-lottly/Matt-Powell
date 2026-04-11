@@ -4,6 +4,11 @@ Data science portfolio project for experiment-style model comparison, train-vali
 
 ![Station forecasting workbench preview](assets/forecast-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and forecasting
@@ -14,6 +19,8 @@ Data science portfolio project for experiment-style model comparison, train-vali
 ## Overview
 
 This project frames data science as a forecasting workflow rather than just descriptive analytics. It loads small station histories, builds simple feature profiles, compares several candidate models, selects them on a validation split, records test performance separately, and exports a concise forecast review package with experiment-style metadata.
+
+That separation between validation-driven selection and post-selection test scoring is the main review signal. The repository is meant to show a defensible model-choice process rather than a single optimistic forecast chart.
 
 ## What It Demonstrates
 
@@ -42,3 +49,4 @@ The default command writes `outputs/station_forecast_report.json` with:
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/holdout-metrics.md](docs/holdout-metrics.md) for the holdout-evaluation framing behind the exported leaderboard and selected model narrative.

@@ -56,6 +56,41 @@ def test_mixed_geometries_and_corridor_strength() -> None:
     assert corridor[0] == 0.0
 
 
+def test_accessibility_analysis_namespace_and_method_equivalent() -> None:
+    frame = read_features(PROJECT_ROOT / "data" / "sample_features.json")
+
+    via_namespace = frame.analysis.accessibility(
+        opportunities="demand_index",
+        id_column="site_id",
+        friction=1.0,
+    )
+    via_method = frame.accessibility_analysis(
+        opportunities="demand_index",
+        id_column="site_id",
+        friction=1.0,
+    )
+
+    assert len(via_namespace) == len(frame)
+    assert via_namespace == via_method
+    assert all(float(row["accessibility_score"]) >= 0.0 for row in via_namespace)
+
+
+def test_gravity_flow_analysis_returns_od_pairs() -> None:
+    frame = read_features(PROJECT_ROOT / "data" / "sample_features.json")
+    rows = frame.gravity_flow_analysis(
+        origin_weight="capacity_index",
+        destination_weight="demand_index",
+        id_column="site_id",
+        beta=2.0,
+        offset=1e-6,
+    )
+
+    expected = len(frame) * (len(frame) - 1)
+    assert len(rows) == expected
+    assert all("origin" in row and "destination" in row for row in rows)
+    assert all(float(row["gravity_flow"]) >= 0.0 for row in rows)
+
+
 def test_line_centroid_uses_segment_length_weighting() -> None:
     centroid = geometry_centroid(
         {
@@ -480,3 +515,35 @@ def test_stress_corpus_generators_create_mixed_geometries() -> None:
     assert any(record["site_id"] == "stress-remote-point" for record in feature_records)
     assert len(region_records) == 16
     assert {record["region_band"] for record in region_records} == {"north", "south"}
+
+
+# ---- Nearest-neighbor parity tests (merged from test_neighbors.py) ----
+
+
+def test_euclidean_and_haversine_neighbors_same_k() -> None:
+    """Both methods should return same number of neighbors with k=1."""
+    frame = read_features(PROJECT_ROOT / "data" / "sample_features.json", crs="EPSG:4326")
+    euclidean = frame.nearest_neighbors(k=1, distance_method="euclidean")
+    haversine = frame.nearest_neighbors(k=1, distance_method="haversine")
+    assert len(euclidean) == len(haversine)
+    assert len(euclidean) == len(frame)
+
+
+def test_haversine_distances_are_reasonable() -> None:
+    """Haversine distances should be in km range for geographic coords."""
+    frame = read_features(PROJECT_ROOT / "data" / "sample_features.json", crs="EPSG:4326")
+    neighbors = frame.nearest_neighbors(k=1, distance_method="haversine")
+    for n in neighbors:
+        assert n["distance"] > 0
+        assert n["distance"] < 100
+
+
+def test_euclidean_vs_haversine_ordering_consistency() -> None:
+    """For nearby points, both methods should generally agree on nearest neighbor identity."""
+    frame = read_features(PROJECT_ROOT / "data" / "sample_features.json", crs="EPSG:4326")
+    euc = frame.nearest_neighbors(k=1, distance_method="euclidean")
+    hav = frame.nearest_neighbors(k=1, distance_method="haversine")
+    euc_pairs = {(n["origin"], n["neighbor"]) for n in euc}
+    hav_pairs = {(n["origin"], n["neighbor"]) for n in hav}
+    overlap = euc_pairs & hav_pairs
+    assert len(overlap) >= 1

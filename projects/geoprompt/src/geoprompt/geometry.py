@@ -1,3 +1,10 @@
+"""Geometry primitives, predicates, and spatial operations.
+
+Supports Point, LineString, Polygon, MultiPoint, MultiLineString,
+and MultiPolygon geometry types with centroid, bounds, intersection,
+containment, and distance calculations.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -25,6 +32,11 @@ def _normalize_ring(values: Any) -> tuple[Coordinate, ...]:
 
 
 def normalize_geometry(value: Any) -> Geometry:
+    """Normalize a geometry value into a canonical internal representation.
+
+    Supports Point, LineString, Polygon, MultiPoint, MultiLineString,
+    and MultiPolygon (items 5-6).
+    """
     if isinstance(value, dict):
         geometry_type = value.get("type")
         coordinates = value.get("coordinates")
@@ -46,7 +58,40 @@ def normalize_geometry(value: Any) -> Geometry:
             else:
                 ring = _normalize_ring(first_value)
             return {"type": "Polygon", "coordinates": ring}
-        raise TypeError("unsupported geometry type")
+        # Item 5: MultiPoint support
+        if geometry_type == "MultiPoint":
+            if not isinstance(coordinates, (list, tuple)):
+                raise TypeError("MultiPoint must contain a coordinate list")
+            return {
+                "type": "MultiPoint",
+                "coordinates": tuple(_normalize_coordinate(coord) for coord in coordinates),
+            }
+        # Item 5: MultiLineString support
+        if geometry_type == "MultiLineString":
+            if not isinstance(coordinates, (list, tuple)):
+                raise TypeError("MultiLineString must contain a list of line coordinate arrays")
+            lines = []
+            for line in coordinates:
+                if not isinstance(line, (list, tuple)) or len(line) < 2:
+                    raise TypeError("each line in MultiLineString must have at least two coordinates")
+                lines.append(tuple(_normalize_coordinate(coord) for coord in line))
+            return {"type": "MultiLineString", "coordinates": tuple(lines)}
+        # Item 5: MultiPolygon support
+        if geometry_type == "MultiPolygon":
+            if not isinstance(coordinates, (list, tuple)):
+                raise TypeError("MultiPolygon must contain a list of polygon coordinate arrays")
+            polygons = []
+            for poly in coordinates:
+                if not isinstance(poly, (list, tuple)) or not poly:
+                    raise TypeError("each polygon in MultiPolygon must contain at least one ring")
+                first = poly[0]
+                if isinstance(first, (list, tuple)) and len(first) == 2 and all(isinstance(item, (int, float)) for item in first):
+                    polygons.append(_normalize_ring(poly))
+                else:
+                    polygons.append(_normalize_ring(first))
+            return {"type": "MultiPolygon", "coordinates": tuple(polygons)}
+        # Item 6: Explicit handling for unsupported types
+        raise TypeError(f"unsupported geometry type: {geometry_type}")
 
     if isinstance(value, (list, tuple)) and len(value) == 2 and all(isinstance(item, (int, float)) for item in value):
         return {"type": "Point", "coordinates": _normalize_coordinate(value)}
@@ -59,14 +104,30 @@ def geometry_type(geometry: Geometry) -> str:
 
 
 def geometry_vertices(geometry: Geometry) -> tuple[Coordinate, ...]:
+    """Return all vertices of a geometry as a flat tuple of coordinates."""
     geometry_kind = geometry_type(geometry)
     coordinates = geometry["coordinates"]
     if geometry_kind == "Point":
         return (coordinates,)  # type: ignore[return-value]
-    return tuple(coordinates)  # type: ignore[return-value]
+    if geometry_kind in ("LineString", "Polygon"):
+        return tuple(coordinates)  # type: ignore[return-value]
+    if geometry_kind == "MultiPoint":
+        return tuple(coordinates)  # type: ignore[return-value]
+    if geometry_kind == "MultiLineString":
+        result: list[Coordinate] = []
+        for line in coordinates:  # type: ignore[union-attr]
+            result.extend(line)  # type: ignore[arg-type]
+        return tuple(result)
+    if geometry_kind == "MultiPolygon":
+        result = []
+        for ring in coordinates:  # type: ignore[union-attr]
+            result.extend(ring)  # type: ignore[arg-type]
+        return tuple(result)
+    raise TypeError(f"unsupported geometry type: {geometry_kind}")
 
 
 def transform_geometry(geometry: Geometry, transform: Callable[[Coordinate], Coordinate]) -> Geometry:
+    """Apply a coordinate transform function to all vertices of a geometry."""
     geometry_kind = geometry_type(geometry)
     if geometry_kind == "Point":
         return {"type": "Point", "coordinates": transform(geometry_vertices(geometry)[0])}
@@ -74,7 +135,21 @@ def transform_geometry(geometry: Geometry, transform: Callable[[Coordinate], Coo
         return {"type": "LineString", "coordinates": tuple(transform(vertex) for vertex in geometry_vertices(geometry))}
     if geometry_kind == "Polygon":
         return {"type": "Polygon", "coordinates": tuple(transform(vertex) for vertex in geometry_vertices(geometry))}
-    raise TypeError("unsupported geometry type")
+    if geometry_kind == "MultiPoint":
+        return {"type": "MultiPoint", "coordinates": tuple(transform(vertex) for vertex in geometry_vertices(geometry))}
+    if geometry_kind == "MultiLineString":
+        lines = geometry["coordinates"]
+        return {"type": "MultiLineString", "coordinates": tuple(
+            tuple(transform(coord) for coord in line)  # type: ignore[union-attr]
+            for line in lines  # type: ignore[union-attr]
+        )}
+    if geometry_kind == "MultiPolygon":
+        polygons = geometry["coordinates"]
+        return {"type": "MultiPolygon", "coordinates": tuple(
+            tuple(transform(coord) for coord in ring)  # type: ignore[union-attr]
+            for ring in polygons  # type: ignore[union-attr]
+        )}
+    raise TypeError(f"unsupported geometry type: {geometry_kind}")
 
 
 def geometry_bounds(geometry: Geometry) -> tuple[float, float, float, float]:
@@ -309,6 +384,14 @@ def geometry_centroid(geometry: Geometry) -> Coordinate:
 
 
 def geometry_distance(origin: Geometry, destination: Geometry, method: DistanceMethod = "euclidean") -> float:
+    """Compute distance between two geometries via their centroids.
+
+    Args:
+        origin: Source geometry.
+        destination: Target geometry.
+        method: Distance calculation method ('euclidean' or 'haversine').
+            Item 63: haversine provides geodesic distance.
+    """
     return coordinate_distance(geometry_centroid(origin), geometry_centroid(destination), method=method)
 
 

@@ -1,0 +1,74 @@
+name: Benchmark Smoke
+
+on:
+  push:
+    paths:
+      - "projects/3d-vp-lcp/**"
+  pull_request:
+    paths:
+      - "projects/3d-vp-lcp/**"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/3d-vp-lcp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package and dev deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Generate sample LAS
+        run: python -m vp_lcp.scripts.generate_sample_data
+
+      - name: Run single-config benchmark smoke
+        run: |
+          python -m vp_lcp.scripts.benchmark_real_tile \
+            --tile data/sample_lidar.las \
+            --output-root outputs/smoke-benchmark \
+            --voxel-sizes 3.0 \
+            --neighbours 26 \
+            --algorithms dijkstra \
+            --normalize-options true \
+            --min-height 0.0 \
+            --species-h-min 0.0 \
+            --species-h-max 80.0 \
+            --vegetation-classes 2,3,4,5
+
+      - name: Summarize 3D outputs
+        run: python -m vp_lcp.scripts.summarize_3d_runs --root outputs/smoke-benchmark
+
+      - name: Enforce performance thresholds
+        run: |
+          python -m vp_lcp.scripts.check_performance_thresholds \
+            --benchmark-json outputs/smoke-benchmark/benchmark_results.json \
+            --summary-json outputs/smoke-benchmark/three_d_summary.json \
+            --thresholds configs/smoke_performance_thresholds.json
+
+      - name: Validate one-command baseline CLI
+        run: python -m vp_lcp.scripts.reproduce_recommended_baseline --help
+
+      - name: Validate performance-threshold CLI
+        run: python -m vp_lcp.scripts.check_performance_thresholds --help
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sample-benchmark-artifacts
+          path: |
+            projects/3d-vp-lcp/outputs/smoke-benchmark
+            projects/3d-vp-lcp/outputs/smoke-benchmark/three_d_summary.csv
+            projects/3d-vp-lcp/outputs/smoke-benchmark/three_d_summary.md
+            projects/3d-vp-lcp/outputs/smoke-benchmark/three_d_summary.json

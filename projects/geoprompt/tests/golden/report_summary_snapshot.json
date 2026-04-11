@@ -1,0 +1,16 @@
+{
+  "feature_count": 6,
+  "crs": "EPSG:4326",
+  "bounds": {
+    "min_x": -112.09,
+    "min_y": 40.55,
+    "max_x": -111.74,
+    "max_y": 40.78
+  },
+  "geometry_types": [
+    "LineString",
+    "Point",
+    "Polygon"
+  ],
+  "valley_window_feature_count": 3
+}

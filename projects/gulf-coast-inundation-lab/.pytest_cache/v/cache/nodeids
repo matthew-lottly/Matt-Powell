@@ -1,7 +1,0 @@
-[
-  "tests/test_validation.py::test_build_validation_report_ranks_gauges",
-  "tests/test_validation.py::test_coefficient_of_determination_detects_strong_relation",
-  "tests/test_validation.py::test_export_report_writes_summary_and_registry",
-  "tests/test_validation.py::test_main_writes_report_from_cli_arguments",
-  "tests/test_validation.py::test_manifest_contains_ten_public_gauges"
-]

@@ -2,12 +2,56 @@ from __future__ import annotations
 
 import importlib
 from dataclasses import dataclass
-from heapq import nsmallest
+from heapq import nlargest, nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
-from .equations import area_similarity, coordinate_distance, corridor_strength, directional_alignment, prompt_influence, prompt_interaction
+from .equations import (
+    DistanceMethod,
+    adaptive_capacity_score,
+    accessibility_potential,
+    area_similarity,
+    climate_vulnerability_index,
+    digital_divide_index,
+    drought_stress_index,
+    emergency_response_score,
+    healthcare_access_index,
+    heat_island_intensity,
+    infrastructure_lifecycle_score,
+    community_cohesion_score,
+    competitive_influence,
+    composite_suitability_score,
+    coordinate_distance,
+    corridor_reliability_score,
+    coverage_equity_score,
+    cultural_similarity_index,
+    demand_supply_balance_score,
+    corridor_strength,
+    directional_alignment,
+    gentrification_pressure_index,
+    gravity_interaction,
+    habitat_fragmentation_score,
+    hotspot_intensity_score,
+    land_value_gradient,
+    market_concentration_index,
+    migration_attraction_index,
+    mortality_risk_index,
+    noise_propagation_level,
+    pollution_dispersion_model,
+    prompt_influence,
+    prompt_interaction,
+    trade_flow_intensity,
+    traffic_congestion_index,
+    transit_accessibility_score,
+    school_access_score,
+    food_desert_risk,
+    wildfire_risk_index,
+    visual_prominence_score,
+    walkability_score,
+)
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
+from .network import analyze_network_topology, allocate_demand_to_supply, build_network_graph, capacity_constrained_od_assignment, co_location_conflict_scan, constrained_flow_assignment, critical_customer_coverage_audit, criticality_ranking_by_node_removal, detention_basin_overflow_trace, feeder_load_balance_swap, fiber_cut_impact_matrix, fiber_splice_node_trace, fire_flow_demand_check, gas_odorization_zone_trace, gas_pressure_drop_trace, gas_regulator_station_isolation, gas_shutdown_impact, inflow_infiltration_scan, infrastructure_age_risk_weighted_routing, interdependency_cascade_simulation, load_transfer_feasibility, multi_criteria_shortest_path, od_cost_matrix, pipe_break_isolation_zones, pressure_reducing_valve_trace, ring_redundancy_check, run_utility_scenarios, service_area, shortest_path, stormwater_flow_accumulation, trace_electric_feeder, trace_water_pressure_zones, utility_bottlenecks, utility_outage_isolation
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections
+from .validation import validate_distance_method_crs
 
 
 Record = dict[str, Any]
@@ -50,6 +94,1909 @@ class Bounds:
     max_y: float
 
 
+class GeoPromptAnalysis:
+    """GeoPandas-style analysis namespace for callable frame workflows."""
+
+    def __init__(self, frame: "GeoPromptFrame") -> None:
+        self._frame = frame
+
+    @staticmethod
+    def _unit(value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
+
+    def _distance_from_global_centroid(self, row_centroid: Coordinate, distance_method: DistanceMethod) -> float:
+        frame = self._frame
+        center = frame.centroid()
+        return coordinate_distance(row_centroid, center, method=distance_method)
+
+    def accessibility(
+        self,
+        opportunities: str,
+        id_column: str = "site_id",
+        friction: float = 1.0,
+        include_self: bool = False,
+        distance_method: DistanceMethod = "euclidean",
+        max_distance: float | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(opportunities)
+        frame._require_column(id_column)
+
+        centroids = frame._cached_centroids
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            score = 0.0
+            for j, destination in enumerate(frame._rows):
+                if not include_self and i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                score += accessibility_potential(
+                    weight=float(destination[opportunities]),
+                    distance_value=dist,
+                    friction=friction,
+                )
+            records.append(
+                {
+                    id_column: origin[id_column],
+                    "accessibility_score": score,
+                    "opportunities_column": opportunities,
+                    "distance_method": distance_method,
+                }
+            )
+        return records
+
+    def gravity_flow(
+        self,
+        origin_weight: str,
+        destination_weight: str,
+        id_column: str = "site_id",
+        beta: float = 2.0,
+        offset: float = 1e-6,
+        include_self: bool = False,
+        distance_method: DistanceMethod = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(origin_weight)
+        frame._require_column(destination_weight)
+        frame._require_column(id_column)
+
+        centroids = frame._cached_centroids
+        flows: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if not include_self and i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                flow_value = gravity_interaction(
+                    origin_weight=float(origin[origin_weight]),
+                    destination_weight=float(destination[destination_weight]),
+                    distance_value=dist,
+                    beta=beta,
+                    offset=offset,
+                )
+                flows.append(
+                    {
+                        "origin": origin[id_column],
+                        "destination": destination[id_column],
+                        "distance": dist,
+                        "gravity_flow": flow_value,
+                        "distance_method": distance_method,
+                    }
+                )
+                if max_results is not None and len(flows) >= max_results:
+                    return flows
+        return flows
+
+    def _network_edges_from_columns(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        edge_id_column: str | None,
+        cost_column: str | None,
+        capacity_column: str | None,
+        extra_columns: dict[str, str] | None = None,
+    ) -> list[dict[str, Any]]:
+        frame = self._frame
+        frame._require_column(from_node_column)
+        frame._require_column(to_node_column)
+        if edge_id_column is not None:
+            frame._require_column(edge_id_column)
+        if cost_column is not None:
+            frame._require_column(cost_column)
+        if capacity_column is not None:
+            frame._require_column(capacity_column)
+        for _, column_name in (extra_columns or {}).items():
+            frame._require_column(column_name)
+
+        edges: list[dict[str, Any]] = []
+        for index, row in enumerate(frame._rows):
+            edge: dict[str, Any] = {
+                "from_node": str(row[from_node_column]),
+                "to_node": str(row[to_node_column]),
+                "edge_id": str(row[edge_id_column]) if edge_id_column is not None else f"edge-{index}",
+            }
+            if cost_column is not None:
+                edge["cost"] = max(0.0, float(row[cost_column]))
+            if capacity_column is not None:
+                edge["capacity"] = max(0.0, float(row[capacity_column]))
+            for output_key, column_name in (extra_columns or {}).items():
+                edge[output_key] = row[column_name]
+            edges.append(edge)
+        return edges
+
+    def network_shortest_path(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_node: str,
+        destination_node: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> Record:
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return shortest_path(graph, origin=origin_node, destination=destination_node, max_cost=max_cost)
+
+    def network_service_area(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_nodes: Sequence[str],
+        max_cost: float,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+    ) -> list[Record]:
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return service_area(graph, origins=list(origin_nodes), max_cost=max_cost)
+
+    def network_od_matrix(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_nodes: Sequence[str],
+        destination_nodes: Sequence[str],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> list[Record]:
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return od_cost_matrix(
+            graph,
+            origins=list(origin_nodes),
+            destinations=list(destination_nodes),
+            max_cost=max_cost,
+        )
+
+    def utility_supply_allocation(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        node_column: str,
+        supply_column: str,
+        demand_column: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._require_column(node_column)
+        frame._require_column(supply_column)
+        frame._require_column(demand_column)
+
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+
+        supply_by_node: dict[str, float] = {}
+        demand_by_node: dict[str, float] = {}
+        for row in frame._rows:
+            node = str(row[node_column])
+            supply_by_node[node] = supply_by_node.get(node, 0.0) + max(0.0, float(row[supply_column]))
+            demand_by_node[node] = demand_by_node.get(node, 0.0) + max(0.0, float(row[demand_column]))
+
+        return allocate_demand_to_supply(
+            graph,
+            supply_by_node=supply_by_node,
+            demand_by_node=demand_by_node,
+            max_cost=max_cost,
+        )
+
+    def utility_bottleneck_scan(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        od_demands: Sequence[tuple[str, str, float]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        directed: bool = False,
+    ) -> list[Record]:
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost", capacity_field="capacity")
+        return utility_bottlenecks(graph, od_demands=list(od_demands), capacity_field="capacity")
+
+    def network_topology_audit(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+    ) -> Record:
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return analyze_network_topology(graph)
+
+    def network_multicriteria_path(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_node: str,
+        destination_node: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        length_column: str | None = None,
+        congestion_column: str | None = None,
+        slope_column: str | None = None,
+        failure_risk_column: str | None = None,
+        condition_column: str | None = None,
+        weights: dict[str, float] | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if length_column is not None:
+            extra_columns["length"] = length_column
+        if congestion_column is not None:
+            extra_columns["congestion"] = congestion_column
+        if slope_column is not None:
+            extra_columns["slope"] = slope_column
+        if failure_risk_column is not None:
+            extra_columns["failure_risk"] = failure_risk_column
+        if condition_column is not None:
+            extra_columns["condition"] = condition_column
+
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return multi_criteria_shortest_path(
+            graph,
+            origin=origin_node,
+            destination=destination_node,
+            weights=weights,
+            max_cost=max_cost,
+        )
+
+    def network_capacity_assignment(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        od_demands: Sequence[tuple[str, str, float]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        directed: bool = False,
+        max_iterations: int = 8,
+        overflow_penalty: float = 3.0,
+    ) -> Record:
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost", capacity_field="capacity")
+        return constrained_flow_assignment(
+            graph,
+            od_demands=list(od_demands),
+            capacity_field="capacity",
+            max_iterations=max_iterations,
+            overflow_penalty=overflow_penalty,
+        )
+
+    def network_capacity_spill_assignment(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        od_demands: Sequence[tuple[str, str, float]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        directed: bool = False,
+        max_rounds: int = 6,
+    ) -> Record:
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost", capacity_field="capacity")
+        return capacity_constrained_od_assignment(
+            graph,
+            od_demands=list(od_demands),
+            capacity_field="capacity",
+            max_rounds=max_rounds,
+        )
+
+    def electric_feeder_trace(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        open_switch_edges: Sequence[str] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return trace_electric_feeder(
+            graph,
+            source_nodes=source_nodes,
+            open_switch_edges=open_switch_edges,
+            unknown_state_policy=unknown_state_policy,
+        )
+
+    def utility_outage_isolation(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        failed_edges: Sequence[str],
+        critical_nodes: Sequence[str] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return utility_outage_isolation(
+            graph,
+            source_nodes=source_nodes,
+            failed_edges=failed_edges,
+            critical_nodes=critical_nodes,
+            unknown_state_policy=unknown_state_policy,
+        )
+
+    def water_pressure_zones(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        max_headloss: float,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        length_column: str | None = None,
+        flow_column: str | None = None,
+        diameter_column: str | None = None,
+        roughness_coefficient: float = 130.0,
+        directed: bool = False,
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if length_column is not None:
+            extra_columns["length"] = length_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+
+        flow_by_edge: dict[str, float] = {}
+        diameter_by_edge: dict[str, float] = {}
+        if edge_id_column is not None and (flow_column is not None or diameter_column is not None):
+            frame = self._frame
+            if flow_column is not None:
+                frame._require_column(flow_column)
+            if diameter_column is not None:
+                frame._require_column(diameter_column)
+            for row in frame._rows:
+                edge_id = str(row[edge_id_column])
+                if flow_column is not None:
+                    flow_by_edge[edge_id] = max(0.0, float(row[flow_column]))
+                if diameter_column is not None:
+                    diameter_by_edge[edge_id] = max(0.0, float(row[diameter_column]))
+
+        return trace_water_pressure_zones(
+            graph,
+            source_nodes=source_nodes,
+            max_headloss=max_headloss,
+            flow_by_edge=flow_by_edge or None,
+            diameter_by_edge=diameter_by_edge or None,
+            roughness_coefficient=roughness_coefficient,
+        )
+
+    def gas_shutdown_impact(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        shutdown_edges: Sequence[str],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return gas_shutdown_impact(
+            graph,
+            source_nodes=source_nodes,
+            shutdown_edges=shutdown_edges,
+            unknown_state_policy=unknown_state_policy,
+        )
+
+    def utility_scenario_runner(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        outage_edges: Sequence[str] | None = None,
+        restoration_edges: Sequence[str] | None = None,
+        critical_nodes: Sequence[str] | None = None,
+        candidate_critical_edges: Sequence[str] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return run_utility_scenarios(
+            graph,
+            source_nodes=source_nodes,
+            critical_nodes=critical_nodes,
+            outage_edges=outage_edges,
+            restoration_edges=restoration_edges,
+            candidate_critical_edges=candidate_critical_edges,
+            unknown_state_policy=unknown_state_policy,
+        )
+
+    def criticality_ranking_by_node_removal(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return criticality_ranking_by_node_removal(graph, max_cost=max_cost)
+
+    def load_transfer_feasibility(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        feeder_a_source: str,
+        feeder_b_source: str,
+        tie_edge: dict[str, Any],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        load_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        if load_column is not None:
+            extra_columns["load"] = load_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return load_transfer_feasibility(
+            graph,
+            feeder_a_source=feeder_a_source,
+            feeder_b_source=feeder_b_source,
+            tie_edge=tie_edge,
+            max_cost=max_cost,
+        )
+
+    def feeder_load_balance_swap(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        feeder_sources: list[str],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        load_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        if load_column is not None:
+            extra_columns["load"] = load_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return feeder_load_balance_swap(
+            graph, feeder_sources=feeder_sources, max_cost=max_cost
+        )
+
+    def pipe_break_isolation_zones(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        break_edge_id: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        customer_column: str | None = None,
+        directed: bool = False,
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        if customer_column is not None:
+            extra_columns["customers"] = customer_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return pipe_break_isolation_zones(graph, break_edge_id=break_edge_id)
+
+    def pressure_reducing_valve_trace(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        prv_node: str,
+        downstream_head_limit: float,
+        min_residual_pressure: float = 0.0,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return pressure_reducing_valve_trace(
+            graph,
+            prv_node=prv_node,
+            downstream_head_limit=downstream_head_limit,
+            min_residual_pressure=min_residual_pressure,
+            max_cost=max_cost,
+        )
+
+    def fire_flow_demand_check(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        hydrant_nodes: list[str],
+        demand_gpm: float,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        flow_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        if flow_column is not None:
+            extra_columns["flow"] = flow_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return fire_flow_demand_check(
+            graph, hydrant_nodes=hydrant_nodes, demand_gpm=demand_gpm
+        )
+
+    def gas_pressure_drop_trace(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_node: str,
+        inlet_pressure: float,
+        min_delivery_pressure: float = 0.0,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        flow_column: str | None = None,
+        diameter_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        if flow_column is not None:
+            extra_columns["flow"] = flow_column
+        if diameter_column is not None:
+            extra_columns["diameter"] = diameter_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return gas_pressure_drop_trace(
+            graph,
+            source_node=source_node,
+            inlet_pressure=inlet_pressure,
+            min_delivery_pressure=min_delivery_pressure,
+            max_cost=max_cost,
+        )
+
+    def gas_odorization_zone_trace(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        odorizer_nodes: list[str],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return gas_odorization_zone_trace(
+            graph, odorizer_nodes=odorizer_nodes, max_cost=max_cost
+        )
+
+    def gas_regulator_station_isolation(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        regulator_node: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return gas_regulator_station_isolation(
+            graph, regulator_node=regulator_node, max_cost=max_cost
+        )
+
+    def co_location_conflict_scan(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        utility_type_column: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        corridor_column: str | None = None,
+        directed: bool = False,
+    ) -> list[Record]:
+        """Detect shared-corridor or shared-node-pair conflicts between utility types.
+
+        Uses ``utility_type_column`` to partition frame rows into per-utility
+        sub-graphs, then runs ``co_location_conflict_scan`` across them.
+        """
+        extra_columns: dict[str, str] = {"utility_type": utility_type_column}
+        if corridor_column is not None:
+            extra_columns["corridor_id"] = corridor_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        # Partition edges by utility type
+        by_type: dict[str, list[dict[str, Any]]] = {}
+        for edge in edges:
+            utype = str(edge.get("utility_type", "unknown"))
+            by_type.setdefault(utype, []).append(edge)
+        graphs = {
+            utype: build_network_graph(elist, directed=directed, cost_field="cost")
+            for utype, elist in by_type.items()
+        }
+        return co_location_conflict_scan(graphs)
+
+    def interdependency_cascade_simulation(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        dependency_map: dict[str, list[str]],
+        initial_failed_nodes: list[str],
+        dependent_edges: list[dict[str, Any]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cascade_rounds: int = 10,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        """Simulate cascading failures from the frame network into a dependent network.
+
+        ``dependent_edges`` is a pre-built list of raw edge dicts for the
+        dependent network (e.g. SCADA nodes powered by the electric grid).
+        ``dependency_map`` maps primary-network nodes to dependent-network nodes.
+        """
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        primary_edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        primary_graph = build_network_graph(
+            primary_edges, directed=directed, cost_field="cost"
+        )
+        dependent_graph = build_network_graph(
+            dependent_edges, directed=directed, cost_field="cost"
+        )
+        return interdependency_cascade_simulation(
+            primary_graph,
+            dependent_graph,
+            dependency_map=dependency_map,
+            initial_failed_nodes=initial_failed_nodes,
+            max_cascade_rounds=max_cascade_rounds,
+            max_cost=max_cost,
+        )
+
+    def infrastructure_age_risk_weighted_routing(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin: str,
+        destination: str,
+        age_column: str | None = None,
+        design_life_column: str | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        if age_column is not None:
+            extra_columns["age_years"] = age_column
+        if design_life_column is not None:
+            extra_columns["design_life_years"] = design_life_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return infrastructure_age_risk_weighted_routing(
+            graph, origin=origin, destination=destination, max_cost=max_cost
+        )
+
+    def critical_customer_coverage_audit(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        critical_customer_nodes: list[str],
+        supply_nodes: list[str],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return critical_customer_coverage_audit(
+            graph,
+            critical_customer_nodes=critical_customer_nodes,
+            supply_nodes=supply_nodes,
+            max_cost=max_cost,
+        )
+
+    def stormwater_flow_accumulation(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        runoff_column: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=True, cost_field="cost")
+        frame = self._frame
+        frame._require_column(runoff_column)
+        from_col = from_node_column
+        runoff_by_node: dict[str, float] = {}
+        for row in frame._rows:
+            node = str(row[from_col])
+            runoff_by_node[node] = runoff_by_node.get(node, 0.0) + float(
+                row.get(runoff_column, 0) or 0
+            )
+        return stormwater_flow_accumulation(graph, runoff_by_node=runoff_by_node)
+
+    def detention_basin_overflow_trace(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        basin_node: str,
+        basin_capacity: float,
+        inflow: float,
+        overflow_edge_ids: list[str] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = True,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return detention_basin_overflow_trace(
+            graph,
+            basin_node=basin_node,
+            basin_capacity=basin_capacity,
+            inflow=inflow,
+            overflow_edge_ids=overflow_edge_ids,
+            max_cost=max_cost,
+        )
+
+    def inflow_infiltration_scan(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        observed_flow_column: str,
+        dry_weather_flow_column: str,
+        infiltration_threshold_ratio: float = 1.25,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {
+            "observed_flow": observed_flow_column,
+            "dry_weather_flow": dry_weather_flow_column,
+        }
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return inflow_infiltration_scan(
+            graph,
+            infiltration_threshold_ratio=infiltration_threshold_ratio,
+        )
+
+    def fiber_splice_node_trace(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        splice_node: str,
+        circuit_endpoints: list[tuple[str, str]] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> Record:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return fiber_splice_node_trace(
+            graph,
+            splice_node=splice_node,
+            circuit_endpoints=circuit_endpoints,
+            max_cost=max_cost,
+        )
+
+    def ring_redundancy_check(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        ring_nodes: list[str],
+        hub_node: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return ring_redundancy_check(
+            graph, ring_nodes=ring_nodes, hub_node=hub_node, max_cost=max_cost
+        )
+
+    def fiber_cut_impact_matrix(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        cut_candidate_edges: list[str],
+        circuit_endpoints: list[tuple[str, str]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        directed: bool = False,
+        max_cost: float = float("inf"),
+    ) -> list[Record]:
+        extra_columns: dict[str, str] = {}
+        if device_type_column is not None:
+            extra_columns["device_type"] = device_type_column
+        if state_column is not None:
+            extra_columns["state"] = state_column
+        edges = self._network_edges_from_columns(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=None,
+            extra_columns=extra_columns,
+        )
+        graph = build_network_graph(edges, directed=directed, cost_field="cost")
+        return fiber_cut_impact_matrix(
+            graph,
+            cut_candidate_edges=cut_candidate_edges,
+            circuit_endpoints=circuit_endpoints,
+            max_cost=max_cost,
+        )
+
+    def suitability(
+        self,
+        criteria_columns: Sequence[str],
+        id_column: str = "site_id",
+        criteria_weights: Sequence[float] | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._require_column(id_column)
+        if len(criteria_columns) == 0:
+            raise ValueError("criteria_columns must not be empty")
+        for column in criteria_columns:
+            frame._require_column(column)
+
+        if criteria_weights is None:
+            weights = tuple(1.0 for _ in criteria_columns)
+        else:
+            if len(criteria_weights) != len(criteria_columns):
+                raise ValueError("criteria_weights length must match criteria_columns length")
+            weights = tuple(float(weight) for weight in criteria_weights)
+
+        records: list[Record] = []
+        for row in frame._rows:
+            scores = tuple(self._unit(float(row[column])) for column in criteria_columns)
+            suitability_score = composite_suitability_score(scores, criteria_weights=weights)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "suitability_score": suitability_score,
+                    "criteria_columns": list(criteria_columns),
+                }
+            )
+        return records
+
+    def catchment_competition(
+        self,
+        demand_column: str,
+        supply_column: str,
+        id_column: str = "site_id",
+        distance_method: str = "euclidean",
+        max_distance: float | None = None,
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(demand_column)
+        frame._require_column(supply_column)
+        frame._require_column(id_column)
+
+        centroids = frame._cached_centroids
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            competition = 0.0
+            for j, destination in enumerate(frame._rows):
+                if i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                competition += competitive_influence(
+                    primary_weight=float(origin[supply_column]),
+                    competitor_weight=float(destination[supply_column]),
+                    distance_value=dist,
+                    scale=1.0,
+                )
+            demand_supply = demand_supply_balance_score(float(origin[demand_column]), float(origin[supply_column]))
+            records.append(
+                {
+                    id_column: origin[id_column],
+                    "competition_score": competition,
+                    "demand_supply_balance": demand_supply,
+                }
+            )
+        return records
+
+    def hotspot_scan(self, value_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(value_column)
+        frame._require_column(id_column)
+        baseline = sum(float(row[value_column]) for row in frame._rows) / max(len(frame._rows), 1)
+        baseline = max(baseline, 1e-9)
+        return [
+            {
+                id_column: row[id_column],
+                "hotspot_score": hotspot_intensity_score(float(row[value_column]), baseline),
+            }
+            for row in frame._rows
+        ]
+
+    def equity_gap(self, min_column: str, max_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(min_column)
+        frame._require_column(max_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "coverage_equity": coverage_equity_score(max(0.0, float(row[min_column])), max(0.0, float(row[max_column]))),
+            }
+            for row in frame._rows
+        ]
+
+    def network_reliability(self, capacity_column: str, failure_proxy_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(capacity_column)
+        frame._require_column(failure_proxy_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "network_reliability": corridor_reliability_score(
+                    base_strength=max(0.0, float(row[capacity_column])),
+                    failure_rate=1.0 - self._unit(float(row[failure_proxy_column])),
+                    corridor_length=max(0.0, geometry_length(row[frame.geometry_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def transit_service_gap(
+        self,
+        service_frequency_column: str,
+        coverage_column: str,
+        id_column: str = "site_id",
+        distance_method: DistanceMethod = "euclidean",
+    ) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(service_frequency_column)
+        frame._require_column(coverage_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            service_score = transit_accessibility_score(
+                stop_distance=distance_value,
+                service_frequency=max(0.0, float(row[service_frequency_column]) * 60.0),
+                network_coverage=self._unit(float(row[coverage_column])),
+                scale=500.0,
+            )
+            records.append({id_column: row[id_column], "transit_service_gap": 1.0 - self._unit(service_score)})
+        return records
+
+    def congestion_hotspots(self, flow_column: str, capacity_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(flow_column)
+        frame._require_column(capacity_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "congestion_index": traffic_congestion_index(
+                    current_flow=max(0.0, float(row[flow_column])),
+                    capacity=max(1e-9, float(row[capacity_column])),
+                    speed_reduction=0.0,
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def walkability_audit(self, connectivity_column: str, density_column: str, amenities_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(connectivity_column)
+        frame._require_column(density_column)
+        frame._require_column(amenities_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "walkability_score": walkability_score(
+                    sidewalk_connectivity=self._unit(float(row[connectivity_column])),
+                    intersection_density=self._unit(float(row[density_column])),
+                    pedestrian_amenities=self._unit(float(row[amenities_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def gentrification_scan(self, appreciation_column: str, income_column: str, displacement_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(appreciation_column)
+        frame._require_column(income_column)
+        frame._require_column(displacement_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "gentrification_pressure": gentrification_pressure_index(
+                    property_appreciation_rate=self._unit(float(row[appreciation_column])),
+                    income_dynamics=self._unit(float(row[income_column])),
+                    displacement_risk=self._unit(float(row[displacement_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def land_value_surface(self, base_value_column: str, id_column: str = "site_id", distance_method: DistanceMethod = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(base_value_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "land_value_estimate": land_value_gradient(
+                        city_center_value=max(0.0, float(row[base_value_column])),
+                        distance_value=distance_value,
+                        scale=1.0,
+                        elasticity=0.5,
+                    ),
+                }
+            )
+        return records
+
+    def pollution_surface(self, source_column: str, id_column: str = "site_id", distance_method: DistanceMethod = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(source_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "pollution_intensity": pollution_dispersion_model(
+                        source_intensity=max(0.0, float(row[source_column])),
+                        distance_value=distance_value,
+                        wind_factor=0.1,
+                        scale=1.0,
+                    ),
+                }
+            )
+        return records
+
+    def habitat_fragmentation_map(self, patch_column: str, connectivity_column: str, id_column: str = "site_id", distance_method: DistanceMethod = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(patch_column)
+        frame._require_column(connectivity_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "fragmentation_score": habitat_fragmentation_score(
+                        patch_size=max(0.0, float(row[patch_column])),
+                        nearest_patch_distance=distance_value,
+                        connectivity_index=max(0.0, float(row[connectivity_column])),
+                    ),
+                }
+            )
+        return records
+
+    def climate_vulnerability_map(self, exposure_column: str, sensitivity_column: str, adaptive_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(exposure_column)
+        frame._require_column(sensitivity_column)
+        frame._require_column(adaptive_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "climate_vulnerability": climate_vulnerability_index(
+                    exposure_level=self._unit(float(row[exposure_column])),
+                    sensitivity_level=self._unit(float(row[sensitivity_column])),
+                    adaptive_capacity=self._unit(float(row[adaptive_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def migration_pull_map(self, economic_column: str, quality_column: str, cultural_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(economic_column)
+        frame._require_column(quality_column)
+        frame._require_column(cultural_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "migration_attraction": migration_attraction_index(
+                        economic_opportunity=self._unit(float(row[economic_column])),
+                        quality_of_life=self._unit(float(row[quality_column])),
+                        cultural_alignment=self._unit(float(row[cultural_column])),
+                        distance_value=distance_value,
+                    ),
+                }
+            )
+        return records
+
+    def mortality_risk_map(self, population_column: str, disease_column: str, healthcare_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(population_column)
+        frame._require_column(disease_column)
+        frame._require_column(healthcare_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "mortality_risk": mortality_risk_index(
+                    age_weighted_population=max(0.0, float(row[population_column])),
+                    disease_burden=max(0.0, float(row[disease_column])),
+                    healthcare_access=self._unit(float(row[healthcare_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def market_power_map(self, largest_share_column: str, concentration_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(largest_share_column)
+        frame._require_column(concentration_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "market_power": market_concentration_index(
+                    largest_firm_share=self._unit(float(row[largest_share_column])),
+                    herfindahl_index=self._unit(float(row[concentration_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def trade_corridor_map(self, export_column: str, import_column: str, id_column: str = "site_id", distance_method: str = "euclidean", max_distance: float | None = None, max_results: int | None = None) -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(export_column)
+        frame._require_column(import_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
+                records.append(
+                    {
+                        "origin": origin[id_column],
+                        "destination": destination[id_column],
+                        "trade_intensity": trade_flow_intensity(
+                            export_value=max(0.0, float(origin[export_column])),
+                            import_value=max(0.0, float(destination[import_column])),
+                            distance_value=dist,
+                            bilateral_agreement=0.2,
+                        ),
+                    }
+                )
+                if max_results is not None and len(records) >= max_results:
+                    return records
+        return records
+
+    def community_cohesion_map(self, internal_column: str, external_column: str, identity_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(internal_column)
+        frame._require_column(external_column)
+        frame._require_column(identity_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "community_cohesion": community_cohesion_score(
+                    internal_ties=max(0.0, float(row[internal_column])),
+                    external_ties=max(0.0, float(row[external_column])),
+                    shared_identity_strength=self._unit(float(row[identity_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def cultural_similarity_matrix(self, value_column: str, language_column: str, tradition_column: str, history_column: str, id_column: str = "site_id", max_results: int | None = None) -> list[Record]:
+        frame = self._frame
+        frame._require_column(value_column)
+        frame._require_column(language_column)
+        frame._require_column(tradition_column)
+        frame._require_column(history_column)
+        frame._require_column(id_column)
+        records: list[Record] = []
+        for i, origin in enumerate(frame._rows):
+            for j, destination in enumerate(frame._rows):
+                if i == j:
+                    continue
+                records.append(
+                    {
+                        "origin": origin[id_column],
+                        "destination": destination[id_column],
+                        "cultural_similarity": cultural_similarity_index(
+                            value_alignment=self._unit((float(origin[value_column]) + float(destination[value_column])) / 2.0),
+                            language_similarity=self._unit((float(origin[language_column]) + float(destination[language_column])) / 2.0),
+                            tradition_overlap=self._unit((float(origin[tradition_column]) + float(destination[tradition_column])) / 2.0),
+                            history_shared=self._unit((float(origin[history_column]) + float(destination[history_column])) / 2.0),
+                        ),
+                    }
+                )
+                if max_results is not None and len(records) >= max_results:
+                    return records
+        return records
+
+    def noise_impact_map(self, source_column: str, barrier_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(source_column)
+        frame._require_column(barrier_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "noise_level": noise_propagation_level(
+                        source_decibels=max(0.0, float(row[source_column]) * 100.0),
+                        distance_value=distance_value,
+                        atmospheric_conditions=0.1,
+                        barriers=max(0.0, float(row[barrier_column])),
+                    ),
+                }
+            )
+        return records
+
+    def visual_prominence_map(self, vertical_column: str, range_column: str, distinctiveness_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(vertical_column)
+        frame._require_column(range_column)
+        frame._require_column(distinctiveness_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            distance_value = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "visual_prominence": visual_prominence_score(
+                        vertical_extent=max(0.0, float(row[vertical_column]) * 100.0),
+                        visibility_range=max(0.0, float(row[range_column]) * 1000.0),
+                        distinctiveness=self._unit(float(row[distinctiveness_column])),
+                        distance_value=distance_value,
+                        scale=1.0,
+                    ),
+                }
+            )
+        return records
+
+    def drought_stress_map(self, demand_column: str, supply_column: str, reserve_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(demand_column)
+        frame._require_column(supply_column)
+        frame._require_column(reserve_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "drought_stress": drought_stress_index(
+                    water_demand=max(0.0, float(row[demand_column])),
+                    water_supply=max(0.0, float(row[supply_column])),
+                    reserve_ratio=self._unit(float(row[reserve_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def heat_island_map(self, impervious_column: str, canopy_column: str, albedo_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(impervious_column)
+        frame._require_column(canopy_column)
+        frame._require_column(albedo_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "heat_island_intensity": heat_island_intensity(
+                    impervious_ratio=self._unit(float(row[impervious_column])),
+                    tree_canopy_ratio=self._unit(float(row[canopy_column])),
+                    albedo=self._unit(float(row[albedo_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def school_access_map(self, capacity_column: str, demand_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(capacity_column)
+        frame._require_column(demand_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            travel_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "school_access": school_access_score(
+                        seat_capacity=max(0.0, float(row[capacity_column])),
+                        student_population=max(0.0, float(row[demand_column])),
+                        travel_time=travel_time,
+                    ),
+                }
+            )
+        return records
+
+    def healthcare_access_map(self, provider_column: str, population_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(provider_column)
+        frame._require_column(population_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            travel_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "healthcare_access": healthcare_access_index(
+                        provider_count=max(0.0, float(row[provider_column])),
+                        population=max(0.0, float(row[population_column])),
+                        travel_time=travel_time,
+                    ),
+                }
+            )
+        return records
+
+    def food_desert_map(self, grocery_column: str, vehicle_column: str, transit_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(grocery_column)
+        frame._require_column(vehicle_column)
+        frame._require_column(transit_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "food_desert_risk": food_desert_risk(
+                    grocery_density=self._unit(float(row[grocery_column])),
+                    vehicle_access=self._unit(float(row[vehicle_column])),
+                    transit_access=self._unit(float(row[transit_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def digital_divide_map(self, broadband_column: str, device_column: str, literacy_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(broadband_column)
+        frame._require_column(device_column)
+        frame._require_column(literacy_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "digital_divide": digital_divide_index(
+                    broadband_coverage=self._unit(float(row[broadband_column])),
+                    device_access=self._unit(float(row[device_column])),
+                    digital_literacy=self._unit(float(row[literacy_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def wildfire_risk_map(self, fuel_column: str, dryness_column: str, wind_column: str, suppression_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(fuel_column)
+        frame._require_column(dryness_column)
+        frame._require_column(wind_column)
+        frame._require_column(suppression_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "wildfire_risk": wildfire_risk_index(
+                    fuel_load=max(0.0, float(row[fuel_column])),
+                    dryness_index=max(0.0, float(row[dryness_column])),
+                    wind_speed=max(0.0, float(row[wind_column])),
+                    suppression_capacity=self._unit(float(row[suppression_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def emergency_response_map(self, station_column: str, coverage_column: str, id_column: str = "site_id", distance_method: str = "euclidean") -> list[Record]:
+        frame = self._frame
+        frame._validate_distance_method(distance_method)
+        frame._require_column(station_column)
+        frame._require_column(coverage_column)
+        frame._require_column(id_column)
+        centroids = frame._cached_centroids
+        center = frame.centroid()
+        records: list[Record] = []
+        for i, row in enumerate(frame._rows):
+            response_time = coordinate_distance(centroids[i], center, method=distance_method)
+            records.append(
+                {
+                    id_column: row[id_column],
+                    "emergency_response": emergency_response_score(
+                        station_density=self._unit(float(row[station_column])),
+                        response_time=response_time,
+                        coverage_ratio=self._unit(float(row[coverage_column])),
+                    ),
+                }
+            )
+        return records
+
+    def infrastructure_lifecycle_map(self, age_column: str, life_column: str, maintenance_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(age_column)
+        frame._require_column(life_column)
+        frame._require_column(maintenance_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "infrastructure_lifecycle": infrastructure_lifecycle_score(
+                    age_years=max(0.0, float(row[age_column])),
+                    design_life_years=max(1e-9, float(row[life_column])),
+                    maintenance_quality=self._unit(float(row[maintenance_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+    def adaptive_capacity_map(self, income_column: str, education_column: str, health_column: str, governance_column: str, id_column: str = "site_id") -> list[Record]:
+        frame = self._frame
+        frame._require_column(income_column)
+        frame._require_column(education_column)
+        frame._require_column(health_column)
+        frame._require_column(governance_column)
+        frame._require_column(id_column)
+        return [
+            {
+                id_column: row[id_column],
+                "adaptive_capacity": adaptive_capacity_score(
+                    income_index=self._unit(float(row[income_column])),
+                    education_index=self._unit(float(row[education_column])),
+                    health_index=self._unit(float(row[health_column])),
+                    governance_index=self._unit(float(row[governance_column])),
+                ),
+            }
+            for row in frame._rows
+        ]
+
+
 class GeoPromptFrame:
     def __init__(self, rows: Sequence[Record], geometry_column: str = "geometry", crs: str | None = None) -> None:
         self.geometry_column = geometry_column
@@ -57,6 +2004,7 @@ class GeoPromptFrame:
         self._rows = [dict(row) for row in rows]
         for row in self._rows:
             row[self.geometry_column] = normalize_geometry(row[self.geometry_column])
+        self._centroid_cache: list[Coordinate] | None = None
 
     @classmethod
     def from_records(cls, records: Iterable[Record], geometry: str = "geometry", crs: str | None = None) -> "GeoPromptFrame":
@@ -73,6 +2021,7 @@ class GeoPromptFrame:
         frame.geometry_column = geometry_column
         frame.crs = crs
         frame._rows = [dict(row) for row in rows]
+        frame._centroid_cache = None
         return frame
 
     def __len__(self) -> int:
@@ -80,6 +2029,10 @@ class GeoPromptFrame:
 
     def __iter__(self):
         return iter(self._rows)
+
+    @property
+    def analysis(self) -> GeoPromptAnalysis:
+        return GeoPromptAnalysis(self)
 
     @property
     def columns(self) -> list[str]:
@@ -101,10 +2054,19 @@ class GeoPromptFrame:
         return Bounds(min_x=min(xs), min_y=min(ys), max_x=max(xs), max_y=max(ys))
 
     def centroid(self) -> Coordinate:
-        centroids = [geometry_centroid(row[self.geometry_column]) for row in self._rows]
+        centroids = self._cached_centroids
         xs = [coord[0] for coord in centroids]
         ys = [coord[1] for coord in centroids]
         return (sum(xs) / len(xs), sum(ys) / len(ys))
+
+    @property
+    def _cached_centroids(self) -> list[Coordinate]:
+        """Pre-computed centroids for all rows; reused across all pairwise operations."""
+        if self._centroid_cache is None:
+            self._centroid_cache = [
+                geometry_centroid(row[self.geometry_column]) for row in self._rows
+            ]
+        return self._centroid_cache
 
     def _centroids(self, rows: Sequence[Record] | None = None, geometry_column: str | None = None) -> list[Coordinate]:
         active_rows = rows if rows is not None else self._rows
@@ -150,6 +2112,7 @@ class GeoPromptFrame:
         return aggregate_values
 
     def distance_matrix(self, distance_method: str = "euclidean") -> list[list[float]]:
+        self._validate_distance_method(distance_method)
         return [
             [
                 geometry_distance(origin=row[self.geometry_column], destination=other[self.geometry_column], method=distance_method)
@@ -173,6 +2136,7 @@ class GeoPromptFrame:
         k: int = 1,
         distance_method: str = "euclidean",
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(id_column)
         if k <= 0:
             raise ValueError("k must be greater than zero")
@@ -236,6 +2200,7 @@ class GeoPromptFrame:
         max_distance: float | None = None,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=other.crs)
         if k <= 0:
             raise ValueError("k must be greater than zero")
         if how not in {"inner", "left"}:
@@ -293,6 +2258,7 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         origin_suffix: str = "origin",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=targets.crs)
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -317,6 +2283,7 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         assignment_suffix: str = "assigned",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=targets.crs)
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -378,6 +2345,7 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -409,6 +2377,7 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> list[bool]:
+        self._validate_distance_method(distance_method)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -432,6 +2401,7 @@ class GeoPromptFrame:
         rsuffix: str = "right",
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        self._validate_distance_method(distance_method, other_crs=other.crs)
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
         if how not in {"inner", "left"}:
@@ -836,6 +2806,11 @@ class GeoPromptFrame:
         if name not in self.columns:
             raise KeyError(f"column '{name}' is not present")
 
+    def _validate_distance_method(self, distance_method: str, other_crs: str | None = None) -> None:
+        validate_distance_method_crs(distance_method, self.crs)
+        if other_crs is not None:
+            validate_distance_method_crs(distance_method, other_crs)
+
     def neighborhood_pressure(
         self,
         weight_column: str,
@@ -844,6 +2819,7 @@ class GeoPromptFrame:
         include_self: bool = False,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         pressures: list[float] = []
         for row in self._rows:
@@ -870,6 +2846,7 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -895,6 +2872,7 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        self._validate_distance_method(distance_method)
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -918,27 +2896,37 @@ class GeoPromptFrame:
         scale: float = 1.0,
         power: float = 1.0,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(id_column)
+        centroids = self._cached_centroids
+        areas = [geometry_area(row[self.geometry_column]) for row in self._rows]
         interactions: list[Record] = []
-        for origin in self._rows:
-            for destination in self._rows:
-                if origin is destination:
+        for i, origin in enumerate(self._rows):
+            for j, destination in enumerate(self._rows):
+                if i == j:
+                    continue
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
                     continue
                 interactions.append(
                     {
                         "origin": origin[id_column],
                         "destination": destination[id_column],
                         "area_similarity": area_similarity(
-                            origin_area=geometry_area(origin[self.geometry_column]),
-                            destination_area=geometry_area(destination[self.geometry_column]),
-                            distance_value=geometry_distance(origin[self.geometry_column], destination[self.geometry_column], method=distance_method),
+                            origin_area=areas[i],
+                            destination_area=areas[j],
+                            distance_value=dist,
                             scale=scale,
                             power=power,
                         ),
                         "distance_method": distance_method,
                     }
                 )
+                if max_results is not None and len(interactions) >= max_results:
+                    return interactions
         return interactions
 
     def interaction_table(
@@ -950,39 +2938,439 @@ class GeoPromptFrame:
         power: float = 2.0,
         preferred_bearing: float | None = None,
         distance_method: str = "euclidean",
+        max_distance: float | None = None,
+        max_results: int | None = None,
     ) -> list[Record]:
+        self._validate_distance_method(distance_method)
         self._require_column(origin_weight)
         self._require_column(destination_weight)
         self._require_column(id_column)
 
+        centroids = self._cached_centroids
         interactions: list[Record] = []
-        for origin in self._rows:
-            for destination in self._rows:
-                if origin is destination:
+        for i, origin in enumerate(self._rows):
+            for j, destination in enumerate(self._rows):
+                if i == j:
                     continue
-                distance_value = geometry_distance(origin[self.geometry_column], destination[self.geometry_column], method=distance_method)
+                dist = coordinate_distance(centroids[i], centroids[j], method=distance_method)
+                if max_distance is not None and dist > max_distance:
+                    continue
                 interaction = prompt_interaction(
                     origin_weight=float(origin[origin_weight]),
                     destination_weight=float(destination[destination_weight]),
-                    distance_value=distance_value,
+                    distance_value=dist,
                     scale=scale,
                     power=power,
                 )
                 record: Record = {
                     "origin": origin[id_column],
                     "destination": destination[id_column],
-                    "distance": distance_value,
+                    "distance": dist,
                     "interaction": interaction,
                     "distance_method": distance_method,
                 }
                 if preferred_bearing is not None:
                     record["directional_alignment"] = directional_alignment(
-                        origin=geometry_centroid(origin[self.geometry_column]),
-                        destination=geometry_centroid(destination[self.geometry_column]),
+                        origin=centroids[i],
+                        destination=centroids[j],
                         preferred_bearing=preferred_bearing,
                     )
                 interactions.append(record)
+                if max_results is not None and len(interactions) >= max_results:
+                    return interactions
         return interactions
 
+    def accessibility_analysis(
+        self,
+        opportunities: str,
+        id_column: str = "site_id",
+        friction: float = 1.0,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+    ) -> list[Record]:
+        return self.analysis.accessibility(
+            opportunities=opportunities,
+            id_column=id_column,
+            friction=friction,
+            include_self=include_self,
+            distance_method=distance_method,
+        )
 
-__all__ = ["Bounds", "GeoPromptFrame"]
+    def gravity_flow_analysis(
+        self,
+        origin_weight: str,
+        destination_weight: str,
+        id_column: str = "site_id",
+        beta: float = 2.0,
+        offset: float = 1e-6,
+        include_self: bool = False,
+        distance_method: str = "euclidean",
+    ) -> list[Record]:
+        return self.analysis.gravity_flow(
+            origin_weight=origin_weight,
+            destination_weight=destination_weight,
+            id_column=id_column,
+            beta=beta,
+            offset=offset,
+            include_self=include_self,
+            distance_method=distance_method,
+        )
+
+    def suitability_analysis(
+        self,
+        criteria_columns: Sequence[str],
+        id_column: str = "site_id",
+        criteria_weights: Sequence[float] | None = None,
+    ) -> list[Record]:
+        return self.analysis.suitability(
+            criteria_columns=criteria_columns,
+            id_column=id_column,
+            criteria_weights=criteria_weights,
+        )
+
+    def network_shortest_path_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_node: str,
+        destination_node: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> Record:
+        return self.analysis.network_shortest_path(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            origin_node=origin_node,
+            destination_node=destination_node,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            directed=directed,
+            max_cost=max_cost,
+        )
+
+    def network_service_area_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_nodes: Sequence[str],
+        max_cost: float,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+    ) -> list[Record]:
+        return self.analysis.network_service_area(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            origin_nodes=origin_nodes,
+            max_cost=max_cost,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            directed=directed,
+        )
+
+    def network_od_matrix_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_nodes: Sequence[str],
+        destination_nodes: Sequence[str],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> list[Record]:
+        return self.analysis.network_od_matrix(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            origin_nodes=origin_nodes,
+            destination_nodes=destination_nodes,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            directed=directed,
+            max_cost=max_cost,
+        )
+
+    def utility_supply_allocation_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        node_column: str,
+        supply_column: str,
+        demand_column: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> list[Record]:
+        return self.analysis.utility_supply_allocation(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            node_column=node_column,
+            supply_column=supply_column,
+            demand_column=demand_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            directed=directed,
+            max_cost=max_cost,
+        )
+
+    def utility_bottleneck_scan_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        od_demands: Sequence[tuple[str, str, float]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        directed: bool = False,
+    ) -> list[Record]:
+        return self.analysis.utility_bottleneck_scan(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            od_demands=od_demands,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+            directed=directed,
+        )
+
+    def network_topology_audit_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        directed: bool = False,
+    ) -> Record:
+        return self.analysis.network_topology_audit(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            directed=directed,
+        )
+
+    def network_multicriteria_path_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        origin_node: str,
+        destination_node: str,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        length_column: str | None = None,
+        congestion_column: str | None = None,
+        slope_column: str | None = None,
+        failure_risk_column: str | None = None,
+        condition_column: str | None = None,
+        weights: dict[str, float] | None = None,
+        directed: bool = False,
+        max_cost: float | None = None,
+    ) -> Record:
+        return self.analysis.network_multicriteria_path(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            origin_node=origin_node,
+            destination_node=destination_node,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            length_column=length_column,
+            congestion_column=congestion_column,
+            slope_column=slope_column,
+            failure_risk_column=failure_risk_column,
+            condition_column=condition_column,
+            weights=weights,
+            directed=directed,
+            max_cost=max_cost,
+        )
+
+    def network_capacity_assignment_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        od_demands: Sequence[tuple[str, str, float]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        directed: bool = False,
+        max_iterations: int = 8,
+        overflow_penalty: float = 3.0,
+    ) -> Record:
+        return self.analysis.network_capacity_assignment(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            od_demands=od_demands,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+            directed=directed,
+            max_iterations=max_iterations,
+            overflow_penalty=overflow_penalty,
+        )
+
+    def network_capacity_spill_assignment_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        od_demands: Sequence[tuple[str, str, float]],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        capacity_column: str | None = None,
+        directed: bool = False,
+        max_rounds: int = 6,
+    ) -> Record:
+        return self.analysis.network_capacity_spill_assignment(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            od_demands=od_demands,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            capacity_column=capacity_column,
+            directed=directed,
+            max_rounds=max_rounds,
+        )
+
+    def electric_feeder_trace_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        open_switch_edges: Sequence[str] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> list[Record]:
+        return self.analysis.electric_feeder_trace(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            source_nodes=source_nodes,
+            open_switch_edges=open_switch_edges,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            device_type_column=device_type_column,
+            state_column=state_column,
+            unknown_state_policy=unknown_state_policy,
+            directed=directed,
+        )
+
+    def utility_outage_isolation_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        failed_edges: Sequence[str],
+        critical_nodes: Sequence[str] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> Record:
+        return self.analysis.utility_outage_isolation(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            source_nodes=source_nodes,
+            failed_edges=failed_edges,
+            critical_nodes=critical_nodes,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            device_type_column=device_type_column,
+            state_column=state_column,
+            unknown_state_policy=unknown_state_policy,
+            directed=directed,
+        )
+
+    def water_pressure_zones_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        max_headloss: float,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        length_column: str | None = None,
+        flow_column: str | None = None,
+        diameter_column: str | None = None,
+        roughness_coefficient: float = 130.0,
+        directed: bool = False,
+    ) -> list[Record]:
+        return self.analysis.water_pressure_zones(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            source_nodes=source_nodes,
+            max_headloss=max_headloss,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            length_column=length_column,
+            flow_column=flow_column,
+            diameter_column=diameter_column,
+            roughness_coefficient=roughness_coefficient,
+            directed=directed,
+        )
+
+    def gas_shutdown_impact_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        shutdown_edges: Sequence[str],
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> Record:
+        return self.analysis.gas_shutdown_impact(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            source_nodes=source_nodes,
+            shutdown_edges=shutdown_edges,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            device_type_column=device_type_column,
+            state_column=state_column,
+            unknown_state_policy=unknown_state_policy,
+            directed=directed,
+        )
+
+    def utility_scenario_runner_analysis(
+        self,
+        from_node_column: str,
+        to_node_column: str,
+        source_nodes: Sequence[str],
+        outage_edges: Sequence[str] | None = None,
+        restoration_edges: Sequence[str] | None = None,
+        critical_nodes: Sequence[str] | None = None,
+        candidate_critical_edges: Sequence[str] | None = None,
+        edge_id_column: str | None = None,
+        cost_column: str | None = None,
+        device_type_column: str | None = None,
+        state_column: str | None = None,
+        unknown_state_policy: str = "passable",
+        directed: bool = False,
+    ) -> Record:
+        return self.analysis.utility_scenario_runner(
+            from_node_column=from_node_column,
+            to_node_column=to_node_column,
+            source_nodes=source_nodes,
+            outage_edges=outage_edges,
+            restoration_edges=restoration_edges,
+            critical_nodes=critical_nodes,
+            candidate_critical_edges=candidate_critical_edges,
+            edge_id_column=edge_id_column,
+            cost_column=cost_column,
+            device_type_column=device_type_column,
+            state_column=state_column,
+            unknown_state_policy=unknown_state_policy,
+            directed=directed,
+        )
+
+
+__all__ = ["Bounds", "GeoPromptAnalysis", "GeoPromptFrame"]

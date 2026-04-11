@@ -1,0 +1,6 @@
+{
+  "name": "usgs-al-17co-1-2020-ept-node-0-0-0-0",
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/AL_17Co_1_2020/ept-data/0-0-0-0.laz",
+  "output_file": "AL_17Co_1_2020_ept_0-0-0-0.laz",
+  "sha256": null
+}

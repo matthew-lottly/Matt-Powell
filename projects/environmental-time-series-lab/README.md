@@ -4,6 +4,11 @@ Data science portfolio project for temporal diagnostics, baseline comparison, an
 
 ![Environmental time series lab preview](assets/time-series-preview.svg)
 
+## Review Artifacts
+
+- Example output: [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md)
+- Data-flow diagram: [docs/data-flow.md](docs/data-flow.md)
+
 ## Snapshot
 
 - Lane: Data science and time-series analysis
@@ -14,6 +19,8 @@ Data science portfolio project for temporal diagnostics, baseline comparison, an
 ## Overview
 
 This project focuses on time-series analysis rather than GIS surface area. It loads small station histories, reserves a trailing review window, compares candidate baselines against that holdout segment, and exports structured diagnostics that can support monitoring review or later modeling work.
+
+That holdout-first structure is the main evaluation signal: the repository is meant to show how temporal diagnostics, baseline ranking, and later modeling decisions can be grounded in a reviewable window rather than in in-sample descriptions.
 
 ## What It Demonstrates
 
@@ -29,3 +36,4 @@ This project focuses on time-series analysis rather than GIS surface area. It lo
 
 See [docs/architecture.md](docs/architecture.md) for the design notes.
 See [docs/demo-storyboard.md](docs/demo-storyboard.md) for the reviewer walkthrough.
+See [docs/benchmark-tables.md](docs/benchmark-tables.md) for the baseline-comparison framing used to interpret the exported leaderboard.

@@ -4,7 +4,7 @@ All notable changes to CausalLens will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [0.3.0] — 2026-03-25
+## [0.5.0] — 2026-03-25
 
 ### Added
 - Difference-in-differences estimator (`DifferenceInDifferences`) with regression-based ATT, cluster-robust standard errors via statsmodels, and parallel-trends pre-test with joint F-test.

@@ -1,8 +1,39 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
+
+
+def read_features_chunked(
+    path: str | Path,
+    chunk_size: int = 1000,
+    geometry: str = "geometry",
+    crs: str | None = None,
+) -> Generator[GeoPromptFrame, None, None]:
+    """Yield successive GeoPromptFrame chunks from a large JSON/GeoJSON file.
+
+    Useful for processing datasets too large to fit comfortably in memory:
+    each chunk contains at most *chunk_size* features and can be processed
+    independently before being discarded.
+
+    Args:
+        path: Path to input JSON or GeoJSON file.
+        chunk_size: Maximum number of records per yielded frame.
+        geometry: Name of the geometry column in each record.
+        crs: Optional CRS string applied to all yielded frames.
+    """
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be greater than zero")
+    payload = _read_json(path)
+    inferred_crs = crs or _extract_crs(payload)
+    records = _records_from_payload(payload, geometry=geometry)
+    for start in range(0, max(len(records), 1), chunk_size):
+        chunk = records[start : start + chunk_size]
+        if chunk:
+            yield GeoPromptFrame.from_records(chunk, geometry=geometry, crs=inferred_crs)
+
 
 from .frame import GeoPromptFrame
 from .geometry import geometry_type
@@ -127,6 +158,7 @@ def write_geojson(path: str | Path, frame: GeoPromptFrame, geometry: str = "geom
 __all__ = [
     "frame_to_geojson",
     "read_features",
+    "read_features_chunked",
     "read_geojson",
     "read_points",
     "write_geojson",
