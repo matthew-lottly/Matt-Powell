@@ -703,3 +703,179 @@ def test_stress_corpus_generators_create_mixed_geometries() -> None:
     assert any(record["site_id"] == "stress-remote-point" for record in feature_records)
     assert len(region_records) == 16
     assert {record["region_band"] for record in region_records} == {"north", "south"}
+
+
+# ---------------------------------------------------------------------------
+# Edge case tests
+# ---------------------------------------------------------------------------
+
+
+def test_nearest_join_empty_right_frame_left_mode() -> None:
+    origins = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    empty = GeoPromptFrame.from_records([], crs="EPSG:4326")
+
+    result = origins.nearest_join(empty, k=1, how="left")
+    assert len(result) == 2
+    for row in result.to_records():
+        assert row["distance_right"] is None
+        assert row["nearest_rank_right"] is None
+
+
+def test_summarize_assignments_no_assignments_left_mode() -> None:
+    origins = GeoPromptFrame.from_records(
+        [
+            {"site_id": "origin-a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "origin-b", "geometry": {"type": "Point", "coordinates": [50.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    targets = GeoPromptFrame.from_records(
+        [
+            {"target_id": "t1", "geometry": {"type": "Point", "coordinates": [0.5, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    # max_distance=1 means origin-b gets no assignments; how="left" keeps it
+    summary = origins.summarize_assignments(
+        targets,
+        origin_id_column="site_id",
+        target_id_column="target_id",
+        max_distance=1.0,
+        how="left",
+    )
+    records = sorted(summary.to_records(), key=lambda r: r["site_id"])
+
+    assert records[0]["site_id"] == "origin-a"
+    assert records[0]["count_assigned"] == 1
+    assert records[1]["site_id"] == "origin-b"
+    assert records[1]["count_assigned"] == 0
+    assert records[1]["target_ids_assigned"] == []
+    assert records[1]["distance_min_assigned"] is None
+
+
+def test_spatial_join_within_predicate() -> None:
+    container = GeoPromptFrame.from_records(
+        [
+            {
+                "zone_id": "z1",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0]]],
+                },
+            }
+        ],
+        crs="EPSG:4326",
+    )
+    points = GeoPromptFrame.from_records(
+        [
+            {"pt_id": "inside", "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+            {"pt_id": "outside", "geometry": {"type": "Point", "coordinates": [5.0, 5.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    result = points.spatial_join(container, predicate="within", how="inner")
+    ids = [row["pt_id"] for row in result.to_records()]
+
+    assert "inside" in ids
+    assert "outside" not in ids
+
+
+def test_proximity_join_empty_matches_left_mode() -> None:
+    origins = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+    far_targets = GeoPromptFrame.from_records(
+        [
+            {"target_id": "far", "geometry": {"type": "Point", "coordinates": [100.0, 0.0]}},
+        ],
+        crs="EPSG:4326",
+    )
+
+    result = origins.proximity_join(far_targets, max_distance=1.0, how="left")
+    assert len(result) == 1
+    assert result.head(1)[0]["distance_right"] is None
+    assert result.head(1)[0]["target_id"] is None
+
+
+def test_numeric_id_column_round_trip() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": 1, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": 2, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": 3, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+        ]
+    )
+
+    neighbors = frame.nearest_neighbors(id_column="site_id", k=1)
+    assert all(isinstance(row["origin"], int) for row in neighbors)
+    assert all(isinstance(row["neighbor"], int) for row in neighbors)
+    assert len(neighbors) == 3
+
+
+def test_query_radius_from_coordinate_tuple() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+            {"site_id": "c", "geometry": {"type": "Point", "coordinates": [5.0, 0.0]}},
+        ]
+    )
+
+    result = frame.query_radius(anchor=(0.0, 0.0), max_distance=2.0)
+    ids = [row["site_id"] for row in result.to_records()]
+
+    assert "a" in ids
+    assert "b" in ids
+    assert "c" not in ids
+    # anchor_id column should NOT be present when anchor is a coordinate
+    assert "anchor_id" not in result.to_records()[0]
+
+
+def test_coverage_summary_empty_targets() -> None:
+    zone = GeoPromptFrame.from_records(
+        [
+            {
+                "zone_id": "z1",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]],
+                },
+            }
+        ]
+    )
+    empty = GeoPromptFrame.from_records([])
+
+    summary = zone.coverage_summary(empty, target_id_column="site_id")
+    assert len(summary) == 1
+    assert summary.head(1)[0]["count_covered"] == 0
+    assert summary.head(1)[0]["site_ids_covered"] == []
+
+
+def test_assign_with_callable() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {"site_id": "a", "demand": 2.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "demand": 4.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        ]
+    )
+
+    result = frame.assign(
+        demand_doubled=lambda f: [row["demand"] * 2 for row in f],
+        label="fixed",
+    )
+    records = result.to_records()
+
+    assert records[0]["demand_doubled"] == 4.0
+    assert records[1]["demand_doubled"] == 8.0
+    assert all(row["label"] == "fixed" for row in records)

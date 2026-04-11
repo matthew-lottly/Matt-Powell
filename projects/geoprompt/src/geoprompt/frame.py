@@ -52,6 +52,20 @@ class Bounds:
 
 class GeoPromptFrame:
     def __init__(self, rows: Sequence[Record], geometry_column: str = "geometry", crs: str | None = None) -> None:
+        """Create a GeoPromptFrame from a sequence of row dicts.
+
+        Each row must contain a geometry value under ``geometry_column``.
+        Geometries are normalised to the canonical internal representation on
+        construction; GeoJSON dicts, WKT strings, and coordinate tuples are
+        all accepted.
+
+        Args:
+            rows: Sequence of dicts, each representing one spatial feature.
+            geometry_column: Name of the key that holds geometry data.
+            crs: Optional CRS string (e.g. ``"EPSG:4326"``).  Used for
+                consistency checks and reprojection — it does not transform
+                coordinates on its own.
+        """
         self.geometry_column = geometry_column
         self.crs = crs
         self._rows = [dict(row) for row in rows]
@@ -60,6 +74,19 @@ class GeoPromptFrame:
 
     @classmethod
     def from_records(cls, records: Iterable[Record], geometry: str = "geometry", crs: str | None = None) -> "GeoPromptFrame":
+        """Construct a frame from any iterable of row dicts.
+
+        Convenience alternative to the constructor when the input is a
+        generator or other lazy iterable that must be materialised first.
+
+        Args:
+            records: Iterable of row dicts.
+            geometry: Geometry column name.
+            crs: Optional CRS string.
+
+        Returns:
+            A new :class:`GeoPromptFrame`.
+        """
         return cls(list(records), geometry_column=geometry, crs=crs)
 
     @classmethod
@@ -83,15 +110,30 @@ class GeoPromptFrame:
 
     @property
     def columns(self) -> list[str]:
+        """Return the column names of the first row, or an empty list if the frame is empty."""
         return list(self._rows[0].keys()) if self._rows else []
 
     def head(self, count: int = 5) -> list[Record]:
+        """Return the first ``count`` rows as a list of dicts.
+
+        Args:
+            count: Number of rows to return (default 5).
+
+        Returns:
+            List of row dicts, each a shallow copy.
+        """
         return [dict(row) for row in self._rows[:count]]
 
     def to_records(self) -> list[Record]:
+        """Return all rows as a list of shallow-copied dicts."""
         return [dict(row) for row in self._rows]
 
     def bounds(self) -> Bounds:
+        """Return the bounding box of all geometries in the frame.
+
+        Returns:
+            :class:`Bounds` with ``min_x``, ``min_y``, ``max_x``, ``max_y``.
+        """
         xs: list[float] = []
         ys: list[float] = []
         for row in self._rows:
@@ -101,6 +143,7 @@ class GeoPromptFrame:
         return Bounds(min_x=min(xs), min_y=min(ys), max_x=max(xs), max_y=max(ys))
 
     def centroid(self) -> Coordinate:
+        """Return the mean centroid of all geometries as an ``(x, y)`` tuple."""
         centroids = [geometry_centroid(row[self.geometry_column]) for row in self._rows]
         xs = [coord[0] for coord in centroids]
         ys = [coord[1] for coord in centroids]
@@ -150,6 +193,16 @@ class GeoPromptFrame:
         return aggregate_values
 
     def distance_matrix(self, distance_method: str = "euclidean") -> list[list[float]]:
+        """Return a full N\u00d7N pairwise distance matrix between all rows.
+
+        Args:
+            distance_method: ``"euclidean"`` (coordinate units) or
+                ``"haversine"`` (kilometres, expects lon/lat coordinates).
+
+        Returns:
+            List of N lists of N floats.  ``result[i][j]`` is the distance
+            from row *i* to row *j*.
+        """
         return [
             [
                 geometry_distance(origin=row[self.geometry_column], destination=other[self.geometry_column], method=distance_method)
@@ -159,12 +212,23 @@ class GeoPromptFrame:
         ]
 
     def geometry_types(self) -> list[str]:
+        """Return the geometry type string for each row (e.g. ``"Point"``, ``"Polygon"``)."""
         return [geometry_type(row[self.geometry_column]) for row in self._rows]
 
     def geometry_lengths(self) -> list[float]:
+        """Return the geometry length for each row.
+
+        For Points, length is 0.  For LineStrings, total arc length.
+        For Polygons, perimeter length.
+        """
         return [geometry_length(row[self.geometry_column]) for row in self._rows]
 
     def geometry_areas(self) -> list[float]:
+        """Return the geometry area for each row.
+
+        For Points and LineStrings, area is 0.  For Polygons, the
+        absolute planar area in coordinate-unit\u00b2.
+        """
         return [geometry_area(row[self.geometry_column]) for row in self._rows]
 
     def nearest_neighbors(
@@ -173,6 +237,21 @@ class GeoPromptFrame:
         k: int = 1,
         distance_method: str = "euclidean",
     ) -> list[Record]:
+        """Find the *k* nearest neighbors for every row within the same frame.
+
+        Returns a flat list of records describing each (origin, neighbor) pair.
+        For a frame with N rows and ``k=1`` the output has N records.
+
+        Args:
+            id_column: Column used as the feature identifier in result records.
+            k: Number of nearest neighbors to find per origin (must be ≥ 1).
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            List of dicts with keys: ``origin``, ``neighbor``, ``distance``,
+            ``origin_geometry_type``, ``neighbor_geometry_type``, ``rank``,
+            ``distance_method``.
+        """
         self._require_column(id_column)
         if k <= 0:
             raise ValueError("k must be greater than zero")
@@ -236,6 +315,27 @@ class GeoPromptFrame:
         max_distance: float | None = None,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        """Join each left row to its ``k`` nearest rows in ``other``.
+
+        Each left row produces up to *k* output rows (one per nearest-right
+        match).  With ``how="left"``, left rows that have no match within
+        ``max_distance`` are kept with ``None`` values for all right columns.
+
+        Args:
+            other: The right frame to match against.
+            k: Number of nearest neighbors to return per left row.
+            how: ``"inner"`` drops unmatched left rows; ``"left"`` keeps them.
+            lsuffix: Suffix appended to colliding left column names.
+            rsuffix: Suffix appended to colliding right column names and to the
+                distance/rank columns added to the output.
+            max_distance: Optional upper bound on distance.  Left rows with no
+                right match within this distance are treated as unmatched.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            New :class:`GeoPromptFrame`.  See *output-columns.md* for the full
+            column spec.
+        """
         if k <= 0:
             raise ValueError("k must be greater than zero")
         if how not in {"inner", "left"}:
@@ -293,6 +393,23 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         origin_suffix: str = "origin",
     ) -> "GeoPromptFrame":
+        """Assign each target to its nearest origin in ``self``.
+
+        This is the reverse of :meth:`nearest_join` — ``self`` contains the
+        origins (e.g. service locations) and ``targets`` are the demand points
+        to be assigned.  Each target row appears once in the output, merged
+        with the nearest origin's columns.
+
+        Args:
+            targets: Frame of demand points to assign.
+            how: ``"inner"`` drops unassigned targets; ``"left"`` keeps them.
+            max_distance: Optional maximum assignment distance.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+            origin_suffix: Suffix appended to origin columns on name collision.
+
+        Returns:
+            New :class:`GeoPromptFrame` with one row per target.
+        """
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -317,6 +434,30 @@ class GeoPromptFrame:
         distance_method: str = "euclidean",
         assignment_suffix: str = "assigned",
     ) -> "GeoPromptFrame":
+        """Summarise how many targets are assigned to each origin.
+
+        Each target is assigned to its single nearest origin.  The output has
+        one row per origin, augmented with assignment counts, distance stats,
+        and any custom aggregations over the assigned targets.
+
+        Args:
+            targets: Frame of demand points to assign.
+            origin_id_column: ID column in ``self`` (origins).
+            target_id_column: ID column in ``targets``.
+            aggregations: Optional dict mapping target column names to an
+                aggregation operation (``"sum"``, ``"mean"``, ``"min"``,
+                ``"max"``, ``"first"``, ``"count"``).  Each produces a column
+                named ``{col}_{op}_{assignment_suffix}``.
+            how: ``"left"`` keeps origins with zero assignments;
+                ``"inner"`` drops them.
+            max_distance: Optional maximum assignment distance.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+            assignment_suffix: Suffix for all added summary columns.
+
+        Returns:
+            New :class:`GeoPromptFrame` with one row per origin.  See
+            *output-columns.md* for the full column spec.
+        """
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if max_distance is not None and max_distance < 0:
@@ -378,6 +519,21 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        """Return all rows within ``max_distance`` of an anchor, sorted by distance.
+
+        Args:
+            anchor: An ID string looked up in ``id_column``, a geometry dict,
+                or a raw ``(x, y)`` coordinate tuple.
+            max_distance: Radius threshold (inclusive).  Must be ≥ 0.
+            id_column: Column used to look up string anchors.
+            include_anchor: If the anchor is specified by ID, include its own
+                row in the results.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            New :class:`GeoPromptFrame` with a ``distance`` column appended,
+            sorted closest-first.
+        """
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -409,6 +565,18 @@ class GeoPromptFrame:
         include_anchor: bool = False,
         distance_method: str = "euclidean",
     ) -> list[bool]:
+        """Return a boolean mask indicating which rows are within ``max_distance`` of the anchor.
+
+        Args:
+            anchor: An ID string, geometry dict, or ``(x, y)`` coordinate.
+            max_distance: Distance threshold (inclusive).  Must be ≥ 0.
+            id_column: Column used to look up string anchors.
+            include_anchor: Whether to mark the anchor row itself as ``True``.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            List of bools aligned with the frame rows.
+        """
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
 
@@ -432,6 +600,25 @@ class GeoPromptFrame:
         rsuffix: str = "right",
         distance_method: str = "euclidean",
     ) -> "GeoPromptFrame":
+        """Join each left row to every right row within ``max_distance``.
+
+        Unlike :meth:`nearest_join`, this can produce multiple output rows per
+        left row — one for each right row within range.  Results are
+        distance-sorted within each left group.
+
+        Args:
+            other: Right frame.
+            max_distance: Distance threshold (inclusive).  Must be ≥ 0.
+            how: ``"inner"`` drops left rows with no matches;
+                ``"left"`` keeps them with ``None`` right values.
+            lsuffix: Suffix for colliding left columns.
+            rsuffix: Suffix for colliding right columns and for the added
+                ``distance_{rsuffix}`` column.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            New :class:`GeoPromptFrame`.
+        """
         if max_distance < 0:
             raise ValueError("max_distance must be zero or greater")
         if how not in {"inner", "left"}:
@@ -480,6 +667,19 @@ class GeoPromptFrame:
         return GeoPromptFrame._from_internal_rows(joined_rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
     def buffer(self, distance: float, resolution: int = 16) -> "GeoPromptFrame":
+        """Return a new frame with each geometry replaced by its buffer polygon.
+
+        Requires Shapely (``pip install -e .[overlay]``).
+
+        Args:
+            distance: Buffer radius in coordinate units.  Must be ≥ 0.
+            resolution: Number of segments used to approximate each quarter
+                circle (higher = smoother buffer polygon, default 16).
+
+        Returns:
+            New :class:`GeoPromptFrame` where each row's geometry is the
+            expanded buffer shape.
+        """
         buffered_groups = buffer_geometries(
             [row[self.geometry_column] for row in self._rows],
             distance=distance,
@@ -502,6 +702,24 @@ class GeoPromptFrame:
         rsuffix: str = "right",
         resolution: int = 16,
     ) -> "GeoPromptFrame":
+        """Join by expanding each left geometry to a buffer and intersecting with ``other``.
+
+        Useful for proximity queries on polygon or line geometries where
+        centroid-based distance does not capture the true footprint.
+        Requires Shapely (``pip install -e .[overlay]``).
+
+        Args:
+            other: Right frame.
+            distance: Buffer radius.  Must be ≥ 0.
+            how: ``"inner"`` or ``"left"``.
+            lsuffix: Suffix for colliding left columns and for the added
+                ``buffer_geometry_{lsuffix}`` / ``buffer_distance_{lsuffix}`` columns.
+            rsuffix: Suffix for colliding right column names.
+            resolution: Buffer polygon resolution (default 16).
+
+        Returns:
+            New :class:`GeoPromptFrame`.
+        """
         if distance < 0:
             raise ValueError("distance must be zero or greater")
         if how not in {"inner", "left"}:
@@ -559,12 +777,30 @@ class GeoPromptFrame:
         aggregations: dict[str, AggregationName] | None = None,
         rsuffix: str = "covered",
     ) -> "GeoPromptFrame":
+        """Count targets whose geometry satisfies a predicate with each self geometry.
+
+        The output has one row per ``self`` row with a ``count_{rsuffix}``
+        column and a list of matching target IDs.
+
+        Args:
+            targets: Frame of target features to test against.
+            predicate: Spatial relationship to test — ``"intersects"``
+                (default), ``"within"``, or ``"contains"``.
+            target_id_column: ID column in ``targets``.
+            aggregations: Optional column → operation dict for numeric
+                aggregations over the matched targets.
+            rsuffix: Suffix appended to all summary columns added to the output.
+
+        Returns:
+            New :class:`GeoPromptFrame` with coverage summary columns.
+        """
         if self.crs and targets.crs and self.crs != targets.crs:
             raise ValueError("frames must share the same CRS before coverage summaries")
         if predicate not in {"intersects", "within", "contains"}:
             raise ValueError(f"unsupported spatial join predicate: {predicate}")
 
-        targets._require_column(target_id_column)
+        if targets._rows:
+            targets._require_column(target_id_column)
         target_rows = list(targets._rows)
         target_bounds = [geometry_bounds(row[targets.geometry_column]) for row in target_rows]
         predicate_bounds_filter = {
@@ -608,6 +844,21 @@ class GeoPromptFrame:
         max_y: float,
         mode: BoundsQueryMode = "intersects",
     ) -> "GeoPromptFrame":
+        """Return all rows whose geometry passes the bounding-box filter.
+
+        Args:
+            min_x: Left edge of the query box.
+            min_y: Bottom edge of the query box.
+            max_x: Right edge of the query box.
+            max_y: Top edge of the query box.
+            mode: ``"intersects"`` (default) — geometry bounding box overlaps
+                the query box; ``"within"`` — geometry bounding box fits
+                entirely inside; ``"centroid"`` — geometry centroid falls
+                inside the query box.
+
+        Returns:
+            Filtered :class:`GeoPromptFrame` preserving all columns.
+        """
         if min_x > max_x or min_y > max_y:
             raise ValueError("query bounds must be ordered from minimum to maximum")
 
@@ -630,11 +881,34 @@ class GeoPromptFrame:
         return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
 
     def set_crs(self, crs: str, allow_override: bool = False) -> "GeoPromptFrame":
+        """Attach a CRS label to the frame without transforming coordinates.
+
+        Args:
+            crs: CRS string to attach (e.g. ``"EPSG:4326"``).
+            allow_override: If ``True``, replace an existing CRS.  If
+                ``False`` (default), raises ``ValueError`` if CRS is already
+                set to a different value.
+
+        Returns:
+            New :class:`GeoPromptFrame` with the CRS set.
+        """
         if self.crs is not None and self.crs != crs and not allow_override:
             raise ValueError("frame already has a CRS; pass allow_override=True to replace it")
         return GeoPromptFrame(rows=self.to_records(), geometry_column=self.geometry_column, crs=crs)
 
     def to_crs(self, target_crs: str) -> "GeoPromptFrame":
+        """Reproject all geometries to a different CRS.
+
+        Requires PyProj (``pip install -e .[projection]``).
+        The frame must already have a CRS set via :meth:`set_crs`.
+
+        Args:
+            target_crs: Destination CRS string (e.g. ``"EPSG:3857"``).
+
+        Returns:
+            New :class:`GeoPromptFrame` with reprojected coordinates and
+            ``crs=target_crs``.
+        """
         if self.crs is None:
             raise ValueError("frame CRS is not set; call set_crs before reprojecting")
         if self.crs == target_crs:
@@ -664,6 +938,24 @@ class GeoPromptFrame:
         lsuffix: str = "left",
         rsuffix: str = "right",
     ) -> "GeoPromptFrame":
+        """Join rows by a spatial predicate test on their geometries.
+
+        Produces one output row per (left, right) pair whose geometries satisfy
+        the predicate.  Uses bounding-box pre-filtering for efficiency.
+
+        Args:
+            other: Right frame.
+            predicate: ``"intersects"`` (default), ``"within"``, or
+                ``"contains"``.
+            how: ``"inner"`` drops left rows with no match;
+                ``"left"`` keeps them with ``None`` right values.
+            lsuffix: Suffix for colliding left column names.
+            rsuffix: Suffix for colliding right column names and for the added
+                ``{geometry}_{rsuffix}`` and ``join_predicate_{rsuffix}`` columns.
+
+        Returns:
+            New :class:`GeoPromptFrame`.
+        """
         if how not in {"inner", "left"}:
             raise ValueError("how must be 'inner' or 'left'")
         if self.crs and other.crs and self.crs != other.crs:
@@ -721,6 +1013,17 @@ class GeoPromptFrame:
         return GeoPromptFrame(rows=joined_rows, geometry_column=self.geometry_column, crs=self.crs or other.crs)
 
     def clip(self, mask: "GeoPromptFrame") -> "GeoPromptFrame":
+        """Clip all geometries in ``self`` to the union of ``mask`` geometries.
+
+        Requires Shapely (``pip install -e .[overlay]``).
+
+        Args:
+            mask: Frame whose geometries form the clip boundary.
+
+        Returns:
+            New :class:`GeoPromptFrame` with geometries trimmed to the mask.
+            Rows whose geometry has no overlap with the mask are omitted.
+        """
         if self.crs and mask.crs and self.crs != mask.crs:
             raise ValueError("frames must share the same CRS before clip operations")
 
@@ -743,6 +1046,21 @@ class GeoPromptFrame:
         lsuffix: str = "left",
         rsuffix: str = "right",
     ) -> "GeoPromptFrame":
+        """Compute geometric intersections of all crossing left/right geometry pairs.
+
+        The left geometry column in the output is replaced by the intersection
+        geometry.  Produces one row per intersecting (left, right) pair.
+        Requires Shapely (``pip install -e .[overlay]``).
+
+        Args:
+            other: Right frame.
+            lsuffix: Suffix for colliding left column names.
+            rsuffix: Suffix for colliding right column names and for the added
+                ``{geometry}_{rsuffix}`` column.
+
+        Returns:
+            New :class:`GeoPromptFrame` with intersection geometries.
+        """
         if self.crs and other.crs and self.crs != other.crs:
             raise ValueError("frames must share the same CRS before overlay operations")
 
@@ -770,6 +1088,21 @@ class GeoPromptFrame:
         by: str,
         aggregations: dict[str, AggregationName] | None = None,
     ) -> "GeoPromptFrame":
+        """Group rows by a column and merge their geometries (union).
+
+        Non-geometry columns without an aggregation rule are kept by taking the
+        first value in the group.  Requires Shapely for polygon/line merging
+        (``pip install -e .[overlay]``).
+
+        Args:
+            by: Column name to group by.
+            aggregations: Optional dict mapping column names to aggregation
+                operations (``"sum"``, ``"mean"``, ``"min"``, ``"max"``,
+                ``"first"``, ``"count"``).
+
+        Returns:
+            New :class:`GeoPromptFrame` with one row per unique ``by`` value.
+        """
         self._require_column(by)
         grouped_rows: dict[Any, list[Record]] = {}
         for row in self._rows:
@@ -809,6 +1142,16 @@ class GeoPromptFrame:
         return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
 
     def with_column(self, name: str, values: Sequence[Any]) -> "GeoPromptFrame":
+        """Return a new frame with ``name`` added (or replaced) from ``values``.
+
+        Args:
+            name: Column name to add or overwrite.
+            values: Sequence of values, one per row.  Must have the same
+                length as the frame.
+
+        Returns:
+            New :class:`GeoPromptFrame` with the column added.
+        """
         if len(values) != len(self._rows):
             raise ValueError("column length must match the frame length")
         rows = self.to_records()
@@ -817,6 +1160,22 @@ class GeoPromptFrame:
         return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
 
     def assign(self, **columns: Any) -> "GeoPromptFrame":
+        """Return a new frame with one or more columns added or replaced.
+
+        Each keyword argument is a new column.  The value can be:
+
+        * A scalar — broadcast to every row.
+        * A sequence of length ``len(self)`` — one value per row.
+        * A callable ``(frame) -> value_or_sequence`` — evaluated against
+          the *current* frame state (columns are applied sequentially, so
+          later columns can reference earlier ones).
+
+        Args:
+            **columns: Column names mapped to scalars, sequences, or callables.
+
+        Returns:
+            New :class:`GeoPromptFrame`.
+        """
         frame = self
         for name, value in columns.items():
             if callable(value):
@@ -844,6 +1203,22 @@ class GeoPromptFrame:
         include_self: bool = False,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        """Compute cumulative influence pressure on each row from all neighbors.
+
+        Applies the :func:`~geoprompt.equations.prompt_influence` decay formula
+        for every (row, neighbor) pair and sums the result.  Good for mapping
+        congestion or density gradients.
+
+        Args:
+            weight_column: Column containing numeric weights (e.g. demand).
+            scale: Distance decay scale parameter.
+            power: Distance decay exponent.
+            include_self: Whether a row contributes to its own pressure score.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            List of floats aligned with the frame rows.
+        """
         self._require_column(weight_column)
         pressures: list[float] = []
         for row in self._rows:
@@ -870,6 +1245,23 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        """Compute how strongly each row influences (or is influenced by) a single anchor.
+
+        Uses the :func:`~geoprompt.equations.prompt_influence` formula with
+        each row's weight and its distance to the anchor row.  Useful for
+        ranked site scoring relative to a hub.
+
+        Args:
+            weight_column: Column containing numeric weights.
+            anchor: ID of the anchor row in ``id_column``.
+            id_column: Column used to locate the anchor.
+            scale: Distance decay scale parameter.
+            power: Distance decay exponent.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            List of floats aligned with the frame rows.
+        """
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -895,6 +1287,24 @@ class GeoPromptFrame:
         power: float = 2.0,
         distance_method: str = "euclidean",
     ) -> list[float]:
+        """Compute accessibility scores weighted by corridor length and decay from an anchor.
+
+        Uses :func:`~geoprompt.equations.corridor_strength`, which extends
+        :func:`~geoprompt.equations.prompt_influence` by incorporating the
+        physical length of each geometry (a LineString corridor).  Suitable for
+        scoring road or utility corridor access from a hub.
+
+        Args:
+            weight_column: Column containing numeric weights (e.g. capacity).
+            anchor: ID of the anchor row in ``id_column``.
+            id_column: Column used to locate the anchor.
+            scale: Distance decay scale parameter.
+            power: Distance decay exponent.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            List of floats aligned with the frame rows.
+        """
         self._require_column(weight_column)
         self._require_column(id_column)
         anchor_row = next((row for row in self._rows if row[id_column] == anchor), None)
@@ -919,6 +1329,21 @@ class GeoPromptFrame:
         power: float = 1.0,
         distance_method: str = "euclidean",
     ) -> list[Record]:
+        """Return a pairwise table of area-weighted similarity scores.
+
+        Uses :func:`~geoprompt.equations.area_similarity`.  Useful for
+        comparing polygon features by both size and proximity.
+
+        Args:
+            id_column: Column used as the identifier in result records.
+            scale: Distance decay scale parameter.
+            power: Distance decay exponent.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            List of dicts with keys: ``origin``, ``destination``,
+            ``area_similarity``, ``distance_method``.
+        """
         self._require_column(id_column)
         interactions: list[Record] = []
         for origin in self._rows:
@@ -951,6 +1376,28 @@ class GeoPromptFrame:
         preferred_bearing: float | None = None,
         distance_method: str = "euclidean",
     ) -> list[Record]:
+        """Return a pairwise gravity-model interaction table.
+
+        Applies :func:`~geoprompt.equations.prompt_interaction` to every
+        (origin, destination) pair.  When ``preferred_bearing`` is set, a
+        ``directional_alignment`` score is also included using
+        :func:`~geoprompt.equations.directional_alignment`.
+
+        Args:
+            origin_weight: Column holding the origin mass/weight.
+            destination_weight: Column holding the destination mass/weight.
+            id_column: Column used as the identifier in result records.
+            scale: Distance decay scale parameter.
+            power: Distance decay exponent.
+            preferred_bearing: Optional compass bearing (degrees from north,
+                clockwise) used to score directional alignment.
+            distance_method: ``"euclidean"`` or ``"haversine"``.
+
+        Returns:
+            List of dicts with keys: ``origin``, ``destination``, ``distance``,
+            ``interaction``, ``distance_method``, and optionally
+            ``directional_alignment``.
+        """
         self._require_column(origin_weight)
         self._require_column(destination_weight)
         self._require_column(id_column)

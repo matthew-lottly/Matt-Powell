@@ -32,8 +32,8 @@
 1. Run `pytest`.
 2. Run `geoprompt-demo`.
 3. Run `geoprompt-compare`.
-4. Confirm the tool count in `README.md` matches `docs/tool-inventory.json`.
-5. Confirm the test count in `README.md`, `docs/tool-methodology.md`, and `docs/tool-inventory.json` matches the current suite result.
+4. Confirm the module and function list in `README.md` still accurately reflects `src/geoprompt/` (check that new public APIs are mentioned).
+5. Confirm the test count quoted in `README.md` matches the current `pytest` suite result.
 6. Review `CHANGELOG.md` and verify the release section covers all new tools and behavior changes.
 7. Run optional integration and performance gates locally before release:
 	- `GEOPROMPT_RUN_GEO_IO=1 python -m pytest tests/test_geoprompt.py::test_geospatial_integration_parquet_round_trip`
