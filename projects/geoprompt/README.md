@@ -4,6 +4,10 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 ![Generated neighborhood pressure plot from the GeoPrompt demo](assets/neighborhood-pressure-review-live.png)
 
+![CI](https://github.com/matthew-lottly/geoprompt/actions/workflows/geoprompt-ci.yml/badge.svg)
+![PyPI](https://img.shields.io/pypi/v/geoprompt)
+![Python Versions](https://img.shields.io/pypi/pyversions/geoprompt)
+
 - Quickstart: [docs/quickstart-cookbook.md](docs/quickstart-cookbook.md)
 - API guidance: [docs/api-stability.md](docs/api-stability.md)
 
