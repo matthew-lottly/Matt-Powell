@@ -5,7 +5,7 @@ from geoprompt.compare import _stress_feature_records, _stress_region_records
 from geoprompt import GeoPromptFrame, geometry_centroid
 from geoprompt.demo import build_demo_report
 from geoprompt.equations import area_similarity, corridor_strength, directional_alignment, euclidean_distance, haversine_distance, prompt_decay, prompt_interaction
-from geoprompt.io import frame_to_geojson, read_data, read_features, read_geojson, read_points, read_table, write_data, write_geojson
+from geoprompt.io import frame_to_geojson, iter_data, read_data, read_features, read_geojson, read_points, read_table, write_data, write_geojson
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -130,6 +130,42 @@ def test_read_data_csv_requires_geometry_hints(tmp_path: Path) -> None:
         assert "x_column/y_column or geometry_column" in str(exc)
     else:
         raise AssertionError("read_data should require geometry hints for CSV")
+
+
+def test_iter_data_csv_chunks(tmp_path: Path) -> None:
+    csv_path = tmp_path / "points_big.csv"
+    csv_path.write_text(
+        "site_id,x,y\n"
+        "a,-111.95,40.70\n"
+        "b,-111.96,40.71\n"
+        "c,-111.97,40.72\n"
+        "d,-111.98,40.73\n"
+        "e,-111.99,40.74\n",
+        encoding="utf-8",
+    )
+
+    chunks = list(
+        iter_data(
+            csv_path,
+            x_column="x",
+            y_column="y",
+            chunk_size=2,
+        )
+    )
+
+    assert [len(chunk) for chunk in chunks] == [2, 2, 1]
+    assert chunks[0].geometry_types() == ["Point", "Point"]
+
+
+def test_iter_data_json_chunks() -> None:
+    chunks = list(
+        iter_data(
+            PROJECT_ROOT / "data" / "sample_points.json",
+            chunk_size=2,
+            limit_rows=5,
+        )
+    )
+    assert [len(chunk) for chunk in chunks] == [2, 2, 1]
 
 
 def test_query_bounds_modes() -> None:

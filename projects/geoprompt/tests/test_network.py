@@ -32,6 +32,7 @@ from geoprompt.network import (
     inflow_infiltration_scan,
     infrastructure_age_risk_weighted_routing,
     interdependency_cascade_simulation,
+    iter_od_cost_matrix_batches,
     landmark_lower_bound,
     load_transfer_feasibility,
     multi_criteria_shortest_path,
@@ -52,6 +53,7 @@ from geoprompt.network import (
     trace_electric_feeder,
     trace_water_pressure_zones,
     utility_bottlenecks,
+    utility_bottlenecks_stream,
     utility_outage_isolation,
 )
 
@@ -190,6 +192,21 @@ class TestODCostMatrix:
         dest_b = [r for r in rows if r["destination"] == "B"][0]
         assert dest_b["reachable"] is True
 
+    def test_iter_batches_matches_full_matrix(self):
+        g = _linear_graph()
+        full_rows = od_cost_matrix(g, origins=["A", "B", "C"], destinations=["D", "E"])
+        streamed_rows = [
+            row
+            for batch in iter_od_cost_matrix_batches(
+                g,
+                origins=["A", "B", "C"],
+                destinations=["D", "E"],
+                origin_batch_size=2,
+            )
+            for row in batch
+        ]
+        assert sorted(streamed_rows, key=lambda r: (r["origin"], r["destination"])) == full_rows
+
 
 # ─── Network Topology ───────────────────────────────────────────────────────
 
@@ -263,6 +280,15 @@ class TestUtilityBottlenecks:
         g = _linear_graph()
         rows = utility_bottlenecks(g, [("A", "E", 0.0)])
         assert all(r["flow_load"] == 0.0 for r in rows)
+
+    def test_stream_matches_non_stream(self):
+        g = _linear_graph()
+        od = [("A", "E", 10.0), ("A", "D", 5.0), ("B", "E", 3.0)]
+        base = utility_bottlenecks(g, od)
+        streamed = utility_bottlenecks_stream(g, iter(od), demand_batch_size=2)
+        base_map = {r["edge_id"]: r["flow_load"] for r in base}
+        streamed_map = {r["edge_id"]: r["flow_load"] for r in streamed}
+        assert streamed_map == base_map
 
 
 # ─── Electric Domain ────────────────────────────────────────────────────────

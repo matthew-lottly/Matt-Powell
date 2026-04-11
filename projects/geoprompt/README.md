@@ -67,6 +67,11 @@ points = gp.read_data(
 
 gp.write_data("outputs/points_out.csv", points)
 gp.write_data("outputs/features_out.geojson", features)
+
+# Chunked iteration for very large datasets
+for chunk in gp.iter_data("assets.csv", x_column="longitude", y_column="latitude", chunk_size=50000):
+    # run analysis per chunk
+    _ = chunk.head(1)
 ```
 
 ```python

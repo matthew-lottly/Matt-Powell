@@ -166,6 +166,75 @@ def _records_from_csv(
     return records
 
 
+def _iter_csv_records(
+    path: str | Path,
+    *,
+    geometry: str,
+    x_column: str | None,
+    y_column: str | None,
+    geometry_column: str | None,
+    use_columns: Sequence[str] | None,
+    sample_step: int,
+    delimiter: str,
+    encoding: str,
+) -> Iterable[dict[str, Any]]:
+    selected_columns = set(use_columns or [])
+    with Path(path).open("r", encoding=encoding, newline="") as handle:
+        reader = csv.DictReader(handle, delimiter=delimiter)
+        for raw_index, raw_row in enumerate(reader):
+            if sample_step > 1 and raw_index % sample_step != 0:
+                continue
+
+            row = dict(raw_row)
+            if selected_columns:
+                row = {key: row[key] for key in row.keys() if key in selected_columns}
+
+            resolved_geometry: dict[str, Any] | None = None
+            if x_column is not None and y_column is not None:
+                if x_column not in raw_row or y_column not in raw_row:
+                    raise KeyError(f"CSV is missing required columns '{x_column}' and '{y_column}'")
+                x_value = float(raw_row[x_column])
+                y_value = float(raw_row[y_column])
+                resolved_geometry = {"type": "Point", "coordinates": [x_value, y_value]}
+            elif geometry_column is not None:
+                resolved_geometry = _coerce_geometry_value(raw_row.get(geometry_column))
+            elif geometry in row:
+                resolved_geometry = _coerce_geometry_value(row.get(geometry))
+
+            if resolved_geometry is None:
+                raise ValueError(
+                    "tabular spatial reads require x_column/y_column or geometry_column"
+                )
+
+            row[geometry] = resolved_geometry
+            yield row
+
+
+def _iter_frame_chunks(
+    rows: Iterable[dict[str, Any]],
+    *,
+    geometry: str,
+    crs: str | None,
+    chunk_size: int,
+    limit_rows: int | None,
+) -> Iterable[GeoPromptFrame]:
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be >= 1")
+
+    emitted = 0
+    bucket: list[dict[str, Any]] = []
+    for row in rows:
+        if limit_rows is not None and emitted >= limit_rows:
+            break
+        bucket.append(dict(row))
+        emitted += 1
+        if len(bucket) >= chunk_size:
+            yield GeoPromptFrame.from_records(bucket, geometry=geometry, crs=crs)
+            bucket = []
+    if bucket:
+        yield GeoPromptFrame.from_records(bucket, geometry=geometry, crs=crs)
+
+
 def _read_with_geopandas(
     path: str | Path,
     *,
@@ -287,6 +356,90 @@ def read_data(
             limit_rows=limit_rows,
             sample_step=sample_step,
         )
+
+    raise ValueError(f"unsupported input format for path: {data_path}")
+
+
+def iter_data(
+    path: str | Path,
+    *,
+    geometry: str = "geometry",
+    crs: str | None = None,
+    x_column: str | None = None,
+    y_column: str | None = None,
+    geometry_column: str | None = None,
+    use_columns: Sequence[str] | None = None,
+    limit_rows: int | None = None,
+    sample_step: int = 1,
+    layer: str | None = None,
+    bbox: tuple[float, float, float, float] | None = None,
+    chunk_size: int = 50000,
+    delimiter: str = ",",
+    encoding: str = "utf-8",
+) -> Iterable[GeoPromptFrame]:
+    """Yield data as chunked ``GeoPromptFrame`` batches for large datasets."""
+    data_path = Path(path)
+    suffix = data_path.suffix.lower()
+
+    if suffix in {".json", ".geojson"}:
+        payload = _read_json(data_path)
+        rows = _records_from_payload(payload, geometry=geometry)
+        if use_columns:
+            keep = set(use_columns)
+            rows = [
+                {**{k: v for k, v in row.items() if k in keep}, geometry: row[geometry]}
+                for row in rows
+            ]
+        yield from _iter_frame_chunks(
+            rows,
+            geometry=geometry,
+            crs=crs or _extract_crs(payload),
+            chunk_size=chunk_size,
+            limit_rows=limit_rows,
+        )
+        return
+
+    if suffix in {".csv", ".tsv", ".txt"}:
+        delim = "\t" if suffix == ".tsv" else delimiter
+        rows_iter = _iter_csv_records(
+            data_path,
+            geometry=geometry,
+            x_column=x_column,
+            y_column=y_column,
+            geometry_column=geometry_column,
+            use_columns=use_columns,
+            sample_step=sample_step,
+            delimiter=delim,
+            encoding=encoding,
+        )
+        yield from _iter_frame_chunks(
+            rows_iter,
+            geometry=geometry,
+            crs=crs,
+            chunk_size=chunk_size,
+            limit_rows=limit_rows,
+        )
+        return
+
+    if suffix in {".shp", ".gpkg", ".fgb", ".gdb", ".parquet"}:
+        frame = _read_with_geopandas(
+            data_path,
+            geometry=geometry,
+            crs=crs,
+            layer=layer,
+            bbox=bbox,
+            use_columns=use_columns,
+            limit_rows=limit_rows,
+            sample_step=sample_step,
+        )
+        yield from _iter_frame_chunks(
+            frame.to_records(),
+            geometry=geometry,
+            crs=frame.crs,
+            chunk_size=chunk_size,
+            limit_rows=limit_rows,
+        )
+        return
 
     raise ValueError(f"unsupported input format for path: {data_path}")
 
@@ -435,6 +588,7 @@ def write_data(
 
 __all__ = [
     "frame_to_geojson",
+    "iter_data",
     "read_data",
     "read_features",
     "read_geojson",

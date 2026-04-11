@@ -52,6 +52,37 @@ Origin-destination cost matrix for multiple pairs.
 rows = od_cost_matrix(graph, origins=["A", "B"], destinations=["C"])
 ```
 
+### `iter_od_cost_matrix_batches`
+
+Stream OD matrix outputs in batches for very large origin sets.
+
+```python
+from geoprompt.network import iter_od_cost_matrix_batches
+
+for batch in iter_od_cost_matrix_batches(
+    graph,
+    origins=origin_nodes,
+    destinations=destination_nodes,
+    origin_batch_size=500,
+):
+    # persist or aggregate batch rows
+    pass
+```
+
+### `utility_bottlenecks_stream`
+
+Stream very large OD demand iterables in batches while accumulating edge stress.
+
+```python
+from geoprompt.network import utility_bottlenecks_stream
+
+rows = utility_bottlenecks_stream(
+    graph,
+    od_demands=((o, d, q) for o, d, q in huge_od_iterable),
+    demand_batch_size=100000,
+)
+```
+
 ### `NetworkRouter`
 
 Cached routing helper — avoids recomputing Dijkstra trees from the same origin.
@@ -62,6 +93,23 @@ from geoprompt.network import NetworkRouter
 router = NetworkRouter(graph)
 path = router.shortest_path("A", "C")
 matrix = router.od_cost_matrix(["A"], ["C"])
+```
+
+### Chunked Ingestion (`iter_data`)
+
+Use chunked reads for large tabular/geo files.
+
+```python
+from geoprompt import iter_data
+
+for chunk in iter_data(
+    "assets.csv",
+    x_column="lon",
+    y_column="lat",
+    chunk_size=50000,
+):
+    # analyze chunk with frame APIs
+    _ = chunk.geometry_types()
 ```
 
 ---

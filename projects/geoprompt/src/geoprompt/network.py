@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from .equations import utility_capacity_stress_index, utility_headloss_hazen_williams, utility_service_deficit
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
 
 class NetworkEdge(TypedDict, total=False):
@@ -76,6 +76,18 @@ def _as_non_negative(value: Any, field: str) -> float:
     if resolved < 0:
         raise ValueError(f"{field} must be zero or greater")
     return resolved
+
+def _iter_chunks(items: Iterable[Any], chunk_size: int) -> Iterable[list[Any]]:
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be >= 1")
+    bucket: list[Any] = []
+    for item in items:
+        bucket.append(item)
+        if len(bucket) >= chunk_size:
+            yield bucket
+            bucket = []
+    if bucket:
+        yield bucket
 
 
 def build_network_graph(
@@ -273,28 +285,58 @@ def od_cost_matrix(
     """Compute an origin-destination least-cost matrix."""
     rows: list[dict[str, Any]] = []
     blocked = set(blocked_edges or [])
-    for origin in origins:
-        if origin not in graph.adjacency:
-            continue
-        distances, _, _, _ = _dijkstra(
-            graph,
-            origins=[origin],
-            max_cost=max_cost,
-            blocked_edges=blocked,
-            edge_cost_overrides=edge_cost_overrides,
-        )
-        for destination in destinations:
-            total_cost = distances.get(destination, math.inf)
-            rows.append(
-                {
-                    "origin": origin,
-                    "destination": destination,
-                    "reachable": math.isfinite(total_cost),
-                    "least_cost": total_cost,
-                }
-            )
+    for batch in iter_od_cost_matrix_batches(
+        graph,
+        origins=origins,
+        destinations=destinations,
+        origin_batch_size=max(1, len(origins) if origins else 1),
+        max_cost=max_cost,
+        blocked_edges=blocked_edges,
+        edge_cost_overrides=edge_cost_overrides,
+    ):
+        rows.extend(batch)
     rows.sort(key=lambda item: (str(item["origin"]), str(item["destination"])))
     return rows
+
+
+def iter_od_cost_matrix_batches(
+    graph: NetworkGraph,
+    origins: Sequence[str],
+    destinations: Sequence[str],
+    origin_batch_size: int = 100,
+    max_cost: float | None = None,
+    blocked_edges: Sequence[str] | None = None,
+    edge_cost_overrides: dict[str, float] | None = None,
+) -> Iterable[list[dict[str, Any]]]:
+    """Yield OD least-cost rows in origin-sized batches.
+
+    This is intended for large workloads where materializing the full
+    |origins| x |destinations| matrix at once is expensive.
+    """
+    blocked = set(blocked_edges or [])
+    for origin_batch in _iter_chunks(origins, origin_batch_size):
+        batch_rows: list[dict[str, Any]] = []
+        for origin in origin_batch:
+            if origin not in graph.adjacency:
+                continue
+            distances, _, _, _ = _dijkstra(
+                graph,
+                origins=[origin],
+                max_cost=max_cost,
+                blocked_edges=blocked,
+                edge_cost_overrides=edge_cost_overrides,
+            )
+            for destination in destinations:
+                total_cost = distances.get(destination, math.inf)
+                batch_rows.append(
+                    {
+                        "origin": origin,
+                        "destination": destination,
+                        "reachable": math.isfinite(total_cost),
+                        "least_cost": total_cost,
+                    }
+                )
+        yield batch_rows
 
 
 def allocate_demand_to_supply(
@@ -1129,6 +1171,67 @@ def run_utility_scenarios(
         "critical_edge_rankings": edge_rankings,
         "critical_node_rankings": node_rankings,
     }
+
+
+def utility_bottlenecks_stream(
+    graph: NetworkGraph,
+    od_demands: Iterable[tuple[str, str, float]],
+    capacity_field: str = "capacity",
+    blocked_edges: Sequence[str] | None = None,
+    edge_cost_overrides: dict[str, float] | None = None,
+    demand_batch_size: int = 50000,
+) -> list[dict[str, Any]]:
+    """Streaming version of ``utility_bottlenecks`` for large OD demand sets."""
+    edge_loads: dict[str, float] = {edge_id: 0.0 for edge_id in graph.edge_attributes}
+    blocked = set(blocked_edges or [])
+
+    for demand_batch in _iter_chunks(od_demands, demand_batch_size):
+        origin_groups: dict[str, list[tuple[str, float]]] = {}
+        for origin, destination, demand in demand_batch:
+            demand_value = max(0.0, float(demand))
+            if demand_value == 0:
+                continue
+            origin_groups.setdefault(origin, []).append((destination, demand_value))
+
+        for origin, dest_demands in origin_groups.items():
+            if origin not in graph.adjacency:
+                continue
+            distances, prev_node, prev_edge, _ = _dijkstra(
+                graph,
+                origins=[origin],
+                max_cost=None,
+                blocked_edges=blocked,
+                edge_cost_overrides=edge_cost_overrides,
+            )
+            for destination, demand_value in dest_demands:
+                if destination not in distances:
+                    continue
+                current = destination
+                while current != origin:
+                    edge_id = prev_edge.get(current)
+                    if edge_id is None:
+                        break
+                    edge_loads[edge_id] += demand_value
+                    current = prev_node[current]
+
+    rows: list[dict[str, Any]] = []
+    for edge_id, edge in graph.edge_attributes.items():
+        capacity = _as_non_negative(edge.get(capacity_field, math.inf), capacity_field)
+        load = edge_loads[edge_id]
+        stress = 0.0 if not math.isfinite(capacity) else utility_capacity_stress_index(load, capacity)
+        rows.append(
+            {
+                "edge_id": edge_id,
+                "from_node": edge["from_node"],
+                "to_node": edge["to_node"],
+                "flow_load": load,
+                "capacity": capacity,
+                "capacity_stress": stress,
+            }
+        )
+
+    rows.sort(key=lambda item: (-float(item["capacity_stress"]), str(item["edge_id"])))
+    return rows
 
 
 class NetworkRouter:
@@ -3118,6 +3221,7 @@ __all__ = [
     "gas_shutdown_impact",
     "inflow_infiltration_scan",
     "infrastructure_age_risk_weighted_routing",
+    "iter_od_cost_matrix_batches",
     "interdependency_cascade_simulation",
     "landmark_lower_bound",
     "load_transfer_feasibility",
@@ -3141,5 +3245,6 @@ __all__ = [
     "trace_electric_feeder",
     "trace_water_pressure_zones",
     "utility_bottlenecks",
+    "utility_bottlenecks_stream",
     "utility_outage_isolation",
 ]
