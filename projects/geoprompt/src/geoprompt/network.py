@@ -90,6 +90,23 @@ def _iter_chunks(items: Iterable[Any], chunk_size: int) -> Iterable[list[Any]]:
         yield bucket
 
 
+NETWORK_WORKLOAD_PRESETS: dict[str, dict[str, int]] = {
+    "small": {"origin_batch_size": 100, "demand_batch_size": 10000},
+    "medium": {"origin_batch_size": 500, "demand_batch_size": 50000},
+    "large": {"origin_batch_size": 1000, "demand_batch_size": 100000},
+    "huge": {"origin_batch_size": 2500, "demand_batch_size": 250000},
+}
+
+
+def get_network_workload_preset(name: str) -> dict[str, int]:
+    """Return default batch sizes for a named network workload preset."""
+    preset = NETWORK_WORKLOAD_PRESETS.get(name.lower())
+    if preset is None:
+        valid = ", ".join(sorted(NETWORK_WORKLOAD_PRESETS.keys()))
+        raise ValueError(f"unknown network workload preset '{name}'. expected one of: {valid}")
+    return dict(preset)
+
+
 def build_network_graph(
     edges: list[NetworkEdge],
     directed: bool = False,
@@ -284,7 +301,6 @@ def od_cost_matrix(
 ) -> list[dict[str, Any]]:
     """Compute an origin-destination least-cost matrix."""
     rows: list[dict[str, Any]] = []
-    blocked = set(blocked_edges or [])
     for batch in iter_od_cost_matrix_batches(
         graph,
         origins=origins,
@@ -293,6 +309,37 @@ def od_cost_matrix(
         max_cost=max_cost,
         blocked_edges=blocked_edges,
         edge_cost_overrides=edge_cost_overrides,
+    ):
+        rows.extend(batch)
+    rows.sort(key=lambda item: (str(item["origin"]), str(item["destination"])))
+    return rows
+
+
+def od_cost_matrix_with_preset(
+    graph: NetworkGraph,
+    origins: list[str],
+    destinations: list[str],
+    *,
+    preset: str = "large",
+    max_cost: float | None = None,
+    blocked_edges: Sequence[str] | None = None,
+    edge_cost_overrides: dict[str, float] | None = None,
+    origin_batch_size: int | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
+) -> list[dict[str, Any]]:
+    """Convenience OD matrix wrapper using named batch-size presets."""
+    settings = get_network_workload_preset(preset)
+    batch_size = origin_batch_size if origin_batch_size is not None else settings["origin_batch_size"]
+    rows: list[dict[str, Any]] = []
+    for batch in iter_od_cost_matrix_batches(
+        graph,
+        origins=origins,
+        destinations=destinations,
+        origin_batch_size=batch_size,
+        max_cost=max_cost,
+        blocked_edges=blocked_edges,
+        edge_cost_overrides=edge_cost_overrides,
+        progress_callback=progress_callback,
     ):
         rows.extend(batch)
     rows.sort(key=lambda item: (str(item["origin"]), str(item["destination"])))
@@ -1259,6 +1306,31 @@ def utility_bottlenecks_stream(
 
     rows.sort(key=lambda item: (-float(item["capacity_stress"]), str(item["edge_id"])))
     return rows
+
+
+def utility_bottlenecks_with_preset(
+    graph: NetworkGraph,
+    od_demands: Iterable[tuple[str, str, float]],
+    *,
+    preset: str = "large",
+    capacity_field: str = "capacity",
+    blocked_edges: Sequence[str] | None = None,
+    edge_cost_overrides: dict[str, float] | None = None,
+    demand_batch_size: int | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
+) -> list[dict[str, Any]]:
+    """Convenience bottleneck wrapper using named batch-size presets."""
+    settings = get_network_workload_preset(preset)
+    batch_size = demand_batch_size if demand_batch_size is not None else settings["demand_batch_size"]
+    return utility_bottlenecks_stream(
+        graph,
+        od_demands,
+        capacity_field=capacity_field,
+        blocked_edges=blocked_edges,
+        edge_cost_overrides=edge_cost_overrides,
+        demand_batch_size=batch_size,
+        progress_callback=progress_callback,
+    )
 
 
 class NetworkRouter:
@@ -3223,6 +3295,7 @@ def resilience_capex_prioritization(
 
 
 __all__ = [
+    "NETWORK_WORKLOAD_PRESETS",
     "NetworkEdge",
     "NetworkGraph",
     "NetworkRouter",
@@ -3242,6 +3315,7 @@ __all__ = [
     "fiber_cut_impact_matrix",
     "fiber_splice_node_trace",
     "fire_flow_demand_check",
+    "get_network_workload_preset",
     "gas_odorization_zone_trace",
     "gas_pressure_drop_trace",
     "gas_regulator_station_isolation",
@@ -3256,6 +3330,7 @@ __all__ = [
     "n_minus_k_edge_contingency_screen",
     "n_minus_one_edge_contingency_screen",
     "od_cost_matrix",
+    "od_cost_matrix_with_preset",
     "crew_dispatch_optimizer",
     "outage_restoration_tie_options",
     "pressure_zone_reconfiguration_planner",
@@ -3273,5 +3348,6 @@ __all__ = [
     "trace_water_pressure_zones",
     "utility_bottlenecks",
     "utility_bottlenecks_stream",
+    "utility_bottlenecks_with_preset",
     "utility_outage_isolation",
 ]

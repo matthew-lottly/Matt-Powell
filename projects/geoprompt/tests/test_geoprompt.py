@@ -1,11 +1,29 @@
 import json
+import os
 from pathlib import Path
+
+import pytest
 
 from geoprompt.compare import _stress_feature_records, _stress_region_records
 from geoprompt import GeoPromptFrame, geometry_centroid
 from geoprompt.demo import build_demo_report
 from geoprompt.equations import area_similarity, corridor_strength, directional_alignment, euclidean_distance, haversine_distance, prompt_decay, prompt_interaction
-from geoprompt.io import frame_to_geojson, iter_data, read_data, read_features, read_geojson, read_points, read_table, write_data, write_geojson
+from geoprompt.io import (
+    frame_to_geojson,
+    get_workload_preset,
+    iter_csv_points,
+    iter_data,
+    iter_data_with_preset,
+    read_csv_points,
+    read_data,
+    read_data_with_preset,
+    read_features,
+    read_geojson,
+    read_points,
+    read_table,
+    write_data,
+    write_geojson,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -166,6 +184,103 @@ def test_iter_data_json_chunks() -> None:
         )
     )
     assert [len(chunk) for chunk in chunks] == [2, 2, 1]
+
+
+def test_iter_data_progress_callback(tmp_path: Path) -> None:
+    csv_path = tmp_path / "points_progress.csv"
+    csv_path.write_text(
+        "site_id,x,y\n"
+        "a,-111.95,40.70\n"
+        "b,-111.96,40.71\n"
+        "c,-111.97,40.72\n",
+        encoding="utf-8",
+    )
+
+    events: list[dict[str, object]] = []
+    chunks = list(
+        iter_data(
+            csv_path,
+            x_column="x",
+            y_column="y",
+            chunk_size=2,
+            progress_callback=events.append,
+        )
+    )
+
+    assert [len(chunk) for chunk in chunks] == [2, 1]
+    assert len(events) == 2
+    assert events[0]["event"] == "chunk"
+    assert events[0]["chunk_rows"] == 2
+    assert events[1]["rows_emitted"] == 3
+
+
+def test_workload_preset_wrappers_and_validation(tmp_path: Path) -> None:
+    csv_path = tmp_path / "points_preset.csv"
+    csv_path.write_text(
+        "site_id,x,y\n"
+        "a,-111.95,40.70\n"
+        "b,-111.96,40.71\n"
+        "c,-111.97,40.72\n"
+        "d,-111.98,40.73\n",
+        encoding="utf-8",
+    )
+
+    preset = get_workload_preset("large")
+    assert preset["chunk_size"] >= 50000
+
+    frame = read_data_with_preset(
+        csv_path,
+        preset="small",
+        x_column="x",
+        y_column="y",
+        limit_rows=2,
+    )
+    assert len(frame) == 2
+
+    frame_csv = read_csv_points(csv_path, x_column="x", y_column="y", limit_rows=3)
+    assert len(frame_csv) == 3
+
+    chunks = list(
+        iter_data_with_preset(
+            csv_path,
+            preset="small",
+            x_column="x",
+            y_column="y",
+            chunk_size=2,
+        )
+    )
+    assert [len(chunk) for chunk in chunks] == [2, 2]
+
+    chunks_csv = list(iter_csv_points(csv_path, x_column="x", y_column="y", chunk_size=3))
+    assert [len(chunk) for chunk in chunks_csv] == [3, 1]
+
+    with pytest.raises(ValueError, match="unknown workload preset"):
+        get_workload_preset("not-a-real-preset")
+
+
+@pytest.mark.skipif(os.environ.get("GEOPROMPT_RUN_GEO_IO") != "1", reason="requires optional geospatial IO stack")
+def test_geospatial_integration_parquet_round_trip(tmp_path: Path) -> None:
+    gpd = pytest.importorskip("geopandas")
+
+    gdf = gpd.GeoDataFrame(
+        {
+            "site_id": ["a", "b"],
+            "demand": [10.0, 20.0],
+        },
+        geometry=gpd.points_from_xy([-111.95, -111.96], [40.70, 40.71]),
+        crs="EPSG:4326",
+    )
+
+    parquet_path = tmp_path / "points.parquet"
+    gdf.to_parquet(parquet_path)
+
+    frame = read_data(parquet_path, use_columns=["site_id", "demand", "geometry"])
+    assert len(frame) == 2
+    assert frame.geometry_types() == ["Point", "Point"]
+
+    out_path = tmp_path / "points_out.parquet"
+    write_data(out_path, frame)
+    assert out_path.exists()
 
 
 def test_query_bounds_modes() -> None:

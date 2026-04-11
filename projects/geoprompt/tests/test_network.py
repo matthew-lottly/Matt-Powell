@@ -1,7 +1,6 @@
 """Hardened test suite for geoprompt.network — edge cases, large graphs, and domain coverage."""
 from __future__ import annotations
 
-import math
 import random
 
 import pytest
@@ -21,7 +20,6 @@ from geoprompt.network import (
     crew_dispatch_optimizer,
     edge_impedance_cost,
     feeder_reconfiguration_optimizer,
-    feeder_load_balance_swap,
     fiber_cut_impact_matrix,
     fiber_splice_node_trace,
     fire_flow_demand_check,
@@ -29,20 +27,20 @@ from geoprompt.network import (
     gas_pressure_drop_trace,
     gas_regulator_station_isolation,
     gas_shutdown_impact,
+    get_network_workload_preset,
     inflow_infiltration_scan,
     infrastructure_age_risk_weighted_routing,
     interdependency_cascade_simulation,
     iter_od_cost_matrix_batches,
     landmark_lower_bound,
     load_transfer_feasibility,
-    multi_criteria_shortest_path,
     n_minus_k_edge_contingency_screen,
     n_minus_one_edge_contingency_screen,
     od_cost_matrix,
+    od_cost_matrix_with_preset,
     outage_restoration_tie_options,
     pipe_break_isolation_zones,
     pressure_zone_reconfiguration_planner,
-    pressure_reducing_valve_trace,
     pump_station_failure_cascade,
     resilience_capex_prioritization,
     ring_redundancy_check,
@@ -54,6 +52,7 @@ from geoprompt.network import (
     trace_water_pressure_zones,
     utility_bottlenecks,
     utility_bottlenecks_stream,
+    utility_bottlenecks_with_preset,
     utility_outage_isolation,
 )
 
@@ -239,6 +238,32 @@ class TestODCostMatrix:
                 )
             )
 
+    def test_od_cost_matrix_with_preset_matches_standard(self) -> None:
+        graph = _linear_graph()
+        baseline = od_cost_matrix(graph, origins=["A", "B", "C"], destinations=["D", "E"])
+
+        events: list[dict[str, object]] = []
+        preset_rows = od_cost_matrix_with_preset(
+            graph,
+            origins=["A", "B", "C"],
+            destinations=["D", "E"],
+            preset="small",
+            origin_batch_size=2,
+            progress_callback=events.append,
+        )
+
+        assert preset_rows == baseline
+        assert events
+        assert events[0]["event"] == "origin_batch"
+
+    def test_get_network_workload_preset_validation(self) -> None:
+        small = get_network_workload_preset("small")
+        assert small["origin_batch_size"] > 0
+        assert small["demand_batch_size"] > 0
+
+        with pytest.raises(ValueError, match="unknown network workload preset"):
+            get_network_workload_preset("bad-preset")
+
 
 # ─── Network Topology ───────────────────────────────────────────────────────
 
@@ -348,6 +373,24 @@ class TestUtilityBottlenecks:
 
         with pytest.raises(ValueError, match="demand_batch_size"):
             utility_bottlenecks_stream(graph, od_demands, demand_batch_size=0)
+
+    def test_utility_bottlenecks_with_preset_matches_stream(self) -> None:
+        graph = _linear_graph()
+        od = [("A", "E", 10.0), ("B", "E", 5.0), ("A", "D", 4.0)]
+
+        baseline = utility_bottlenecks_stream(graph, od, demand_batch_size=2)
+        events: list[dict[str, object]] = []
+        wrapped = utility_bottlenecks_with_preset(
+            graph,
+            od,
+            preset="small",
+            demand_batch_size=2,
+            progress_callback=events.append,
+        )
+
+        assert wrapped == baseline
+        assert events
+        assert events[0]["event"] == "demand_batch"
 
 
 # ─── Electric Domain ────────────────────────────────────────────────────────

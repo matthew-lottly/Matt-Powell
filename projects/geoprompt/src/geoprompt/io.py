@@ -9,6 +9,14 @@ from .frame import GeoPromptFrame
 from .geometry import geometry_type
 
 
+WORKLOAD_PRESETS: dict[str, dict[str, int | None]] = {
+    "small": {"chunk_size": 5000, "sample_step": 1, "limit_rows": 100000},
+    "medium": {"chunk_size": 20000, "sample_step": 1, "limit_rows": None},
+    "large": {"chunk_size": 50000, "sample_step": 1, "limit_rows": None},
+    "huge": {"chunk_size": 100000, "sample_step": 2, "limit_rows": None},
+}
+
+
 def _read_json(path: str | Path) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -270,17 +278,30 @@ def _read_with_geopandas(
             "geopandas is required for this format. Install extras: pip install geoprompt[io,compare]"
         ) from exc
 
-    read_kwargs: dict[str, Any] = {}
-    if layer is not None:
-        read_kwargs["layer"] = layer
-    if bbox is not None:
-        read_kwargs["bbox"] = bbox
-    if use_columns:
-        read_kwargs["columns"] = list(use_columns)
-    if limit_rows is not None:
-        read_kwargs["rows"] = slice(0, limit_rows)
+    data_path = Path(path)
+    if data_path.suffix.lower() == ".parquet":
+        if layer is not None:
+            raise ValueError("layer is not supported for parquet inputs")
+        if bbox is not None:
+            raise ValueError("bbox is not supported for parquet inputs")
+        parquet_kwargs: dict[str, Any] = {}
+        if use_columns:
+            parquet_kwargs["columns"] = list(use_columns)
+        frame = gpd.read_parquet(data_path, **parquet_kwargs)
+        if limit_rows is not None:
+            frame = frame.iloc[:limit_rows]
+    else:
+        read_kwargs: dict[str, Any] = {}
+        if layer is not None:
+            read_kwargs["layer"] = layer
+        if bbox is not None:
+            read_kwargs["bbox"] = bbox
+        if use_columns:
+            read_kwargs["columns"] = list(use_columns)
+        if limit_rows is not None:
+            read_kwargs["rows"] = slice(0, limit_rows)
 
-    frame = gpd.read_file(Path(path), **read_kwargs)
+        frame = gpd.read_file(data_path, **read_kwargs)
     if sample_step > 1:
         frame = frame.iloc[::sample_step]
     if crs is not None and frame.crs is not None and str(frame.crs) != crs:
@@ -380,6 +401,53 @@ def read_data(
         )
 
     raise ValueError(f"unsupported input format for path: {data_path}")
+
+
+def get_workload_preset(name: str) -> dict[str, int | None]:
+    """Return the default IO controls for a named workload preset."""
+    preset = WORKLOAD_PRESETS.get(name.lower())
+    if preset is None:
+        valid = ", ".join(sorted(WORKLOAD_PRESETS.keys()))
+        raise ValueError(f"unknown workload preset '{name}'. expected one of: {valid}")
+    return dict(preset)
+
+
+def read_data_with_preset(
+    path: str | Path,
+    *,
+    preset: str = "large",
+    geometry: str = "geometry",
+    crs: str | None = None,
+    x_column: str | None = None,
+    y_column: str | None = None,
+    geometry_column: str | None = None,
+    use_columns: Sequence[str] | None = None,
+    limit_rows: int | None = None,
+    sample_step: int | None = None,
+    layer: str | None = None,
+    bbox: tuple[float, float, float, float] | None = None,
+    delimiter: str = ",",
+    encoding: str = "utf-8",
+) -> GeoPromptFrame:
+    """Read data with workload defaults and explicit per-call overrides."""
+    settings = get_workload_preset(preset)
+    resolved_limit = limit_rows if limit_rows is not None else settings["limit_rows"]
+    resolved_sample = sample_step if sample_step is not None else int(settings["sample_step"] or 1)
+    return read_data(
+        path,
+        geometry=geometry,
+        crs=crs,
+        x_column=x_column,
+        y_column=y_column,
+        geometry_column=geometry_column,
+        use_columns=use_columns,
+        limit_rows=resolved_limit,
+        sample_step=resolved_sample,
+        layer=layer,
+        bbox=bbox,
+        delimiter=delimiter,
+        encoding=encoding,
+    )
 
 
 def iter_data(
@@ -495,6 +563,113 @@ def iter_data(
         return
 
     raise ValueError(f"unsupported input format for path: {data_path}")
+
+
+def iter_data_with_preset(
+    path: str | Path,
+    *,
+    preset: str = "large",
+    geometry: str = "geometry",
+    crs: str | None = None,
+    x_column: str | None = None,
+    y_column: str | None = None,
+    geometry_column: str | None = None,
+    use_columns: Sequence[str] | None = None,
+    limit_rows: int | None = None,
+    sample_step: int | None = None,
+    layer: str | None = None,
+    bbox: tuple[float, float, float, float] | None = None,
+    chunk_size: int | None = None,
+    delimiter: str = ",",
+    encoding: str = "utf-8",
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
+) -> Iterable[GeoPromptFrame]:
+    """Iterate data in chunks with workload defaults and explicit overrides."""
+    settings = get_workload_preset(preset)
+    resolved_limit = limit_rows if limit_rows is not None else settings["limit_rows"]
+    resolved_sample = sample_step if sample_step is not None else int(settings["sample_step"] or 1)
+    resolved_chunk = chunk_size if chunk_size is not None else int(settings["chunk_size"] or 50000)
+    return iter_data(
+        path,
+        geometry=geometry,
+        crs=crs,
+        x_column=x_column,
+        y_column=y_column,
+        geometry_column=geometry_column,
+        use_columns=use_columns,
+        limit_rows=resolved_limit,
+        sample_step=resolved_sample,
+        layer=layer,
+        bbox=bbox,
+        chunk_size=resolved_chunk,
+        delimiter=delimiter,
+        encoding=encoding,
+        progress_callback=progress_callback,
+    )
+
+
+def read_csv_points(
+    path: str | Path,
+    *,
+    x_column: str,
+    y_column: str,
+    preset: str = "large",
+    geometry: str = "geometry",
+    crs: str | None = None,
+    use_columns: Sequence[str] | None = None,
+    limit_rows: int | None = None,
+    sample_step: int | None = None,
+    delimiter: str = ",",
+    encoding: str = "utf-8",
+) -> GeoPromptFrame:
+    """Convenience wrapper for point CSV reads with workload presets."""
+    return read_data_with_preset(
+        path,
+        preset=preset,
+        geometry=geometry,
+        crs=crs,
+        x_column=x_column,
+        y_column=y_column,
+        use_columns=use_columns,
+        limit_rows=limit_rows,
+        sample_step=sample_step,
+        delimiter=delimiter,
+        encoding=encoding,
+    )
+
+
+def iter_csv_points(
+    path: str | Path,
+    *,
+    x_column: str,
+    y_column: str,
+    preset: str = "large",
+    geometry: str = "geometry",
+    crs: str | None = None,
+    use_columns: Sequence[str] | None = None,
+    limit_rows: int | None = None,
+    sample_step: int | None = None,
+    chunk_size: int | None = None,
+    delimiter: str = ",",
+    encoding: str = "utf-8",
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
+) -> Iterable[GeoPromptFrame]:
+    """Convenience wrapper for chunked point CSV reads with workload presets."""
+    return iter_data_with_preset(
+        path,
+        preset=preset,
+        geometry=geometry,
+        crs=crs,
+        x_column=x_column,
+        y_column=y_column,
+        use_columns=use_columns,
+        limit_rows=limit_rows,
+        sample_step=sample_step,
+        chunk_size=chunk_size,
+        delimiter=delimiter,
+        encoding=encoding,
+        progress_callback=progress_callback,
+    )
 
 
 def read_table(
@@ -633,7 +808,14 @@ def write_data(
             to_file_kwargs["layer"] = layer
         if driver is not None:
             to_file_kwargs["driver"] = driver
-        gdf.to_file(output_path, **to_file_kwargs)
+        if suffix == ".parquet":
+            if layer is not None:
+                raise ValueError("layer is not supported for parquet outputs")
+            if driver is not None:
+                raise ValueError("driver is not supported for parquet outputs")
+            gdf.to_parquet(output_path)
+        else:
+            gdf.to_file(output_path, **to_file_kwargs)
         return output_path
 
     raise ValueError(f"unsupported output format for path: {output_path}")
@@ -641,12 +823,18 @@ def write_data(
 
 __all__ = [
     "frame_to_geojson",
+    "get_workload_preset",
     "iter_data",
+    "iter_data_with_preset",
+    "iter_csv_points",
+    "read_csv_points",
     "read_data",
+    "read_data_with_preset",
     "read_features",
     "read_geojson",
     "read_points",
     "read_table",
+    "WORKLOAD_PRESETS",
     "write_data",
     "write_geojson",
     "write_json",

@@ -72,6 +72,41 @@ gp.write_data("outputs/features_out.geojson", features)
 for chunk in gp.iter_data("assets.csv", x_column="longitude", y_column="latitude", chunk_size=50000):
     # run analysis per chunk
     _ = chunk.head(1)
+
+# Preset-driven wrappers for large workloads
+preset_frame = gp.read_data_with_preset(
+    "assets.csv",
+    preset="large",
+    x_column="longitude",
+    y_column="latitude",
+)
+
+for chunk in gp.iter_data_with_preset(
+    "assets.csv",
+    preset="huge",
+    x_column="longitude",
+    y_column="latitude",
+):
+    _ = chunk.head(1)
+```
+
+Network batch preset example:
+
+```python
+from geoprompt.network import od_cost_matrix_with_preset, utility_bottlenecks_with_preset
+
+matrix = od_cost_matrix_with_preset(
+    graph,
+    origins=origin_nodes,
+    destinations=destination_nodes,
+    preset="large",
+)
+
+bottlenecks = utility_bottlenecks_with_preset(
+    graph,
+    od_demands=((o, d, q) for o, d, q in huge_demands),
+    preset="huge",
+)
 ```
 
 ```python
@@ -275,7 +310,9 @@ geoprompt/
 |   `-- test_geoprompt.py
 |-- docs/
 |   |-- architecture.md
+|   |-- api-stability.md
 |   `-- demo-storyboard.md
+|   `-- quickstart-cookbook.md
 |-- outputs/
 |   |-- charts/
 |   |   `-- .gitkeep

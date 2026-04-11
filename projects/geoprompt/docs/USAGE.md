@@ -67,6 +67,32 @@ for batch in iter_od_cost_matrix_batches(
 ):
     # persist or aggregate batch rows
     pass
+
+# Optional progress callback
+events = []
+for _ in iter_od_cost_matrix_batches(
+    graph,
+    origins=origin_nodes,
+    destinations=destination_nodes,
+    origin_batch_size=500,
+    progress_callback=events.append,
+):
+    pass
+```
+
+### `od_cost_matrix_with_preset`
+
+Preset wrapper for OD workloads (`small`, `medium`, `large`, `huge`).
+
+```python
+from geoprompt.network import od_cost_matrix_with_preset
+
+rows = od_cost_matrix_with_preset(
+    graph,
+    origins=origin_nodes,
+    destinations=destination_nodes,
+    preset="large",
+)
 ```
 
 ### `utility_bottlenecks_stream`
@@ -80,6 +106,29 @@ rows = utility_bottlenecks_stream(
     graph,
     od_demands=((o, d, q) for o, d, q in huge_od_iterable),
     demand_batch_size=100000,
+)
+
+# Optional progress callback
+events = []
+rows = utility_bottlenecks_stream(
+    graph,
+    od_demands=((o, d, q) for o, d, q in huge_od_iterable),
+    demand_batch_size=100000,
+    progress_callback=events.append,
+)
+```
+
+### `utility_bottlenecks_with_preset`
+
+Preset wrapper for streaming bottleneck workloads.
+
+```python
+from geoprompt.network import utility_bottlenecks_with_preset
+
+rows = utility_bottlenecks_with_preset(
+    graph,
+    od_demands=((o, d, q) for o, d, q in huge_od_iterable),
+    preset="huge",
 )
 ```
 
@@ -109,6 +158,16 @@ for chunk in iter_data(
     chunk_size=50000,
 ):
     # analyze chunk with frame APIs
+    _ = chunk.geometry_types()
+
+# Preset wrapper
+from geoprompt import iter_data_with_preset
+for chunk in iter_data_with_preset(
+    "assets.csv",
+    preset="large",
+    x_column="lon",
+    y_column="lat",
+):
     _ = chunk.geometry_types()
 ```
 
