@@ -2440,6 +2440,159 @@ def fiber_cut_impact_matrix(
     return results
 
 
+# ─── RELIABILITY & RESTORATION ──────────────────────────────────────────────
+
+
+def n_minus_one_edge_contingency_screen(
+    graph: NetworkGraph,
+    source_nodes: list[str],
+    demand_by_node: dict[str, float] | None = None,
+    candidate_edge_ids: list[str] | None = None,
+    critical_nodes: list[str] | None = None,
+    max_cost: float = math.inf,
+) -> list[dict[str, Any]]:
+    """Screen single-edge failures and rank impact severity.
+
+    Baseline reachability is computed from ``source_nodes`` with current device
+    states (open switches/valves are blocked). Each candidate edge is then
+    removed one-at-a-time and service loss is measured against baseline.
+    """
+    if not source_nodes:
+        raise ValueError("source_nodes must include at least one node")
+
+    blocked = _device_state_blocked_edges(graph)
+    baseline_dist, _, _, _ = _dijkstra(graph, source_nodes, max_cost, blocked, {})
+    baseline_served = set(baseline_dist.keys())
+
+    demand_map = demand_by_node or {}
+    baseline_served_demand = sum(float(demand_map.get(n, 0) or 0) for n in baseline_served)
+    critical_set = set(critical_nodes or [])
+
+    candidates = candidate_edge_ids or sorted(graph.edge_attributes.keys())
+    results: list[dict[str, Any]] = []
+
+    for edge_id in candidates:
+        attrs = graph.edge_attributes.get(edge_id)
+        if attrs is None:
+            continue
+
+        blocked_with_cut = set(blocked)
+        blocked_with_cut.add(edge_id)
+        dist_after_cut, _, _, _ = _dijkstra(
+            graph, source_nodes, max_cost, blocked_with_cut, {}
+        )
+        served_after_cut = set(dist_after_cut.keys())
+
+        lost_nodes = sorted(baseline_served - served_after_cut)
+        lost_critical = sorted(n for n in lost_nodes if n in critical_set)
+        lost_demand = sum(float(demand_map.get(n, 0) or 0) for n in lost_nodes)
+        served_demand_after_cut = baseline_served_demand - lost_demand
+
+        # Bias severity toward critical-node outages first, then demand loss.
+        severity = (1000.0 * len(lost_critical)) + lost_demand
+
+        results.append(
+            {
+                "cut_edge_id": edge_id,
+                "from_node": str(attrs.get("from_node", "")),
+                "to_node": str(attrs.get("to_node", "")),
+                "lost_node_count": len(lost_nodes),
+                "lost_nodes": lost_nodes,
+                "lost_critical_count": len(lost_critical),
+                "lost_critical_nodes": lost_critical,
+                "lost_demand": round(lost_demand, 4),
+                "served_demand_after_cut": round(served_demand_after_cut, 4),
+                "baseline_served_demand": round(baseline_served_demand, 4),
+                "severity_score": round(severity, 4),
+            }
+        )
+
+    results.sort(
+        key=lambda r: (
+            r["lost_critical_count"],
+            r["lost_demand"],
+            r["lost_node_count"],
+        ),
+        reverse=True,
+    )
+    return results
+
+
+def outage_restoration_tie_options(
+    graph: NetworkGraph,
+    source_nodes: list[str],
+    affected_nodes: list[str],
+    tie_edge_ids: list[str] | None = None,
+    max_cost: float = math.inf,
+) -> list[dict[str, Any]]:
+    """Rank normally-open tie edges by restored-node benefit.
+
+    Uses current device states as baseline outage state and simulates closing one
+    candidate tie edge at a time.
+    """
+    if not source_nodes:
+        raise ValueError("source_nodes must include at least one node")
+
+    blocked = _device_state_blocked_edges(graph)
+
+    if tie_edge_ids is None:
+        tie_edge_ids = []
+        for edge_id, attrs in graph.edge_attributes.items():
+            device_type = str(attrs.get("device_type", "")).lower()
+            state = str(attrs.get("state", "")).lower()
+            if device_type in {"tie", "switch"} and state in {"open", "normally_open"}:
+                tie_edge_ids.append(edge_id)
+
+    baseline_blocked = set(blocked)
+    for tie_edge_id in tie_edge_ids:
+        attrs = graph.edge_attributes.get(tie_edge_id, {})
+        state = str(attrs.get("state", "")).lower()
+        if state in {"open", "normally_open"}:
+            baseline_blocked.add(tie_edge_id)
+
+    baseline_dist, _, _, _ = _dijkstra(
+        graph, source_nodes, max_cost, baseline_blocked, {}
+    )
+    baseline_served = set(baseline_dist.keys())
+    baseline_unserved_targets = sorted(set(affected_nodes) - baseline_served)
+
+    results: list[dict[str, Any]] = []
+
+    for tie_edge_id in tie_edge_ids:
+        attrs = graph.edge_attributes.get(tie_edge_id)
+        if attrs is None:
+            continue
+
+        blocked_with_tie_closed = set(baseline_blocked)
+        blocked_with_tie_closed.discard(tie_edge_id)
+
+        dist_with_tie, _, _, _ = _dijkstra(
+            graph, source_nodes, max_cost, blocked_with_tie_closed, {}
+        )
+        served_with_tie = set(dist_with_tie.keys())
+
+        restored_nodes = sorted(
+            node for node in baseline_unserved_targets if node in served_with_tie
+        )
+
+        results.append(
+            {
+                "tie_edge_id": tie_edge_id,
+                "from_node": str(attrs.get("from_node", "")),
+                "to_node": str(attrs.get("to_node", "")),
+                "baseline_unserved_targets": len(baseline_unserved_targets),
+                "restored_target_count": len(restored_nodes),
+                "restored_targets": restored_nodes,
+                "restoration_ratio": round(
+                    len(restored_nodes) / max(1, len(baseline_unserved_targets)), 4
+                ),
+            }
+        )
+
+    results.sort(key=lambda r: r["restored_target_count"], reverse=True)
+    return results
+
+
 __all__ = [
     "NetworkEdge",
     "NetworkGraph",
@@ -2470,7 +2623,9 @@ __all__ = [
     "landmark_lower_bound",
     "load_transfer_feasibility",
     "multi_criteria_shortest_path",
+    "n_minus_one_edge_contingency_screen",
     "od_cost_matrix",
+    "outage_restoration_tie_options",
     "pipe_break_isolation_zones",
     "pressure_reducing_valve_trace",
     "ring_redundancy_check",

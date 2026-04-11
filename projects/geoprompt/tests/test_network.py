@@ -33,7 +33,9 @@ from geoprompt.network import (
     landmark_lower_bound,
     load_transfer_feasibility,
     multi_criteria_shortest_path,
+    n_minus_one_edge_contingency_screen,
     od_cost_matrix,
+    outage_restoration_tie_options,
     pipe_break_isolation_zones,
     pressure_reducing_valve_trace,
     ring_redundancy_check,
@@ -312,6 +314,81 @@ class TestLoadTransferFeasibility:
         tie_attrs = g.edge_attributes["tie"]
         result = load_transfer_feasibility(g, feeder_a_source="S1", feeder_b_source="S2", tie_edge=tie_attrs)
         assert result["feasible"] is True
+
+
+class TestNMinusOneEdgeContingency:
+    def test_ranks_bridge_edge_highest(self):
+        g = build_network_graph(
+            [
+                {"edge_id": "s1", "from_node": "SRC", "to_node": "A", "cost": 1.0},
+                {"edge_id": "ab", "from_node": "A", "to_node": "B", "cost": 1.0},
+                {"edge_id": "bc", "from_node": "B", "to_node": "C", "cost": 1.0},
+                {"edge_id": "cd", "from_node": "C", "to_node": "D", "cost": 1.0},
+            ],
+            directed=False,
+        )
+        rows = n_minus_one_edge_contingency_screen(
+            g,
+            source_nodes=["SRC"],
+            demand_by_node={"A": 5.0, "B": 10.0, "C": 20.0, "D": 30.0},
+            critical_nodes=["D"],
+        )
+        assert rows[0]["cut_edge_id"] == "s1"
+        assert rows[0]["lost_critical_count"] == 1
+
+    def test_candidate_filtering(self):
+        g = _linear_graph()
+        rows = n_minus_one_edge_contingency_screen(
+            g,
+            source_nodes=["A"],
+            candidate_edge_ids=["e0", "e1"],
+        )
+        assert [r["cut_edge_id"] for r in rows] == ["e0", "e1"]
+
+    def test_empty_source_raises(self):
+        g = _linear_graph()
+        with pytest.raises(ValueError):
+            n_minus_one_edge_contingency_screen(g, source_nodes=[])
+
+
+class TestOutageRestorationTieOptions:
+    def test_restoration_by_closing_tie(self):
+        g = build_network_graph(
+            [
+                {"edge_id": "e1", "from_node": "S", "to_node": "A", "cost": 1.0},
+                {"edge_id": "e2", "from_node": "A", "to_node": "B", "cost": 1.0, "device_type": "switch", "state": "open"},
+                {"edge_id": "tie1", "from_node": "A", "to_node": "B", "cost": 1.0, "device_type": "tie", "state": "normally_open"},
+            ],
+            directed=False,
+        )
+        rows = outage_restoration_tie_options(
+            g,
+            source_nodes=["S"],
+            affected_nodes=["B"],
+            tie_edge_ids=["tie1"],
+        )
+        assert rows[0]["tie_edge_id"] == "tie1"
+        assert rows[0]["restored_target_count"] == 1
+
+    def test_auto_detect_open_switch_or_tie(self):
+        g = build_network_graph(
+            [
+                {"edge_id": "e1", "from_node": "S", "to_node": "A", "cost": 1.0},
+                {"edge_id": "tie2", "from_node": "A", "to_node": "B", "cost": 1.0, "device_type": "switch", "state": "open"},
+            ],
+            directed=False,
+        )
+        rows = outage_restoration_tie_options(
+            g,
+            source_nodes=["S"],
+            affected_nodes=["B"],
+        )
+        assert rows[0]["tie_edge_id"] == "tie2"
+
+    def test_empty_source_raises(self):
+        g = _linear_graph()
+        with pytest.raises(ValueError):
+            outage_restoration_tie_options(g, source_nodes=[], affected_nodes=["B"])
 
 
 # ─── Water Domain ────────────────────────────────────────────────────────────

@@ -444,3 +444,34 @@ from geoprompt.network import build_landmark_index, landmark_lower_bound
 index = build_landmark_index(graph, landmarks=["hub-A", "hub-B"])
 lb = landmark_lower_bound(index, "node-X", "node-Y")
 ```
+
+### `n_minus_one_edge_contingency_screen`
+
+Run an N-1 screen that removes one edge at a time and ranks outage severity.
+
+```python
+from geoprompt.network import n_minus_one_edge_contingency_screen
+
+rows = n_minus_one_edge_contingency_screen(
+    graph,
+    source_nodes=["substation-A"],
+    demand_by_node={"cust-1": 25.0, "cust-2": 40.0},
+    critical_nodes=["hospital-1"],
+)
+# rows[0] is the highest-impact single-edge failure.
+```
+
+### `outage_restoration_tie_options`
+
+Evaluate normally-open tie edges and rank which one restores the most targets.
+
+```python
+from geoprompt.network import outage_restoration_tie_options
+
+options = outage_restoration_tie_options(
+    graph,
+    source_nodes=["substation-A"],
+    affected_nodes=["cust-5", "cust-9", "cust-11"],
+)
+# options sorted by restored_target_count descending.
+```
