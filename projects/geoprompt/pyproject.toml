@@ -43,6 +43,7 @@ projection = [
 
 [project.scripts]
 geoprompt-demo = "geoprompt.demo:main"
+geoprompt-utility-scenario = "geoprompt.demo:utility_scenario"
 geoprompt-compare = "geoprompt.compare:main"
 
 [tool.setuptools]

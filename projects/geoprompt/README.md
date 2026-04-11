@@ -64,6 +64,8 @@ flowchart TD
 - Overlay operations with `GeoPromptFrame.clip(...)` and `GeoPromptFrame.overlay_intersections(...)`
 - Geographic distance support for longitude/latitude point workflows through haversine distance
 - Pairwise interaction analysis without requiring pandas or geopandas
+- Utility-network analysis with topology QA, shortest path, service area, OD least-cost matrix, supply allocation, capacity-aware assignment, spill-based partial-demand assignment, and bottleneck scanning
+- Domain utility traces for electric feeder energization, outage isolation, water pressure-zone reach, and gas shutdown impact
 - A demo CLI that exports a real review plot and JSON report from checked-in mixed geometry features
 - A comparison CLI that checks Geoprompt outputs against Shapely and GeoPandas across a built-in corpus and records timing data
 
@@ -241,6 +243,42 @@ gp.write_geojson("service-zones-scored.geojson", frame)
 
 print(nearest)
 print(nearest_km)
+```
+
+Network and utility analysis example:
+
+```python
+import geoprompt as gp
+
+edges = gp.GeoPromptFrame.from_records(
+    [
+        {"edge_id": "ab", "from_node": "A", "to_node": "B", "cost": 1.0, "capacity": 10.0, "node": "A", "supply": 12.0, "demand": 0.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+        {"edge_id": "bc", "from_node": "B", "to_node": "C", "cost": 1.0, "capacity": 6.0, "node": "B", "supply": 0.0, "demand": 5.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        {"edge_id": "cd", "from_node": "C", "to_node": "D", "cost": 1.0, "capacity": 4.0, "node": "C", "supply": 0.0, "demand": 4.0, "geometry": {"type": "Point", "coordinates": [2.0, 0.0]}},
+    ]
+)
+
+path = edges.analysis.network_shortest_path(
+    from_node_column="from_node",
+    to_node_column="to_node",
+    origin_node="A",
+    destination_node="D",
+    edge_id_column="edge_id",
+    cost_column="cost",
+)
+
+allocation = edges.analysis.utility_supply_allocation(
+    from_node_column="from_node",
+    to_node_column="to_node",
+    node_column="node",
+    supply_column="supply",
+    demand_column="demand",
+    edge_id_column="edge_id",
+    cost_column="cost",
+)
+
+print(path)
+print(allocation)
 ```
 
 ## Project Structure

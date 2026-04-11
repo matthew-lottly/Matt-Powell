@@ -163,6 +163,99 @@ def test_cli_analyze_command_no_tool_exits_nonzero() -> None:
     assert result.returncode != 0
 
 
+def test_cli_utility_scenario_default(tmp_path: Path) -> None:
+    """utility-scenario command runs with built-in sample network."""
+    result = _run_demo(
+        "utility-scenario",
+        "--output-dir",
+        str(tmp_path),
+        "--format",
+        "json",
+    )
+    assert result.returncode == 0, result.stderr
+    output = tmp_path / "geoprompt_utility_scenario.json"
+    assert output.exists()
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert "baseline" in payload
+    assert "outage" in payload
+    assert "restoration" in payload
+    assert "critical_edge_rankings" in payload
+    assert "critical_node_rankings" in payload
+    assert "supplied_count" in payload["baseline"]
+    assert "deenergized_count" in payload["baseline"]
+
+
+def test_cli_utility_scenario_csv(tmp_path: Path) -> None:
+    """utility-scenario command writes CSV summary rows."""
+    result = _run_demo(
+        "utility-scenario",
+        "--output-dir",
+        str(tmp_path),
+        "--format",
+        "csv",
+    )
+    assert result.returncode == 0, result.stderr
+    output = tmp_path / "geoprompt_utility_scenario.csv"
+    assert output.exists()
+    import csv as _csv
+    rows = list(_csv.DictReader(output.read_text(encoding="utf-8").splitlines()))
+    scenarios = {row["scenario"] for row in rows}
+    assert scenarios == {"baseline", "outage", "restoration"}
+
+
+def test_cli_utility_scenario_custom_nodes(tmp_path: Path) -> None:
+    """utility-scenario accepts custom source/critical/outage/restoration node args."""
+    result = _run_demo(
+        "utility-scenario",
+        "--output-dir",
+        str(tmp_path),
+        "--source-nodes", "SUBSTATION",
+        "--critical-nodes", "HOSPITAL,WASTEWATER_PLANT",
+        "--outage-edges", "SUB-FDR_A",
+        "--restoration-edges", "SUB-FDR_A",
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_cli_utility_scenario_network_json(tmp_path: Path) -> None:
+    """utility-scenario can load a custom edge-list JSON file."""
+    import json as _json
+    network_path = tmp_path / "net.json"
+    network_path.write_text(
+        _json.dumps([
+            {"edge_id": "s-a", "from_node": "S", "to_node": "A", "cost": 1.0},
+            {"edge_id": "a-b", "from_node": "A", "to_node": "B", "cost": 1.0},
+            {"edge_id": "a-c", "from_node": "A", "to_node": "C", "cost": 1.0},
+        ]),
+        encoding="utf-8",
+    )
+    result = _run_demo(
+        "utility-scenario",
+        "--network-json", str(network_path),
+        "--source-nodes", "S",
+        "--critical-nodes", "B,C",
+        "--outage-edges", "s-a",
+        "--restoration-edges", "s-a",
+        "--output-dir", str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_cli_utility_scenario_script_entrypoint(tmp_path: Path) -> None:
+    """utility-scenario also works when demo.py is executed directly."""
+    script = PROJECT_ROOT / "src" / "geoprompt" / "demo.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "utility-scenario", "--output-dir", str(tmp_path), "--format", "json"],
+        capture_output=True,
+        text=True,
+        cwd=str(PROJECT_ROOT),
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    output = tmp_path / "geoprompt_utility_scenario.json"
+    assert output.exists()
+
+
 def test_cli_analyze_command_custom_columns(tmp_path: Path) -> None:
     """analyze command accepts --columns to override defaults."""
     result = _run_demo(

@@ -7,6 +7,18 @@ presentation-quality review charts.
 
 from __future__ import annotations
 
+import os
+import sys
+
+# Allow direct execution via `python src/geoprompt/demo.py ...`.
+if __package__ in {None, ""}:
+    _package_dir_str = os.path.dirname(os.path.abspath(__file__))
+    _src_root_str = os.path.dirname(_package_dir_str)
+    while _package_dir_str in sys.path:
+        sys.path.remove(_package_dir_str)
+    if _src_root_str not in sys.path:
+        sys.path.insert(0, _src_root_str)
+
 import argparse
 import csv
 import hashlib
@@ -15,19 +27,39 @@ import logging
 import platform
 import random as _random
 import subprocess
-import sys
 from heapq import nlargest
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict, cast
 from datetime import datetime, timezone
 
 import matplotlib.pyplot as plt
 
-from .config import GeoPromptConfig, load_config
-from .geometry import geometry_centroid, geometry_type, geometry_vertices
-from .io import read_features, read_features_chunked, write_geojson, write_json
-from .logging_ import configure_logging, log_timing, log_trace
-from .validation import SCHEMA_VERSION, add_schema_version, validate_non_empty_features
+if __package__ in {None, ""}:
+    from geoprompt.config import GeoPromptConfig, load_config
+    from geoprompt.geometry import Geometry, geometry_centroid, geometry_type, geometry_vertices
+    from geoprompt.io import read_features, read_features_chunked, write_geojson, write_json
+    from geoprompt.logging_ import configure_logging, log_timing, log_trace
+    from geoprompt.network import (
+        NetworkEdge,
+        build_network_graph,
+        capacity_constrained_od_assignment,
+        run_utility_scenarios,
+        utility_outage_isolation,
+    )
+    from geoprompt.validation import SCHEMA_VERSION, add_schema_version, validate_non_empty_features
+else:
+    from .config import GeoPromptConfig, load_config
+    from .geometry import Geometry, geometry_centroid, geometry_type, geometry_vertices
+    from .io import read_features, read_features_chunked, write_geojson, write_json
+    from .logging_ import configure_logging, log_timing, log_trace
+    from .network import (
+        NetworkEdge,
+        build_network_graph,
+        capacity_constrained_od_assignment,
+        run_utility_scenarios,
+        utility_outage_isolation,
+    )
+    from .validation import SCHEMA_VERSION, add_schema_version, validate_non_empty_features
 
 
 logger = logging.getLogger("geoprompt.demo")
@@ -152,7 +184,7 @@ def _write_run_manifest(
     *,
     output_dir: Path,
     command: str,
-    input_path: Path,
+    input_path: Path | None,
     output_paths: list[Path],
     args: argparse.Namespace,
     extra: dict[str, Any] | None = None,
@@ -171,9 +203,11 @@ def _write_run_manifest(
         for key, value in vars(args).items()
     }
 
+    input_sha256 = _sha256_file(input_path) if input_path is not None and input_path.exists() else None
+
     fingerprint_payload = {
         "command": command,
-        "input_sha256": _sha256_file(input_path),
+        "input_sha256": input_sha256,
         "arguments": arguments,
         "git_commit": _current_git_commit(),
         "config_hash": config_hash,
@@ -192,8 +226,8 @@ def _write_run_manifest(
         "git_commit": _current_git_commit(),
         "run_fingerprint": run_fingerprint,
         "input": {
-            "path": str(input_path),
-            "sha256": _sha256_file(input_path),
+            "path": str(input_path) if input_path is not None else None,
+            "sha256": input_sha256,
         },
         "config": {
             "path": str(config_path) if isinstance(config_path, Path) else None,
@@ -464,15 +498,15 @@ def export_pressure_plot(
         # Item 31: Cache centroids instead of recomputing
         centroid_cache: dict[int, tuple[float, float]] = {}
         for i, record in enumerate(records):
-            centroid_cache[i] = geometry_centroid(record["geometry"])
+            centroid_cache[i] = geometry_centroid(cast(Geometry, record["geometry"]))
 
         xs = [centroid_cache[i][0] for i in range(len(records))]
         ys = [centroid_cache[i][1] for i in range(len(records))]
-        pressures = [float(record["neighborhood_pressure"]) for record in records]
+        pressures = [float(cast(float, record["neighborhood_pressure"])) for record in records]
         sizes = [200 + pressure * 220 for pressure in pressures]
 
         for record in records:
-            geometry = record["geometry"]
+            geometry = cast(Geometry, record["geometry"])
             vertices = geometry_vertices(geometry)
             if geometry_type(geometry) == "LineString":
                 axis.plot(
@@ -493,7 +527,7 @@ def export_pressure_plot(
                 )
 
         # Item 89: Marker shape encoding by geometry type
-        geom_types = [geometry_type(record["geometry"]) for record in records]
+        geom_types = [geometry_type(cast(Geometry, record["geometry"])) for record in records]
         markers_used = set(geom_types)
         if len(markers_used) > 1:
             for geom_t in markers_used:
@@ -536,7 +570,7 @@ def export_pressure_plot(
                     offset_y += 10
             label_positions.append(centroid)
             axis.annotate(
-                record["name"],
+                cast(str, record["name"]),
                 xy=centroid,
                 xytext=(offset_x, offset_y),
                 textcoords="offset points",
@@ -600,7 +634,7 @@ def build_demo_report(
     chart_title: str | None = None,
     chart_subtitle: str | None = None,
     export_formats: list[str] | None = None,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """Build the full GeoPrompt demo report.
 
     Args:
@@ -725,7 +759,7 @@ def build_demo_report(
         records = sorted(enriched.to_records(), key=lambda r: str(r.get("site_id", "")))
 
         # Item 10: Schema version
-        report: dict[str, object] = add_schema_version({
+        report: dict[str, Any] = add_schema_version({
             "package": "geoprompt",
             "equations": {
                 "prompt_decay": "1 / (1 + distance / scale) ^ power",
@@ -773,6 +807,211 @@ def _write_csv(path: Path, records: list[dict[str, Any]]) -> Path:
     return path
 
 
+# ---------------------------------------------------------------------------
+# Utility scenario built-in sample network
+# ---------------------------------------------------------------------------
+
+_SAMPLE_SCENARIO_EDGES: list[NetworkEdge] = [
+    # Feeder A: substation → north leg
+    {"edge_id": "SUB-FDR_A", "from_node": "SUBSTATION", "to_node": "FEEDER_A_HEAD", "cost": 1.0, "capacity": 100.0},
+    {"edge_id": "FDR_A-JCT1", "from_node": "FEEDER_A_HEAD", "to_node": "JUNCTION_1", "cost": 2.0, "capacity": 80.0},
+    {"edge_id": "JCT1-HOSPITAL", "from_node": "JUNCTION_1", "to_node": "HOSPITAL", "cost": 1.0, "capacity": 60.0},
+    {"edge_id": "JCT1-RESID_N", "from_node": "JUNCTION_1", "to_node": "RESIDENTIAL_NORTH", "cost": 1.5, "capacity": 40.0},
+    # Feeder B: substation → south leg
+    {"edge_id": "SUB-FDR_B", "from_node": "SUBSTATION", "to_node": "FEEDER_B_HEAD", "cost": 1.0, "capacity": 100.0},
+    {"edge_id": "FDR_B-JCT2", "from_node": "FEEDER_B_HEAD", "to_node": "JUNCTION_2", "cost": 2.0, "capacity": 80.0},
+    {"edge_id": "JCT2-WWTP", "from_node": "JUNCTION_2", "to_node": "WASTEWATER_PLANT", "cost": 1.0, "capacity": 60.0},
+    {"edge_id": "JCT2-RESID_S", "from_node": "JUNCTION_2", "to_node": "RESIDENTIAL_SOUTH", "cost": 1.5, "capacity": 40.0},
+    # Tie switch (normally open): bridges north and south feeders
+    {
+        "edge_id": "TIE-N-S",
+        "from_node": "JUNCTION_1",
+        "to_node": "JUNCTION_2",
+        "cost": 1.0,
+        "capacity": 50.0,
+        "device_type": "switch",
+        "state": "open",
+    },
+    # Secondary interconnect with a closed breaker (passable)
+    {
+        "edge_id": "FDR_A-FDR_B_BKUP",
+        "from_node": "FEEDER_A_HEAD",
+        "to_node": "FEEDER_B_HEAD",
+        "cost": 3.0,
+        "capacity": 30.0,
+        "device_type": "breaker",
+        "state": "closed",
+    },
+]
+
+_SAMPLE_SCENARIO_SOURCE_NODES = ["SUBSTATION"]
+_SAMPLE_SCENARIO_CRITICAL_NODES = ["HOSPITAL", "WASTEWATER_PLANT"]
+_SAMPLE_SCENARIO_OUTAGE_EDGES = ["FDR_A-JCT1"]
+_SAMPLE_SCENARIO_RESTORATION_EDGES = ["FDR_A-JCT1"]
+
+
+def _run_utility_scenario(args: argparse.Namespace) -> None:
+    """Execute baseline / outage / restoration utility scenario and write output."""
+    scenario_cfg: dict[str, Any] = {}
+    if getattr(args, "scenario_file", None):
+        import json as _json
+        with open(args.scenario_file, encoding="utf-8") as _fh:
+            scenario_cfg = _json.load(_fh)
+
+    # Load custom network edges from JSON if provided
+    if getattr(args, "network_json", None):
+        import json as _json2
+        with open(args.network_json, encoding="utf-8") as _fh2:
+            raw = _json2.load(_fh2)
+        edges: list[NetworkEdge] = raw if isinstance(raw, list) else raw.get("edges", raw.get("records", []))
+        logger.info("Loaded %d edges from %s", len(edges), args.network_json)
+    else:
+        edges = _SAMPLE_SCENARIO_EDGES
+        logger.info("Using built-in 10-edge sample utility network")
+
+    def _split(val: str | None) -> list[str]:
+        if not val:
+            return []
+        return [s.strip() for s in val.split(",") if s.strip()]
+
+    source_nodes: list[str] = (
+        scenario_cfg.get("source_nodes")
+        or _split(getattr(args, "source_nodes", None))
+        or _SAMPLE_SCENARIO_SOURCE_NODES
+    )
+    critical_nodes: list[str] = (
+        scenario_cfg.get("critical_nodes")
+        or _split(getattr(args, "critical_nodes", None))
+        or _SAMPLE_SCENARIO_CRITICAL_NODES
+    )
+    outage_edges: list[str] = (
+        scenario_cfg.get("outage_edges")
+        or _split(getattr(args, "outage_edges", None))
+        or _SAMPLE_SCENARIO_OUTAGE_EDGES
+    )
+    restoration_edges: list[str] = (
+        scenario_cfg.get("restoration_edges")
+        or _split(getattr(args, "restoration_edges", None))
+        or _SAMPLE_SCENARIO_RESTORATION_EDGES
+    )
+    candidate_edges: list[str] | None = (
+        scenario_cfg.get("candidate_critical_edges")
+        or _split(getattr(args, "candidate_edges", None))
+        or None
+    )
+    static_blocked: list[str] = (
+        scenario_cfg.get("static_blocked_edges")
+        or _split(getattr(args, "static_blocked_edges", None))
+    )
+    directed: bool = bool(scenario_cfg.get("directed", getattr(args, "directed", False)))
+    device_type_field: str = scenario_cfg.get("device_type_field", getattr(args, "device_type_field", "device_type"))
+    state_field: str = scenario_cfg.get("state_field", getattr(args, "state_field", "state"))
+    unknown_state_policy: str = scenario_cfg.get(
+        "unknown_state_policy", getattr(args, "unknown_state_policy", "passable")
+    )
+
+    graph = build_network_graph(edges, directed=directed)
+
+    logger.info(
+        "Running scenario: %d source(s), %d outage edge(s), %d restoration edge(s), %d critical node(s)",
+        len(source_nodes),
+        len(outage_edges),
+        len(restoration_edges),
+        len(critical_nodes),
+    )
+
+    with log_timing("run_utility_scenarios"):
+        result = run_utility_scenarios(
+            graph,
+            source_nodes=source_nodes,
+            critical_nodes=critical_nodes,
+            outage_edges=outage_edges,
+            restoration_edges=restoration_edges,
+            candidate_critical_edges=candidate_edges or None,
+            static_blocked_edges=static_blocked or None,
+            device_type_field=device_type_field,
+            state_field=state_field,
+            unknown_state_policy=unknown_state_policy,
+        )
+
+    output_dir: Path = getattr(args, "output_dir", DEFAULT_OUTPUT_DIR)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    payload: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "command": "utility-scenario",
+        "inputs": {
+            "source_nodes": source_nodes,
+            "critical_nodes": critical_nodes,
+            "outage_edges": outage_edges,
+            "restoration_edges": restoration_edges,
+            "static_blocked_edges": static_blocked,
+            "candidate_critical_edges": candidate_edges,
+            "device_type_field": device_type_field,
+            "state_field": state_field,
+            "unknown_state_policy": unknown_state_policy,
+        },
+        **result,
+    }
+
+    output_format: str = getattr(args, "output_format", "json")
+    if output_format == "csv":
+        # Flatten the three snapshots + deltas into a summary table
+        flat_rows: list[dict[str, Any]] = []
+        for snap_key in ("baseline", "outage", "restoration"):
+            snap = result[snap_key]
+            flat_rows.append(
+                {
+                    "scenario": snap_key,
+                    "supplied_count": snap["supplied_count"],
+                    "deenergized_count": snap["deenergized_count"],
+                    "critical_impacted_count": snap["critical_impacted_count"],
+                    "deenergized_nodes": ",".join(snap["deenergized_nodes"]),
+                    "critical_impacted_nodes": ",".join(snap["critical_impacted_nodes"]),
+                }
+            )
+        output_path = _write_csv(output_dir / "geoprompt_utility_scenario.csv", flat_rows)
+    else:
+        output_path = write_json(output_dir / "geoprompt_utility_scenario.json", payload)
+
+    _write_run_manifest(
+        output_dir=output_dir,
+        command="utility-scenario",
+        input_path=getattr(args, "network_json", None),
+        output_paths=[output_path],
+        args=args,
+        extra={
+            "source_nodes": source_nodes,
+            "outage_edges": outage_edges,
+            "critical_nodes": critical_nodes,
+        },
+    )
+
+    # Print a human-readable summary to stdout
+    b = result["baseline"]
+    o = result["outage"]
+    r = result["restoration"]
+    d_out = result["delta_outage_vs_baseline"]
+    d_res = result["delta_restoration_vs_outage"]
+    print("\n=== Utility Scenario Summary ===")
+    print(f"  Baseline     supplied={b['supplied_count']:3d}  deenergized={b['deenergized_count']:3d}  critical_impacted={b['critical_impacted_count']:3d}")
+    print(f"  Outage       supplied={o['supplied_count']:3d}  deenergized={o['deenergized_count']:3d}  critical_impacted={o['critical_impacted_count']:3d}")
+    print(f"    delta outage vs baseline     d_supplied={d_out['supplied_count']:+d}  d_deenergized={d_out['deenergized_count']:+d}  d_critical={d_out['critical_impacted_count']:+d}")
+    print(f"  Restoration  supplied={r['supplied_count']:3d}  deenergized={r['deenergized_count']:3d}  critical_impacted={r['critical_impacted_count']:3d}")
+    print(f"    delta restoration vs outage  d_supplied={d_res['supplied_count']:+d}  d_deenergized={d_res['deenergized_count']:+d}  d_critical={d_res['critical_impacted_count']:+d}")
+    if result.get("critical_edge_rankings"):
+        print("\n  Top critical edges:")
+        for rank in result["critical_edge_rankings"][:5]:
+            print(f"    {rank['edge_id']:30s}  critical_impacted={rank['critical_impacted_count']}  deenergized={rank['deenergized_count']}")
+    if result.get("critical_node_rankings"):
+        print("\n  Top critical nodes:")
+        for rank in result["critical_node_rankings"][:5]:
+            print(f"    {rank['node']:30s}  critical_impacted={rank['critical_impacted_count']}  deenergized={rank['deenergized_count']}")
+    print(f"\nWrote scenario output to {output_path}\n")
+
+    logger.info("Wrote utility scenario output to %s", output_path)
+
+
 def parse_args() -> argparse.Namespace:
     """Parse CLI arguments with full flag support (items 21-29)."""
     parser = argparse.ArgumentParser(
@@ -786,8 +1025,8 @@ def parse_args() -> argparse.Namespace:
         "command",
         nargs="?",
         default="report",
-        choices=["report", "plot", "export", "accessibility", "gravity-flow", "suitability", "analyze", "pipeline"],
-        help="Command to run: report (default), plot, export, accessibility, gravity-flow, suitability, analyze, or pipeline.",
+        choices=["report", "plot", "export", "accessibility", "gravity-flow", "suitability", "analyze", "pipeline", "utility-scenario"],
+        help="Command to run: report (default), plot, export, accessibility, gravity-flow, suitability, analyze, pipeline, or utility-scenario.",
     )
 
     # Path options
@@ -832,6 +1071,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-results", type=int, default=None, help="Return at most this many results from pairwise tools.")
     parser.add_argument("--chunk-size", type=int, default=None, help="Process input in chunks of this many features.")
     parser.add_argument("--sample", type=float, default=None, help="Random sample fraction (0 < sample <= 1) of input features.")
+
+    # Utility scenario options
+    parser.add_argument("--network-json", type=Path, default=None, help="Path to edge-list JSON file for utility-scenario command.")
+    parser.add_argument("--scenario-file", type=Path, default=None, help="Path to scenario config JSON for utility-scenario command.")
+    parser.add_argument("--source-nodes", default=None, help="Comma-separated source node IDs for utility-scenario command.")
+    parser.add_argument("--critical-nodes", default=None, help="Comma-separated critical node IDs for utility-scenario command.")
+    parser.add_argument("--outage-edges", default=None, help="Comma-separated edge IDs that fail in the outage scenario.")
+    parser.add_argument("--restoration-edges", default=None, help="Comma-separated edge IDs restored in the restoration scenario.")
+    parser.add_argument("--candidate-edges", default=None, help="Comma-separated edge IDs to score for criticality (default: all).")
+    parser.add_argument("--static-blocked-edges", default=None, help="Comma-separated edge IDs permanently blocked across all scenarios.")
+    parser.add_argument("--directed", action="store_true", help="Treat network as directed for utility-scenario command.")
+    parser.add_argument("--device-type-field", default="device_type", help="Edge attribute field name for device type.")    
+    parser.add_argument("--state-field", default="state", help="Edge attribute field name for device state.")
+    parser.add_argument("--unknown-state-policy", default="passable", choices=["passable", "block"], help="How to treat edges with unrecognised device state.")
 
     # Unified analyze command options
     parser.add_argument(
@@ -880,6 +1133,10 @@ def main() -> None:
 
     if args.command == "pipeline":
         _run_pipeline(args)
+        return
+
+    if args.command == "utility-scenario":
+        _run_utility_scenario(args)
         return
 
     # Item 29: Dry-run mode
@@ -1301,12 +1558,12 @@ def main() -> None:
 
     # Item 22: Output format selection
     if args.output_format == "csv":
-        report_path = _write_csv(args.output_dir / "geoprompt_demo_report.csv", report["records"])
+        report_path = _write_csv(args.output_dir / "geoprompt_demo_report.csv", cast(list[dict[str, Any]], report["records"]))
     elif args.output_format == "geojson":
         enriched_frame = read_features(args.input_path, crs="EPSG:4326").assign(
-            neighborhood_pressure=[record["neighborhood_pressure"] for record in report["records"]],
-            anchor_influence=[record["anchor_influence"] for record in report["records"]],
-            corridor_accessibility=[record["corridor_accessibility"] for record in report["records"]],
+            neighborhood_pressure=[record["neighborhood_pressure"] for record in cast(list[dict[str, Any]], report["records"])],
+            anchor_influence=[record["anchor_influence"] for record in cast(list[dict[str, Any]], report["records"])],
+            corridor_accessibility=[record["corridor_accessibility"] for record in cast(list[dict[str, Any]], report["records"])],
         )
         report_path = write_geojson(args.output_dir / "geoprompt_demo_report.geojson", enriched_frame)
     else:
@@ -1314,23 +1571,23 @@ def main() -> None:
 
     # Item 33: Reuse report records instead of re-reading input
     enriched_frame = read_features(args.input_path, crs="EPSG:4326").assign(
-        neighborhood_pressure=[record["neighborhood_pressure"] for record in report["records"]],
-        anchor_influence=[record["anchor_influence"] for record in report["records"]],
-        corridor_accessibility=[record["corridor_accessibility"] for record in report["records"]],
-        geometry_type=[record["geometry_type"] for record in report["records"]],
-        geometry_length=[record["geometry_length"] for record in report["records"]],
-        geometry_area=[record["geometry_area"] for record in report["records"]],
+        neighborhood_pressure=[record["neighborhood_pressure"] for record in cast(list[dict[str, Any]], report["records"])],
+        anchor_influence=[record["anchor_influence"] for record in cast(list[dict[str, Any]], report["records"])],
+        corridor_accessibility=[record["corridor_accessibility"] for record in cast(list[dict[str, Any]], report["records"])],
+        geometry_type=[record["geometry_type"] for record in cast(list[dict[str, Any]], report["records"])],
+        geometry_length=[record["geometry_length"] for record in cast(list[dict[str, Any]], report["records"])],
+        geometry_area=[record["geometry_area"] for record in cast(list[dict[str, Any]], report["records"])],
     )
     geojson_path = write_geojson(args.output_dir / "geoprompt_demo_features.geojson", enriched_frame)
 
     # Item 24: No-asset-copy mode
     if not args.no_asset_copy and not args.no_plot:
-        export_pressure_plot(report["records"], args.asset_path)
+        export_pressure_plot(cast(list[dict[str, object]], report["records"]), args.asset_path)
         logger.info("Wrote GeoPrompt asset to %s", args.asset_path)
 
     output_paths = [report_path, geojson_path]
-    if report.get("outputs", {}).get("chart"):
-        output_paths.append(Path(report["outputs"]["chart"]))
+    if cast(dict[str, Any], report.get("outputs", {})).get("chart"):
+        output_paths.append(Path(cast(dict[str, Any], report.get("outputs", {}))["chart"]))
     _write_run_manifest(
         output_dir=args.output_dir,
         command="report",
@@ -1343,7 +1600,14 @@ def main() -> None:
     logger.info("Wrote GeoPrompt GeoJSON to %s", geojson_path)
 
 
-__all__ = ["build_demo_report", "export_pressure_plot", "main"]
+def utility_scenario() -> None:
+    """Entry point for geoprompt-utility-scenario CLI command."""
+    import sys
+    sys.argv.insert(1, "utility-scenario")
+    main()
+
+
+__all__ = ["build_demo_report", "export_pressure_plot", "main", "utility_scenario"]
 
 
 if __name__ == "__main__":

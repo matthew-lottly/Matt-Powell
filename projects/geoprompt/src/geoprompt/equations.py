@@ -413,6 +413,57 @@ def demand_supply_balance_score(demand: float, supply: float) -> float:
     return 1.0 - abs(demand - supply) / (demand + supply + 1e-9)
 
 
+def utility_capacity_stress_index(flow: float, capacity: float, stress_power: float = 2.0) -> float:
+    """Capacity stress where values above 1 indicate overloaded segments."""
+    if flow < 0:
+        raise ValueError("flow must be zero or greater")
+    if capacity <= 0:
+        raise ValueError("capacity must be greater than zero")
+    if stress_power <= 0:
+        raise ValueError("stress_power must be greater than zero")
+    return (flow / capacity) ** stress_power
+
+
+def utility_headloss_hazen_williams(
+    length: float,
+    flow: float,
+    diameter: float,
+    roughness_coefficient: float = 130.0,
+) -> float:
+    """Hazen-Williams headloss approximation for utility pipelines.
+
+    Formula: h_f = 10.67 * L * Q^1.852 / (C^1.852 * D^4.871)
+    """
+    if length < 0 or flow < 0:
+        raise ValueError("length and flow must be zero or greater")
+    if diameter <= 0:
+        raise ValueError("diameter must be greater than zero")
+    if roughness_coefficient <= 0:
+        raise ValueError("roughness_coefficient must be greater than zero")
+    return 10.67 * length * (flow**1.852) / ((roughness_coefficient**1.852) * (diameter**4.871))
+
+
+def utility_reliability_score(base_reliability: float, redundancy_factor: float, stress_index: float) -> float:
+    """Utility reliability after stress and redundancy adjustments."""
+    if not (0.0 <= base_reliability <= 1.0):
+        raise ValueError("base_reliability must be between 0 and 1")
+    if redundancy_factor < 0:
+        raise ValueError("redundancy_factor must be zero or greater")
+    if stress_index < 0:
+        raise ValueError("stress_index must be zero or greater")
+    reliability = base_reliability * (1.0 + 0.2 * math.log1p(redundancy_factor)) / (1.0 + stress_index)
+    return max(0.0, min(1.0, reliability))
+
+
+def utility_service_deficit(demand: float, delivered: float) -> float:
+    """Fractional service deficit in [0, 1]."""
+    if demand < 0 or delivered < 0:
+        raise ValueError("demand and delivered must be zero or greater")
+    if demand == 0:
+        return 0.0
+    return max(0.0, min(1.0, 1.0 - (delivered / demand)))
+
+
 # ----- Similarity, stability, and suitability scores (10) -----
 def shape_compactness_similarity(compactness_a: float, compactness_b: float) -> float:
     if compactness_a < 0 or compactness_b < 0:
@@ -1370,4 +1421,8 @@ __all__ = [
     "trend_momentum_score",
     "queue_delay_factor",
     "infrastructure_lifecycle_score",
+    "utility_capacity_stress_index",
+    "utility_headloss_hazen_williams",
+    "utility_reliability_score",
+    "utility_service_deficit",
 ]
