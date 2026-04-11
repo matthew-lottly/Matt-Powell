@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Portfolio: Checks",
+      "type": "shell",
+      "command": ".\\scripts\\portfolio-checks.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Portfolio: Next Issue",
+      "type": "shell",
+      "command": ".\\scripts\\show-next-issue.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Portfolio: Next Batch",
+      "type": "shell",
+      "command": ".\\scripts\\show-next-batch.ps1",
+      "problemMatcher": []
+    }
+  ]
+}
