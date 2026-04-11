@@ -214,6 +214,31 @@ def test_iter_data_progress_callback(tmp_path: Path) -> None:
     assert events[1]["rows_emitted"] == 3
 
 
+def test_iter_data_progress_callback_event_schema(tmp_path: Path) -> None:
+    csv_path = tmp_path / "points_progress_schema.csv"
+    csv_path.write_text(
+        "site_id,x,y\n"
+        "a,-111.95,40.70\n"
+        "b,-111.96,40.71\n",
+        encoding="utf-8",
+    )
+
+    events: list[dict[str, object]] = []
+    list(
+        iter_data(
+            csv_path,
+            x_column="x",
+            y_column="y",
+            chunk_size=1,
+            progress_callback=events.append,
+        )
+    )
+
+    assert events
+    expected_keys = {"event", "path", "chunk_index", "chunk_rows", "rows_emitted"}
+    assert set(events[0].keys()) == expected_keys
+
+
 def test_workload_preset_wrappers_and_validation(tmp_path: Path) -> None:
     csv_path = tmp_path / "points_preset.csv"
     csv_path.write_text(

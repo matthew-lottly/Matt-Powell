@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7
+
+- Added workload preset APIs for IO and network batch workflows, including `read_data_with_preset(...)`, `iter_data_with_preset(...)`, `od_cost_matrix_with_preset(...)`, and `utility_bottlenecks_with_preset(...)`.
+- Added convenience wrappers for large tabular point workflows with `read_csv_points(...)` and `iter_csv_points(...)`.
+- Added progress callback support and validation hardening for chunked IO and streaming network routines.
+- Added optional benchmark regression tests and optional geospatial integration tests behind explicit environment gates.
+- Added `docs/quickstart-cookbook.md` and `docs/api-stability.md` to improve onboarding and API guidance.
+
 ## 0.1.6
 
 - Improved `nearest_neighbors(...)` so small-`k` lookups do not sort the full candidate list.

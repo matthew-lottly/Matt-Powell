@@ -238,6 +238,24 @@ class TestODCostMatrix:
                 )
             )
 
+    def test_iter_od_cost_matrix_progress_callback_event_schema(self) -> None:
+        graph = _linear_graph()
+        events: list[dict[str, object]] = []
+
+        list(
+            iter_od_cost_matrix_batches(
+                graph,
+                ["A", "B"],
+                ["D"],
+                origin_batch_size=1,
+                progress_callback=events.append,
+            )
+        )
+
+        assert events
+        expected_keys = {"event", "origin_batch_size", "processed_origins", "rows_emitted"}
+        assert set(events[0].keys()) == expected_keys
+
     def test_od_cost_matrix_with_preset_matches_standard(self) -> None:
         graph = _linear_graph()
         baseline = od_cost_matrix(graph, origins=["A", "B", "C"], destinations=["D", "E"])
@@ -373,6 +391,21 @@ class TestUtilityBottlenecks:
 
         with pytest.raises(ValueError, match="demand_batch_size"):
             utility_bottlenecks_stream(graph, od_demands, demand_batch_size=0)
+
+    def test_utility_bottlenecks_stream_progress_callback_event_schema(self) -> None:
+        graph = _linear_graph()
+        events: list[dict[str, object]] = []
+
+        utility_bottlenecks_stream(
+            graph,
+            [("A", "E", 1.0), ("B", "E", 2.0)],
+            demand_batch_size=1,
+            progress_callback=events.append,
+        )
+
+        assert events
+        expected_keys = {"event", "batch_size", "processed_demands"}
+        assert set(events[0].keys()) == expected_keys
 
     def test_utility_bottlenecks_with_preset_matches_stream(self) -> None:
         graph = _linear_graph()

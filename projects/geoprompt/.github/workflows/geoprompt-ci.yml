@@ -56,3 +56,30 @@ jobs:
 
       - name: Check distribution metadata
         run: python -m twine check dist/*
+
+  optional-gated:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade packaging tools
+        run: python -m pip install --upgrade pip
+
+      - name: Install Geoprompt with optional IO extras
+        run: python -m pip install -e ".[dev,io]"
+
+      - name: Run optional geospatial integration test gate
+        env:
+          GEOPROMPT_RUN_GEO_IO: "1"
+        run: python -m pytest tests/test_geoprompt.py::test_geospatial_integration_parquet_round_trip
+
+      - name: Run benchmark regression gate
+        env:
+          GEOPROMPT_RUN_BENCHMARKS: "1"
+        run: python -m pytest tests/test_benchmark_regression.py
