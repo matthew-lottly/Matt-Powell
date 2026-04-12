@@ -11,8 +11,10 @@ from geoprompt.interop import geopandas_available
 from geoprompt.tools import (
     batch_accessibility_table,
     batch_accessibility_scores,
+    build_multi_scenario_report,
     bootstrap_confidence_interval,
     build_scenario_report,
+    export_multi_scenario_report,
     export_scenario_report,
     gravity_interaction_table,
     optimize_decay_parameters,
@@ -94,6 +96,35 @@ def test_export_scenario_report_json_csv_markdown_html(tmp_path) -> None:
     assert "<svg" in html_text
 
 
+def test_multi_scenario_report_export_formats(tmp_path) -> None:
+    report = build_multi_scenario_report(
+        {
+            "baseline": {"deficit": 0.2, "served": 100.0},
+            "candidate_a": {"deficit": 0.12, "served": 108.0},
+            "candidate_b": {"deficit": 0.09, "served": 112.0},
+        },
+        baseline_name="baseline",
+        higher_is_better=["served"],
+    )
+
+    json_path = tmp_path / "multi-report.json"
+    csv_path = tmp_path / "multi-report.csv"
+    markdown_path = tmp_path / "multi-report.md"
+    html_path = tmp_path / "multi-report.html"
+    chart_path = tmp_path / "multi-report-chart.html"
+
+    export_multi_scenario_report(report, json_path)
+    export_multi_scenario_report(report, csv_path)
+    export_multi_scenario_report(report, markdown_path)
+    export_multi_scenario_report(report, html_path, chart_output_path=chart_path)
+
+    assert "candidate_a" in json_path.read_text(encoding="utf-8")
+    assert "scenario" in csv_path.read_text(encoding="utf-8")
+    assert "Multi-Scenario Report" in markdown_path.read_text(encoding="utf-8")
+    assert "Multi-Scenario Report" in html_path.read_text(encoding="utf-8")
+    assert "svg" in chart_path.read_text(encoding="utf-8")
+
+
 def test_vectorized_decay_matches_scalar() -> None:
     distances = [0.0, 0.5, 1.0, 2.0]
     vectorized = vectorized_decay(distances, method="exponential", rate=0.8)
@@ -169,6 +200,28 @@ def test_batch_tables_return_prompt_tables() -> None:
     assert accessibility_table.head(1)[0]["row_id"] == "a"
     assert "gravity_interaction" in gravity_table.columns
     assert "service_probability" in service_table.columns
+
+
+def test_prompt_table_join_where_and_pivot() -> None:
+    left = batch_accessibility_table(
+        [[100.0], [80.0], [60.0]],
+        [[0.5], [0.6], [0.7]],
+        row_ids=["north", "north", "south"],
+    )
+    right = gravity_interaction_table(
+        [10.0, 15.0],
+        [5.0, 6.0],
+        [1.2, 2.0],
+        row_ids=["north", "south"],
+    )
+
+    joined = left.join(right, on="row_id", how="left")
+    filtered = joined.where(row_id="north")
+    pivoted = joined.pivot(index="row_id", columns="decay_method", values="accessibility_score", agg="mean")
+
+    assert len(filtered) == 2
+    assert "gravity_interaction" in joined.columns
+    assert any(column == "power" for column in pivoted.columns)
 
 
 def test_prompt_table_summarize_groups_rows() -> None:

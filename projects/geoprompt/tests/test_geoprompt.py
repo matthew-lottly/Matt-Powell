@@ -399,13 +399,13 @@ def test_indexed_join_paths_match_existing_results() -> None:
     regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
     assets = read_features(PROJECT_ROOT / "data" / "benchmark_features.json", crs="EPSG:4326")
 
-    direct_proximity = regions.proximity_join(assets, max_distance=0.08)
-    direct_nearest = regions.nearest_join(assets, k=2)
-    direct_spatial = regions.spatial_join(assets, predicate="intersects")
+    direct_proximity = regions.proximity_join(assets, max_distance=0.08, use_spatial_index=False)
+    direct_nearest = regions.nearest_join(assets, k=2, use_spatial_index=False)
+    direct_spatial = regions.spatial_join(assets, predicate="intersects", use_spatial_index=False)
 
-    indexed_proximity = regions.proximity_join(assets, max_distance=0.08)
-    indexed_nearest = regions.nearest_join(assets, k=2)
-    indexed_spatial = regions.spatial_join(assets, predicate="intersects")
+    indexed_proximity = regions.proximity_join(assets, max_distance=0.08, use_spatial_index=True)
+    indexed_nearest = regions.nearest_join(assets, k=2, use_spatial_index=True)
+    indexed_spatial = regions.spatial_join(assets, predicate="intersects", use_spatial_index=True)
 
     assert direct_proximity.to_records() == indexed_proximity.to_records()
     assert direct_nearest.to_records() == indexed_nearest.to_records()

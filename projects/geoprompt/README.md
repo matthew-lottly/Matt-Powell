@@ -27,7 +27,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Lane: Spatial package design
 - Domain: Reusable custom spatial analysis
 - Stack: Python, JSON fixtures, lightweight geometry frame, custom equations
-- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, reusable bounds indexing, indexed Euclidean joins, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, buffer, buffer joins, coverage summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, PromptTable outputs for model/report workflows, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
+- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, reusable bounds indexing, indexed Euclidean joins (with optional non-indexed baseline mode), radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, buffer, buffer joins, coverage summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, PromptTable outputs for model/report workflows (filter/join/pivot/summarize), single- and multi-scenario report tooling, custom influence equations, benchmark corpus, demo report, tests
 
 ## Overview
 

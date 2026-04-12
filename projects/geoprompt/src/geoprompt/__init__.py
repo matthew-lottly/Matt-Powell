@@ -17,9 +17,11 @@ from .io import (WORKLOAD_PRESETS, frame_to_geojson, get_workload_preset, iter_c
 from .interop import from_geopandas, geopandas_available, to_geopandas
 from .table import PromptTable
 from .tools import (benchmark_function, bootstrap_confidence_interval,
+                    build_multi_scenario_report,
                     build_scenario_report, calibrate_decay_parameters,
                     batch_accessibility_table,
                     compare_scenarios, export_scenario_report,
+                    export_multi_scenario_report,
                     gravity_interaction_table,
                     monte_carlo_interval, normalize_units,
                     optimize_decay_parameters, sensitivity_analysis,
@@ -43,6 +45,7 @@ __all__ = [
     "batch_accessibility_scores",
     "batch_accessibility_table",
     "bootstrap_confidence_interval",
+    "build_multi_scenario_report",
     "buffer_geometries",
     "build_scenario_report",
     "calibrate_decay_parameters",
@@ -54,6 +57,7 @@ __all__ = [
     "directional_alignment",
     "directional_bearing",
     "euclidean_distance",
+    "export_multi_scenario_report",
     "export_scenario_report",
     "expected_outage_impact",
     "exponential_decay",

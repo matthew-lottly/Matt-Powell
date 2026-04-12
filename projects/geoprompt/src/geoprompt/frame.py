@@ -464,6 +464,7 @@ class GeoPromptFrame:
         rsuffix: str = "right",
         max_distance: float | None = None,
         distance_method: DistanceMethod = "euclidean",
+        use_spatial_index: bool = True,
     ) -> "GeoPromptFrame":
         """Join each left row to its ``k`` nearest rows in ``other``.
 
@@ -499,7 +500,11 @@ class GeoPromptFrame:
         right_columns = [column for column in other.columns if column != other.geometry_column]
         left_centroids = self._centroids()
         right_centroids = other._centroids()
-        right_index = other.build_spatial_index() if distance_method == "euclidean" and right_rows else None
+        right_index = (
+            other.build_spatial_index()
+            if use_spatial_index and distance_method == "euclidean" and right_rows
+            else None
+        )
         joined_rows: list[Record] = []
 
         for left_row, left_centroid in zip(self._rows, left_centroids, strict=True):
@@ -545,6 +550,7 @@ class GeoPromptFrame:
         max_distance: float | None = None,
         distance_method: DistanceMethod = "euclidean",
         origin_suffix: str = "origin",
+        use_spatial_index: bool = True,
     ) -> "GeoPromptFrame":
         """Assign each target to its nearest origin in ``self``.
 
@@ -574,6 +580,7 @@ class GeoPromptFrame:
             rsuffix=origin_suffix,
             max_distance=max_distance,
             distance_method=distance_method,
+            use_spatial_index=use_spatial_index,
         )
 
     def summarize_assignments(
@@ -752,6 +759,7 @@ class GeoPromptFrame:
         lsuffix: str = "left",
         rsuffix: str = "right",
         distance_method: DistanceMethod = "euclidean",
+        use_spatial_index: bool = True,
     ) -> "GeoPromptFrame":
         """Join each left row to every right row within ``max_distance``.
 
@@ -783,7 +791,11 @@ class GeoPromptFrame:
         right_columns = [column for column in other.columns if column != other.geometry_column]
         left_centroids = self._centroids()
         right_centroids = other._centroids()
-        right_index = other.build_spatial_index() if distance_method == "euclidean" and right_rows else None
+        right_index = (
+            other.build_spatial_index()
+            if use_spatial_index and distance_method == "euclidean" and right_rows
+            else None
+        )
         joined_rows: list[Record] = []
 
         for left_row, left_centroid in zip(self._rows, left_centroids, strict=True):
@@ -1117,6 +1129,7 @@ class GeoPromptFrame:
         how: SpatialJoinMode = "inner",
         lsuffix: str = "left",
         rsuffix: str = "right",
+        use_spatial_index: bool = True,
     ) -> "GeoPromptFrame":
         """Join rows by a spatial predicate test on their geometries.
 
@@ -1145,7 +1158,7 @@ class GeoPromptFrame:
         joined_rows: list[Record] = []
         right_rows = list(other._rows)
         right_bounds = [geometry_bounds(row[other.geometry_column]) for row in right_rows]
-        right_index = other.build_spatial_index() if right_rows else None
+        right_index = other.build_spatial_index() if use_spatial_index and right_rows else None
 
         predicate_bounds_filter = {
             "intersects": _bounds_intersect,

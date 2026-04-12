@@ -47,6 +47,105 @@ class PromptTable:
                 raise KeyError(f"column '{column}' is not present")
         return PromptTable([{column: row[column] for column in columns} for row in self._rows])
 
+    def where(
+        self,
+        predicate: Any | None = None,
+        **equals: Any,
+    ) -> "PromptTable":
+        if predicate is not None and not callable(predicate):
+            raise TypeError("predicate must be callable when provided")
+
+        rows: list[Record] = []
+        for row in self._rows:
+            if any(row.get(key) != value for key, value in equals.items()):
+                continue
+            if predicate is not None and not bool(predicate(row)):
+                continue
+            rows.append(dict(row))
+        return PromptTable(rows)
+
+    def join(
+        self,
+        other: "PromptTable",
+        on: str,
+        how: str = "inner",
+        rsuffix: str = "right",
+    ) -> "PromptTable":
+        if on not in self.columns:
+            raise KeyError(f"column '{on}' is not present in left table")
+        if on not in other.columns:
+            raise KeyError(f"column '{on}' is not present in right table")
+        if how not in {"inner", "left"}:
+            raise ValueError("how must be 'inner' or 'left'")
+
+        right_index: dict[Any, list[Record]] = {}
+        for row in other:
+            right_index.setdefault(row[on], []).append(dict(row))
+
+        right_columns = [column for column in other.columns if column != on]
+        rows: list[Record] = []
+        for left_row in self._rows:
+            right_rows = right_index.get(left_row.get(on), [])
+            if not right_rows and how == "left":
+                merged = dict(left_row)
+                for column in right_columns:
+                    target = column if column not in merged else f"{column}_{rsuffix}"
+                    merged[target] = None
+                rows.append(merged)
+                continue
+
+            for right_row in right_rows:
+                merged = dict(left_row)
+                for column in right_columns:
+                    target = column if column not in merged else f"{column}_{rsuffix}"
+                    merged[target] = right_row[column]
+                rows.append(merged)
+
+        return PromptTable(rows)
+
+    def pivot(
+        self,
+        index: str,
+        columns: str,
+        values: str,
+        agg: str = "sum",
+    ) -> "PromptTable":
+        for column in [index, columns, values]:
+            if column not in self.columns:
+                raise KeyError(f"column '{column}' is not present")
+
+        grouped: dict[Any, dict[Any, list[Any]]] = {}
+        column_values: set[Any] = set()
+        for row in self._rows:
+            grouped.setdefault(row[index], {}).setdefault(row[columns], []).append(row[values])
+            column_values.add(row[columns])
+
+        sorted_columns = sorted(column_values, key=str)
+        rows: list[Record] = []
+        for index_value, bucket in grouped.items():
+            pivot_row: Record = {index: index_value}
+            for column_value in sorted_columns:
+                values_bucket = bucket.get(column_value, [])
+                if not values_bucket:
+                    pivot_row[str(column_value)] = None
+                elif agg == "sum":
+                    pivot_row[str(column_value)] = sum(float(value) for value in values_bucket)
+                elif agg == "mean":
+                    pivot_row[str(column_value)] = sum(float(value) for value in values_bucket) / len(values_bucket)
+                elif agg == "min":
+                    pivot_row[str(column_value)] = min(values_bucket)
+                elif agg == "max":
+                    pivot_row[str(column_value)] = max(values_bucket)
+                elif agg == "first":
+                    pivot_row[str(column_value)] = values_bucket[0]
+                elif agg == "count":
+                    pivot_row[str(column_value)] = len(values_bucket)
+                else:
+                    raise ValueError(f"unsupported aggregation: {agg}")
+            rows.append(pivot_row)
+
+        return PromptTable(rows)
+
     def summarize(self, by: str, aggregations: dict[str, str] | None = None) -> "PromptTable":
         if by not in self.columns:
             raise KeyError(f"column '{by}' is not present")

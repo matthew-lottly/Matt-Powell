@@ -138,6 +138,50 @@ print(len(window))
 
 The same index-backed path now supports repeated Euclidean join workflows such as `nearest_join(...)`, `proximity_join(...)`, and `spatial_join(...)` without changing their public API.
 
+When benchmarking or validating baseline behavior, you can disable index acceleration explicitly:
+
+```python
+joined = frame.nearest_join(targets, k=2, use_spatial_index=False)
+indexed = frame.nearest_join(targets, k=2, use_spatial_index=True)
+```
+
+## Multi-Scenario Pages
+
+Use the multi-scenario helpers for portfolio-style comparisons against a baseline:
+
+```python
+import geoprompt as gp
+
+report = gp.build_multi_scenario_report(
+    {
+        "baseline": {"deficit": 0.20, "served": 100.0},
+        "scenario_a": {"deficit": 0.11, "served": 108.0},
+        "scenario_b": {"deficit": 0.08, "served": 112.0},
+    },
+    baseline_name="baseline",
+    higher_is_better=["served"],
+)
+
+gp.export_multi_scenario_report(report, "outputs/multi-scenario.html")
+gp.export_multi_scenario_report(report, "outputs/multi-scenario.csv")
+```
+
+## PromptTable Operations
+
+`PromptTable` now supports lightweight filtering, joining, pivoting, and grouped summaries:
+
+```python
+table = gp.batch_accessibility_table(
+    supply_rows=[[200.0], [180.0], [75.0]],
+    travel_cost_rows=[[0.5], [0.6], [1.1]],
+    row_ids=["north", "north", "south"],
+)
+
+north = table.where(row_id="north")
+summary = table.summarize("row_id", {"accessibility_score": "mean"})
+pivot = table.pivot(index="row_id", columns="decay_method", values="accessibility_score", agg="mean")
+```
+
 Example:
 
 ```python

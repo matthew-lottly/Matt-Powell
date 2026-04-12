@@ -379,6 +379,36 @@ def build_scenario_report(
     }
 
 
+def build_multi_scenario_report(
+    scenarios: dict[str, dict[str, float]],
+    *,
+    baseline_name: str,
+    higher_is_better: Sequence[str] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a baseline-relative comparison report across multiple scenarios."""
+    if baseline_name not in scenarios:
+        raise ValueError("baseline_name must exist in scenarios")
+
+    baseline_metrics = scenarios[baseline_name]
+    comparisons = {
+        name: compare_scenarios(
+            baseline_metrics,
+            metrics,
+            higher_is_better=higher_is_better,
+        )
+        for name, metrics in scenarios.items()
+        if name != baseline_name
+    }
+
+    return {
+        "baseline_name": baseline_name,
+        "scenario_names": list(scenarios.keys()),
+        "metadata": dict(metadata or {}),
+        "comparisons": comparisons,
+    }
+
+
 def _scenario_report_rows(report: dict[str, Any]) -> list[dict[str, float | str]]:
     rows: list[dict[str, float | str]] = []
     for metric_name, values in report.get("metrics", {}).items():
@@ -520,6 +550,64 @@ def _scenario_report_svg(rows: Sequence[dict[str, float | str]]) -> str:
         f"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" height=\"{height}\" role=\"img\" aria-label=\"Metric delta percent chart\">"
         f"<line x1=\"{center_x:.1f}\" y1=\"0\" x2=\"{center_x:.1f}\" y2=\"{height}\" stroke=\"#9ca3af\" stroke-dasharray=\"4 4\" />"
         + "".join(bar_rows)
+        + "</svg>"
+    )
+
+
+def _multi_scenario_svg(report: dict[str, Any]) -> str:
+    comparisons = report.get("comparisons", {})
+    if not comparisons:
+        return ""
+    metric_names = sorted({metric for scenario in comparisons.values() for metric in scenario.keys()})
+    if not metric_names:
+        return ""
+
+    scenario_names = list(comparisons.keys())
+    width = 760
+    row_height = 36
+    height = 40 + row_height * len(metric_names)
+    left = 180
+    chart_width = width - left - 20
+    row_parts: list[str] = []
+
+    all_values = [
+        float(comparisons[scenario][metric].get("delta_percent", 0.0))
+        for scenario in scenario_names
+        for metric in metric_names
+        if metric in comparisons[scenario]
+    ]
+    max_magnitude = max((abs(value) for value in all_values), default=1.0)
+    max_magnitude = max(max_magnitude, 1e-9)
+
+    colors = ["#1d8f6a", "#2563eb", "#9333ea", "#c75050", "#d97706", "#0f766e"]
+    bar_band = chart_width / max(len(scenario_names), 1)
+
+    for metric_index, metric in enumerate(metric_names):
+        y = 24 + metric_index * row_height
+        row_parts.append(f"<text x=\"8\" y=\"{y + 12}\" font-size=\"12\">{escape(metric)}</text>")
+        for scenario_index, scenario in enumerate(scenario_names):
+            if metric not in comparisons[scenario]:
+                continue
+            delta = float(comparisons[scenario][metric].get("delta_percent", 0.0))
+            magnitude = abs(delta) / max_magnitude
+            bar_height = max(2.0, magnitude * 16.0)
+            x = left + scenario_index * bar_band + 4
+            bar_width = max(4.0, bar_band - 8)
+            y_top = y + (16.0 - bar_height)
+            color = colors[scenario_index % len(colors)]
+            row_parts.append(
+                f"<rect x=\"{x:.1f}\" y=\"{y_top:.1f}\" width=\"{bar_width:.1f}\" height=\"{bar_height:.1f}\" fill=\"{color}\" rx=\"3\" />"
+            )
+
+    legend = "".join(
+        f"<span style=\"display:inline-block;margin-right:12px;\"><span style=\"display:inline-block;width:10px;height:10px;background:{colors[i % len(colors)]};border-radius:2px;margin-right:4px;\"></span>{escape(name)}</span>"
+        for i, name in enumerate(scenario_names)
+    )
+
+    return (
+        f"<div>{legend}</div>"
+        f"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" height=\"{height}\" role=\"img\" aria-label=\"Multi-scenario delta chart\">"
+        + "".join(row_parts)
         + "</svg>"
     )
 
@@ -678,6 +766,110 @@ def export_scenario_report(
   <h2>Uncertainty</h2>
     {uncertainty_chart_html}
   <ul>{uncertainty_items}</ul>
+</body>
+</html>
+"""
+    path.write_text(html, encoding="utf-8")
+    return str(path)
+
+
+def export_multi_scenario_report(
+    report: dict[str, Any],
+    output_path: str | Path,
+    format: str | None = None,
+    chart_output_path: str | Path | None = None,
+) -> str:
+    """Export a multi-scenario report to JSON, CSV, Markdown, or HTML."""
+    path = Path(output_path)
+    resolved_format = (format or path.suffix.lstrip(".")).lower()
+    if resolved_format == "md":
+        resolved_format = "markdown"
+    if resolved_format not in {"json", "csv", "markdown", "html"}:
+        raise ValueError("format must be one of: json, csv, markdown, html")
+
+    comparisons: dict[str, dict[str, dict[str, float | str]]] = dict(report.get("comparisons", {}))
+    rows: list[dict[str, float | str]] = []
+    for scenario_name, scenario_metrics in comparisons.items():
+        for metric_name, values in scenario_metrics.items():
+            rows.append(
+                {
+                    "scenario": scenario_name,
+                    "metric": metric_name,
+                    "baseline": float(values.get("baseline", 0.0)),
+                    "candidate": float(values.get("candidate", 0.0)),
+                    "delta": float(values.get("delta", 0.0)),
+                    "delta_percent": float(values.get("delta_percent", 0.0)),
+                    "direction": str(values.get("direction", "")),
+                }
+            )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if resolved_format == "json":
+        path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+        return str(path)
+
+    if resolved_format == "csv":
+        with path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=["scenario", "metric", "baseline", "candidate", "delta", "delta_percent", "direction"],
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+        return str(path)
+
+    if resolved_format == "markdown":
+        lines = [
+            f"# Multi-Scenario Report (baseline: {report.get('baseline_name', '')})",
+            "",
+            "| Scenario | Metric | Baseline | Candidate | Delta | Delta % | Direction |",
+            "| --- | --- | ---: | ---: | ---: | ---: | --- |",
+        ]
+        lines.extend(
+            f"| {row['scenario']} | {row['metric']} | {row['baseline']:.6g} | {row['candidate']:.6g} | {row['delta']:.6g} | {row['delta_percent']:.3f} | {row['direction']} |"
+            for row in rows
+        )
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return str(path)
+
+    chart_html = _multi_scenario_svg(report)
+    if chart_output_path is not None:
+        Path(chart_output_path).write_text(chart_html, encoding="utf-8")
+
+    table_rows = "".join(
+        "<tr>"
+        f"<td>{escape(str(row['scenario']))}</td>"
+        f"<td>{escape(str(row['metric']))}</td>"
+        f"<td>{row['baseline']:.6g}</td>"
+        f"<td>{row['candidate']:.6g}</td>"
+        f"<td>{row['delta']:.6g}</td>"
+        f"<td>{row['delta_percent']:.3f}</td>"
+        f"<td>{escape(str(row['direction']))}</td>"
+        "</tr>"
+        for row in rows
+    )
+    html = f"""<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <title>Multi-Scenario Report</title>
+  <style>
+    body {{ font-family: Segoe UI, Arial, sans-serif; margin: 2rem; color: #1f2937; }}
+    table {{ border-collapse: collapse; width: 100%; margin-top: 1rem; }}
+    th, td {{ border: 1px solid #d1d5db; padding: 0.55rem; text-align: left; }}
+    th {{ background: #f3f4f6; }}
+  </style>
+</head>
+<body>
+  <h1>Multi-Scenario Report</h1>
+  <p>Baseline: <strong>{escape(str(report.get('baseline_name', '')))}</strong></p>
+  {chart_html}
+  <table>
+    <thead>
+      <tr><th>Scenario</th><th>Metric</th><th>Baseline</th><th>Candidate</th><th>Delta</th><th>Delta %</th><th>Direction</th></tr>
+    </thead>
+    <tbody>{table_rows}</tbody>
+  </table>
 </body>
 </html>
 """
@@ -928,6 +1120,7 @@ def benchmark_function(
 
 
 __all__ = [
+    "build_multi_scenario_report",
     "batch_accessibility_table",
     "batch_accessibility_scores",
     "benchmark_function",
@@ -935,6 +1128,7 @@ __all__ = [
     "build_scenario_report",
     "calibrate_decay_parameters",
     "compare_scenarios",
+    "export_multi_scenario_report",
     "export_scenario_report",
     "gravity_interaction_table",
     "monte_carlo_interval",
