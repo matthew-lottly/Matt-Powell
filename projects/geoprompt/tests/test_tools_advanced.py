@@ -171,6 +171,17 @@ def test_batch_tables_return_prompt_tables() -> None:
     assert "service_probability" in service_table.columns
 
 
+def test_prompt_table_summarize_groups_rows() -> None:
+    table = batch_accessibility_table(
+        [[100.0], [80.0], [60.0]],
+        [[0.5], [0.6], [0.7]],
+        row_ids=["north", "north", "south"],
+    )
+    summary = table.summarize("row_id", {"accessibility_score": "mean"}).sort_values("row_id")
+    assert summary.head(1)[0]["row_id"] == "north"
+    assert summary.head(1)[0]["row_count"] == 2
+
+
 def test_validate_numeric_series_rejects_nan() -> None:
     with pytest.raises(ValueError, match="must not contain NaN"):
         validate_numeric_series([1.0, float("nan")])

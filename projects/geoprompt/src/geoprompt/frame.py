@@ -65,6 +65,7 @@ class GeoPromptSpatialIndex:
     row_bounds: tuple[tuple[float, float, float, float], ...]
     row_centroids: tuple[Coordinate, ...]
     buckets: dict[tuple[int, int], tuple[int, ...]]
+    centroid_buckets: dict[tuple[int, int], tuple[int, ...]]
 
     @classmethod
     def from_frame(cls, frame: "GeoPromptFrame", cell_size: float | None = None) -> "GeoPromptSpatialIndex":
@@ -78,6 +79,7 @@ class GeoPromptSpatialIndex:
             raise ValueError("cell_size must be greater than zero")
 
         mutable_buckets: dict[tuple[int, int], set[int]] = {}
+        mutable_centroid_buckets: dict[tuple[int, int], set[int]] = {}
         for index, (min_x, min_y, max_x, max_y) in enumerate(row_bounds):
             min_col = int(min_x // cell_size)
             max_col = int(max_x // cell_size)
@@ -86,13 +88,71 @@ class GeoPromptSpatialIndex:
             for col in range(min_col, max_col + 1):
                 for row in range(min_row, max_row + 1):
                     mutable_buckets.setdefault((col, row), set()).add(index)
+            centroid_x, centroid_y = row_centroids[index]
+            centroid_bucket = (int(centroid_x // cell_size), int(centroid_y // cell_size))
+            mutable_centroid_buckets.setdefault(centroid_bucket, set()).add(index)
 
         return cls(
             cell_size=float(cell_size),
             row_bounds=row_bounds,
             row_centroids=row_centroids,
             buckets={key: tuple(sorted(values)) for key, values in mutable_buckets.items()},
+            centroid_buckets={key: tuple(sorted(values)) for key, values in mutable_centroid_buckets.items()},
         )
+
+    def query_centroids(self, min_x: float, min_y: float, max_x: float, max_y: float) -> list[int]:
+        min_col = int(min_x // self.cell_size)
+        max_col = int(max_x // self.cell_size)
+        min_row = int(min_y // self.cell_size)
+        max_row = int(max_y // self.cell_size)
+        candidate_indices: set[int] = set()
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                candidate_indices.update(self.centroid_buckets.get((col, row), ()))
+        return sorted(
+            index
+            for index in candidate_indices
+            if min_x <= self.row_centroids[index][0] <= max_x and min_y <= self.row_centroids[index][1] <= max_y
+        )
+
+    def nearest(self, origin_centroid: Coordinate, k: int, max_distance: float | None = None) -> list[int]:
+        if k <= 0:
+            raise ValueError("k must be greater than zero")
+
+        if max_distance is not None:
+            return self.query_centroids(
+                origin_centroid[0] - max_distance,
+                origin_centroid[1] - max_distance,
+                origin_centroid[0] + max_distance,
+                origin_centroid[1] + max_distance,
+            )
+
+        origin_col = int(origin_centroid[0] // self.cell_size)
+        origin_row = int(origin_centroid[1] // self.cell_size)
+        candidate_indices: set[int] = set()
+        max_ring = max(1, len(self.centroid_buckets))
+
+        for ring in range(max_ring + 1):
+            for col in range(origin_col - ring, origin_col + ring + 1):
+                for row in range(origin_row - ring, origin_row + ring + 1):
+                    if max(abs(col - origin_col), abs(row - origin_row)) != ring:
+                        continue
+                    candidate_indices.update(self.centroid_buckets.get((col, row), ()))
+
+            if len(candidate_indices) < k:
+                continue
+
+            distances = sorted(
+                coordinate_distance(origin_centroid, self.row_centroids[index])
+                for index in candidate_indices
+            )
+            kth_distance = distances[k - 1]
+            next_ring = ring + 1
+            lower_bound = max(0.0, next_ring * self.cell_size - self.cell_size)
+            if kth_distance <= lower_bound:
+                break
+
+        return sorted(candidate_indices)
 
     def query(self, min_x: float, min_y: float, max_x: float, max_y: float, mode: BoundsQueryMode = "intersects") -> list[int]:
         min_col = int(min_x // self.cell_size)
@@ -380,9 +440,13 @@ class GeoPromptFrame:
         k: int,
         distance_method: DistanceMethod,
         max_distance: float | None = None,
+        candidate_indices: Sequence[int] | None = None,
     ) -> list[tuple[Record, float]]:
         candidates: list[tuple[Record, float]] = []
-        for right_row, right_centroid in zip(right_rows, right_centroids, strict=True):
+        indices = candidate_indices if candidate_indices is not None else range(len(right_rows))
+        for index in indices:
+            right_row = right_rows[index]
+            right_centroid = right_centroids[index]
             if max_distance is not None and distance_method == "euclidean":
                 if abs(origin_centroid[0] - right_centroid[0]) > max_distance or abs(origin_centroid[1] - right_centroid[1]) > max_distance:
                     continue
@@ -435,9 +499,11 @@ class GeoPromptFrame:
         right_columns = [column for column in other.columns if column != other.geometry_column]
         left_centroids = self._centroids()
         right_centroids = other._centroids()
+        right_index = other.build_spatial_index() if distance_method == "euclidean" and right_rows else None
         joined_rows: list[Record] = []
 
         for left_row, left_centroid in zip(self._rows, left_centroids, strict=True):
+            candidate_indices = None if right_index is None else right_index.nearest(left_centroid, k, max_distance=max_distance)
             row_matches = self._nearest_row_matches(
                 origin_centroid=left_centroid,
                 right_rows=right_rows,
@@ -445,6 +511,7 @@ class GeoPromptFrame:
                 k=k,
                 distance_method=distance_method,
                 max_distance=max_distance,
+                candidate_indices=candidate_indices,
             )
 
             if not row_matches and how == "left":
@@ -716,11 +783,22 @@ class GeoPromptFrame:
         right_columns = [column for column in other.columns if column != other.geometry_column]
         left_centroids = self._centroids()
         right_centroids = other._centroids()
+        right_index = other.build_spatial_index() if distance_method == "euclidean" and right_rows else None
         joined_rows: list[Record] = []
 
         for left_row, left_centroid in zip(self._rows, left_centroids, strict=True):
             row_matches: list[tuple[Record, float]] = []
-            for right_row, right_centroid in zip(right_rows, right_centroids, strict=True):
+            candidate_indices = range(len(right_rows))
+            if right_index is not None:
+                candidate_indices = right_index.query_centroids(
+                    left_centroid[0] - max_distance,
+                    left_centroid[1] - max_distance,
+                    left_centroid[0] + max_distance,
+                    left_centroid[1] + max_distance,
+                )
+            for index in candidate_indices:
+                right_row = right_rows[index]
+                right_centroid = right_centroids[index]
                 if distance_method == "euclidean":
                     if abs(left_centroid[0] - right_centroid[0]) > max_distance or abs(left_centroid[1] - right_centroid[1]) > max_distance:
                         continue
@@ -1067,6 +1145,7 @@ class GeoPromptFrame:
         joined_rows: list[Record] = []
         right_rows = list(other._rows)
         right_bounds = [geometry_bounds(row[other.geometry_column]) for row in right_rows]
+        right_index = other.build_spatial_index() if right_rows else None
 
         predicate_bounds_filter = {
             "intersects": _bounds_intersect,
@@ -1089,7 +1168,12 @@ class GeoPromptFrame:
             left_geometry = left_row[self.geometry_column]
             left_bounds = geometry_bounds(left_geometry)
             row_matches = []
-            for right_row, right_bound in zip(right_rows, right_bounds, strict=True):
+            candidate_indices = range(len(right_rows))
+            if right_index is not None:
+                candidate_indices = right_index.query(left_bounds[0], left_bounds[1], left_bounds[2], left_bounds[3], mode="intersects")
+            for index in candidate_indices:
+                right_row = right_rows[index]
+                right_bound = right_bounds[index]
                 if not predicate_bounds_filter[predicate](left_bounds, right_bound):
                     continue
                 if matches(left_geometry, right_row[other.geometry_column]):

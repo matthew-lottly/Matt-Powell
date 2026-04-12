@@ -27,7 +27,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Lane: Spatial package design
 - Domain: Reusable custom spatial analysis
 - Stack: Python, JSON fixtures, lightweight geometry frame, custom equations
-- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, reusable bounds indexing, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, buffer, buffer joins, coverage summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, PromptTable outputs for model/report workflows, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
+- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, reusable bounds indexing, indexed Euclidean joins, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, buffer, buffer joins, coverage summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, PromptTable outputs for model/report workflows, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
 
 ## Overview
 
@@ -43,6 +43,7 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 - Custom equations for spatial decay, influence, interaction, corridor strength, and area similarity scoring
 - Basic nearest-neighbor analysis for point, line, and polygon centroids
 - Bounding-box queries for quick map-window style filtering, with reusable spatial indexing for repeated windows
+- Indexed Euclidean nearest, proximity, and spatial joins for repeated right-side search workloads
 - Radius queries for fast proximity filtering around a feature or coordinate anchor
 - Within-distance predicates for scoring or filtering without materializing a join
 - CRS assignment and reprojection through `GeoPromptFrame.to_crs(...)`
@@ -145,9 +146,11 @@ report = gp.build_scenario_report(
     baseline_metrics={"served_load": 180.0, "deficit": 0.12},
     candidate_metrics={"served_load": 205.0, "deficit": 0.05},
     higher_is_better=["served_load"],
+    uncertainty={"served_load": {"lower": 198.0, "observed": 205.0, "upper": 212.0}},
 )
 gp.export_scenario_report(report, "outputs/scenario-report.html")
 report_table = gp.scenario_report_table(report)
+summary = report_table.summarize("direction", {"delta_percent": "mean"})
 
 scores = gp.batch_accessibility_scores(
     supply_rows=[[200.0, 100.0, 30.0]],
@@ -158,6 +161,7 @@ scores = gp.batch_accessibility_scores(
 
 index = frame.build_spatial_index()
 window = frame.query_bounds_indexed(-112.0, 40.6, -111.8, 40.8, spatial_index=index)
+joined = frame.proximity_join(frame, max_distance=0.08)
 ```
 
 ```python

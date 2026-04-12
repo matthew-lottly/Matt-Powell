@@ -35,6 +35,10 @@ def main() -> None:
         baseline_name="existing network",
         candidate_name="reinforced network",
         higher_is_better=["served_load"],
+        uncertainty={
+            "served_load": {"lower": 198.0, "observed": 205.0, "upper": 212.0},
+            "deficit": {"lower": 0.03, "observed": 0.05, "upper": 0.07},
+        },
         metadata={"scenario_id": "network-reinforcement-demo"},
     )
 
@@ -48,6 +52,7 @@ def main() -> None:
     report_table_path = output_dir / "scenario-report-table.csv"
     report_table.to_csv(report_table_path)
     print(f"wrote {report_table_path}")
+    print(report_table.summarize("direction", {"delta_percent": "mean"}).to_markdown())
 
     scores = gp.batch_accessibility_scores(
         supply_rows=[[200.0, 100.0, 30.0], [150.0, 90.0, 25.0]],
@@ -95,10 +100,14 @@ def main() -> None:
         rate=0.6,
     )
     print(f"table columns: {accessibility_table.columns}")
+    print(accessibility_table.summarize("decay_method", {"accessibility_score": "mean"}).to_markdown())
 
     spatial_index = metric_frame.build_spatial_index()
     indexed_window = metric_frame.query_bounds_indexed(-111.91, 40.74, -111.83, 40.79, spatial_index=spatial_index)
     print(f"indexed query rows: {len(indexed_window)}")
+
+    indexed_proximity = metric_frame.proximity_join(metric_frame, max_distance=0.06)
+    print(f"indexed proximity rows: {len(indexed_proximity)}")
 
 
 if __name__ == "__main__":

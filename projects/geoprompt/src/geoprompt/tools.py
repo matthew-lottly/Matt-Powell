@@ -524,6 +524,53 @@ def _scenario_report_svg(rows: Sequence[dict[str, float | str]]) -> str:
     )
 
 
+def _scenario_uncertainty_svg(uncertainty: dict[str, dict[str, float]]) -> str:
+    points = [
+        (metric, values)
+        for metric, values in uncertainty.items()
+        if {"lower", "upper"}.issubset(values)
+    ]
+    if not points:
+        return ""
+
+    all_values = [float(values[key]) for _, values in points for key in values if key in {"lower", "upper", "observed"}]
+    min_value = min(all_values)
+    max_value = max(all_values)
+    span = max(max_value - min_value, 1e-9)
+    width = 560
+    height = 36 * len(points) + 24
+    rows: list[str] = []
+    for index, (metric, values) in enumerate(points):
+        y = 18 + index * 32
+        lower = float(values["lower"])
+        upper = float(values["upper"])
+        observed = float(values.get("observed", (lower + upper) / 2.0))
+        start_x = 140 + ((lower - min_value) / span) * 360
+        end_x = 140 + ((upper - min_value) / span) * 360
+        observed_x = 140 + ((observed - min_value) / span) * 360
+        rows.append(
+            f"<text x=\"8\" y=\"{y + 12}\" font-size=\"12\" fill=\"#1f2937\">{escape(str(metric))}</text>"
+            f"<line x1=\"{start_x:.1f}\" y1=\"{y + 9}\" x2=\"{end_x:.1f}\" y2=\"{y + 9}\" stroke=\"#2563eb\" stroke-width=\"4\" stroke-linecap=\"round\" />"
+            f"<circle cx=\"{observed_x:.1f}\" cy=\"{y + 9}\" r=\"5\" fill=\"#111827\" />"
+        )
+    return (
+        f"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" height=\"{height}\" role=\"img\" aria-label=\"Uncertainty interval chart\">"
+        + "".join(rows)
+        + "</svg>"
+    )
+
+
+def _scenario_ranking_html(rows: Sequence[dict[str, float | str]]) -> str:
+    if not rows:
+        return ""
+    ranked = sorted(rows, key=lambda row: abs(float(row["delta_percent"])), reverse=True)
+    items = "".join(
+        f"<li><strong>{escape(str(row['metric']))}</strong>: {float(row['delta_percent']):.2f}% ({escape(str(row['direction']))})</li>"
+        for row in ranked
+    )
+    return f"<ol>{items}</ol>"
+
+
 def export_scenario_report(
     report: dict[str, Any],
     output_path: str | Path,
@@ -584,6 +631,8 @@ def export_scenario_report(
         for key, value in uncertainty.items()
     )
     chart_html = _scenario_report_svg(rows)
+    uncertainty_chart_html = _scenario_uncertainty_svg(uncertainty)
+    ranking_html = _scenario_ranking_html(rows)
     row_html = "".join(
         "<tr>"
         f"<td>{escape(str(row['metric']))}</td>"
@@ -622,9 +671,12 @@ def export_scenario_report(
     </thead>
     <tbody>{row_html}</tbody>
   </table>
+    <h2>Top Metric Changes</h2>
+    {ranking_html}
   <h2>Metadata</h2>
   <ul>{metadata_items}</ul>
   <h2>Uncertainty</h2>
+    {uncertainty_chart_html}
   <ul>{uncertainty_items}</ul>
 </body>
 </html>

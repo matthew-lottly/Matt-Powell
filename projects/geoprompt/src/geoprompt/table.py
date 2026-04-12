@@ -47,6 +47,40 @@ class PromptTable:
                 raise KeyError(f"column '{column}' is not present")
         return PromptTable([{column: row[column] for column in columns} for row in self._rows])
 
+    def summarize(self, by: str, aggregations: dict[str, str] | None = None) -> "PromptTable":
+        if by not in self.columns:
+            raise KeyError(f"column '{by}' is not present")
+
+        grouped_rows: dict[Any, list[Record]] = {}
+        for row in self._rows:
+            grouped_rows.setdefault(row[by], []).append(row)
+
+        summary_rows: list[Record] = []
+        for group_value, rows in grouped_rows.items():
+            summary_row: Record = {by: group_value, "row_count": len(rows)}
+            for column, operation in (aggregations or {}).items():
+                values = [row[column] for row in rows if column in row and row[column] is not None]
+                if not values:
+                    summary_row[f"{column}_{operation}"] = None
+                    continue
+                if operation == "sum":
+                    summary_row[f"{column}_{operation}"] = sum(float(value) for value in values)
+                elif operation == "mean":
+                    summary_row[f"{column}_{operation}"] = sum(float(value) for value in values) / len(values)
+                elif operation == "min":
+                    summary_row[f"{column}_{operation}"] = min(values)
+                elif operation == "max":
+                    summary_row[f"{column}_{operation}"] = max(values)
+                elif operation == "first":
+                    summary_row[f"{column}_{operation}"] = values[0]
+                elif operation == "count":
+                    summary_row[f"{column}_{operation}"] = len(values)
+                else:
+                    raise ValueError(f"unsupported aggregation: {operation}")
+            summary_rows.append(summary_row)
+
+        return PromptTable(summary_rows)
+
     def to_markdown(self) -> str:
         if not self._rows:
             return "| |\n| --- |\n"

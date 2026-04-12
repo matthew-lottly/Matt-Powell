@@ -72,6 +72,7 @@ report = gp.build_scenario_report(
 table = gp.scenario_report_table(report)
 print(table.columns)
 print(table.to_markdown())
+print(table.summarize("direction", {"delta_percent": "mean"}).to_markdown())
 ```
 
 ## Batch Equation Helpers
@@ -98,6 +99,21 @@ The package-level batch helpers also have table-returning companions:
 - `gravity_interaction_table(...)`
 - `service_probability_table(...)`
 
+`PromptTable` also supports lightweight grouped summaries for reporting workflows:
+
+```python
+import geoprompt as gp
+
+table = gp.batch_accessibility_table(
+    supply_rows=[[200.0], [180.0], [75.0]],
+    travel_cost_rows=[[0.5], [0.6], [1.1]],
+    row_ids=["north", "north", "south"],
+)
+
+summary = table.summarize("row_id", {"accessibility_score": "mean"})
+print(summary.to_markdown())
+```
+
 ## Indexed Bounds Queries
 
 For repeated bounding-box filters, build a reusable spatial index once and pass it back into the frame.
@@ -119,6 +135,8 @@ window = frame.query_bounds_indexed(
 
 print(len(window))
 ```
+
+The same index-backed path now supports repeated Euclidean join workflows such as `nearest_join(...)`, `proximity_join(...)`, and `spatial_join(...)` without changing their public API.
 
 Example:
 

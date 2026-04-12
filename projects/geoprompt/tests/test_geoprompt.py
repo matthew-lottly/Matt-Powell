@@ -395,6 +395,23 @@ def test_frame_batch_tables_and_spatial_index() -> None:
     assert "service_probability" in service_table.columns
 
 
+def test_indexed_join_paths_match_existing_results() -> None:
+    regions = read_features(PROJECT_ROOT / "data" / "benchmark_regions.json", crs="EPSG:4326")
+    assets = read_features(PROJECT_ROOT / "data" / "benchmark_features.json", crs="EPSG:4326")
+
+    direct_proximity = regions.proximity_join(assets, max_distance=0.08)
+    direct_nearest = regions.nearest_join(assets, k=2)
+    direct_spatial = regions.spatial_join(assets, predicate="intersects")
+
+    indexed_proximity = regions.proximity_join(assets, max_distance=0.08)
+    indexed_nearest = regions.nearest_join(assets, k=2)
+    indexed_spatial = regions.spatial_join(assets, predicate="intersects")
+
+    assert direct_proximity.to_records() == indexed_proximity.to_records()
+    assert direct_nearest.to_records() == indexed_nearest.to_records()
+    assert direct_spatial.to_records() == indexed_spatial.to_records()
+
+
 @pytest.mark.skipif(os.environ.get("GEOPROMPT_RUN_GEO_IO") != "1", reason="requires optional geospatial IO stack")
 def test_geospatial_integration_parquet_round_trip(tmp_path: Path) -> None:
     gpd = pytest.importorskip("geopandas")
