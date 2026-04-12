@@ -7,7 +7,7 @@ from .equations import (accessibility_gini, age_adjusted_failure_rate, area_simi
                         haversine_distance, logistic_service_probability,
                         prompt_decay, prompt_influence, prompt_interaction,
                         weighted_accessibility_score)
-from .frame import Bounds, GeoPromptFrame
+from .frame import Bounds, GeoPromptFrame, GeoPromptSpatialIndex
 from .geometry import geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, transform_geometry
 from .overlay import buffer_geometries, dissolve_geometries, geometry_from_shapely, geometry_to_geojson, geometry_to_shapely
 from .io import (WORKLOAD_PRESETS, frame_to_geojson, get_workload_preset, iter_csv_points, iter_data,
@@ -15,11 +15,16 @@ from .io import (WORKLOAD_PRESETS, frame_to_geojson, get_workload_preset, iter_c
                  read_features, read_geojson, read_points, read_table, write_data,
                  write_geojson)
 from .interop import from_geopandas, geopandas_available, to_geopandas
+from .table import PromptTable
 from .tools import (benchmark_function, bootstrap_confidence_interval,
                     build_scenario_report, calibrate_decay_parameters,
+                    batch_accessibility_table,
                     compare_scenarios, export_scenario_report,
+                    gravity_interaction_table,
                     monte_carlo_interval, normalize_units,
                     optimize_decay_parameters, sensitivity_analysis,
+                    scenario_report_table,
+                    service_probability_table,
                     validate_numeric_series, vectorized_decay,
                     vectorized_gravity_interaction,
                     vectorized_service_probability,
@@ -29,11 +34,14 @@ from .tools import (benchmark_function, bootstrap_confidence_interval,
 __all__ = [
     "Bounds",
     "GeoPromptFrame",
+    "GeoPromptSpatialIndex",
+    "PromptTable",
     "accessibility_gini",
     "age_adjusted_failure_rate",
     "area_similarity",
     "benchmark_function",
     "batch_accessibility_scores",
+    "batch_accessibility_table",
     "bootstrap_confidence_interval",
     "buffer_geometries",
     "build_scenario_report",
@@ -67,6 +75,7 @@ __all__ = [
     "geometry_within_bounds",
     "geopandas_available",
     "gravity_interaction",
+    "gravity_interaction_table",
     "haversine_distance",
     "from_geopandas",
     "get_workload_preset",
@@ -87,7 +96,9 @@ __all__ = [
     "read_csv_points",
     "read_table",
     "read_data_with_preset",
+    "scenario_report_table",
     "sensitivity_analysis",
+    "service_probability_table",
     "to_geopandas",
     "transform_geometry",
     "validate_numeric_series",

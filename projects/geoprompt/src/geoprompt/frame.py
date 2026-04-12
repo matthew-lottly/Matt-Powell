@@ -15,6 +15,7 @@ from typing import Any, Iterable, Literal, Sequence
 from .equations import DistanceMethod, area_similarity, coordinate_distance, corridor_strength, directional_alignment, prompt_influence, prompt_interaction
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections
+from .table import PromptTable
 from .tools import batch_accessibility_scores, vectorized_gravity_interaction, vectorized_service_probability
 
 
@@ -56,6 +57,68 @@ class Bounds:
     min_y: float
     max_x: float
     max_y: float
+
+
+@dataclass(frozen=True)
+class GeoPromptSpatialIndex:
+    cell_size: float
+    row_bounds: tuple[tuple[float, float, float, float], ...]
+    row_centroids: tuple[Coordinate, ...]
+    buckets: dict[tuple[int, int], tuple[int, ...]]
+
+    @classmethod
+    def from_frame(cls, frame: "GeoPromptFrame", cell_size: float | None = None) -> "GeoPromptSpatialIndex":
+        row_bounds = tuple(geometry_bounds(row[frame.geometry_column]) for row in frame)
+        row_centroids = tuple(geometry_centroid(row[frame.geometry_column]) for row in frame)
+        if cell_size is None:
+            frame_bounds = frame.bounds()
+            span = max(frame_bounds.max_x - frame_bounds.min_x, frame_bounds.max_y - frame_bounds.min_y, 1.0)
+            cell_size = max(span / max(len(frame), 1) ** 0.5, 1e-9)
+        if cell_size <= 0:
+            raise ValueError("cell_size must be greater than zero")
+
+        mutable_buckets: dict[tuple[int, int], set[int]] = {}
+        for index, (min_x, min_y, max_x, max_y) in enumerate(row_bounds):
+            min_col = int(min_x // cell_size)
+            max_col = int(max_x // cell_size)
+            min_row = int(min_y // cell_size)
+            max_row = int(max_y // cell_size)
+            for col in range(min_col, max_col + 1):
+                for row in range(min_row, max_row + 1):
+                    mutable_buckets.setdefault((col, row), set()).add(index)
+
+        return cls(
+            cell_size=float(cell_size),
+            row_bounds=row_bounds,
+            row_centroids=row_centroids,
+            buckets={key: tuple(sorted(values)) for key, values in mutable_buckets.items()},
+        )
+
+    def query(self, min_x: float, min_y: float, max_x: float, max_y: float, mode: BoundsQueryMode = "intersects") -> list[int]:
+        min_col = int(min_x // self.cell_size)
+        max_col = int(max_x // self.cell_size)
+        min_row = int(min_y // self.cell_size)
+        max_row = int(max_y // self.cell_size)
+        candidate_indices: set[int] = set()
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                candidate_indices.update(self.buckets.get((col, row), ()))
+
+        if mode == "intersects":
+            return sorted(
+                index for index in candidate_indices if _bounds_intersect(self.row_bounds[index], (min_x, min_y, max_x, max_y))
+            )
+        if mode == "within":
+            return sorted(
+                index for index in candidate_indices if _bounds_within(self.row_bounds[index], (min_x, min_y, max_x, max_y))
+            )
+        if mode == "centroid":
+            return sorted(
+                index
+                for index in candidate_indices
+                if min_x <= self.row_centroids[index][0] <= max_x and min_y <= self.row_centroids[index][1] <= max_y
+            )
+        raise ValueError(f"unsupported bounds query mode: {mode}")
 
 
 class GeoPromptFrame:
@@ -903,6 +966,22 @@ class GeoPromptFrame:
 
         return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
 
+    def query_bounds_indexed(
+        self,
+        min_x: float,
+        min_y: float,
+        max_x: float,
+        max_y: float,
+        mode: BoundsQueryMode = "intersects",
+        spatial_index: GeoPromptSpatialIndex | None = None,
+    ) -> "GeoPromptFrame":
+        """Return a bounds-filtered frame using a reusable spatial index."""
+        if min_x > max_x or min_y > max_y:
+            raise ValueError("query bounds must be ordered from minimum to maximum")
+        index = spatial_index or self.build_spatial_index()
+        rows = [dict(self._rows[row_index]) for row_index in index.query(min_x, min_y, max_x, max_y, mode=mode)]
+        return GeoPromptFrame(rows=rows, geometry_column=self.geometry_column, crs=self.crs)
+
     def set_crs(self, crs: str, allow_override: bool = False) -> "GeoPromptFrame":
         """Attach a CRS label to the frame without transforming coordinates.
 
@@ -1240,6 +1319,37 @@ class GeoPromptFrame:
             sigma=sigma,
         )
 
+    def batch_accessibility_table(
+        self,
+        supply_columns: Sequence[str],
+        travel_cost_columns: Sequence[str],
+        decay_method: str = "power",
+        *,
+        id_column: str = "site_id",
+        scale: float = 1.0,
+        power: float = 2.0,
+        rate: float = 1.0,
+        sigma: float = 1.0,
+    ) -> PromptTable:
+        self._require_column(id_column)
+        scores = self.batch_accessibility_scores(
+            supply_columns,
+            travel_cost_columns,
+            decay_method=decay_method,
+            scale=scale,
+            power=power,
+            rate=rate,
+            sigma=sigma,
+        )
+        return PromptTable.from_records(
+            {
+                id_column: str(row[id_column]),
+                "accessibility_score": score,
+                "decay_method": decay_method,
+            }
+            for row, score in zip(self._rows, scores, strict=True)
+        )
+
     def gravity_interaction_series(
         self,
         origin_mass_column: str,
@@ -1265,6 +1375,39 @@ class GeoPromptFrame:
             scale_factor=scale_factor,
         )
 
+    def gravity_interaction_table(
+        self,
+        origin_mass_column: str,
+        destination_mass_column: str,
+        cost_column: str,
+        *,
+        id_column: str = "site_id",
+        alpha: float = 1.0,
+        beta: float = 1.0,
+        gamma: float = 1.0,
+        scale_factor: float = 1.0,
+    ) -> PromptTable:
+        self._require_column(id_column)
+        values = self.gravity_interaction_series(
+            origin_mass_column,
+            destination_mass_column,
+            cost_column,
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+            scale_factor=scale_factor,
+        )
+        return PromptTable.from_records(
+            {
+                id_column: str(row[id_column]),
+                origin_mass_column: float(row[origin_mass_column]),
+                destination_mass_column: float(row[destination_mass_column]),
+                cost_column: float(row[cost_column]),
+                "gravity_interaction": value,
+            }
+            for row, value in zip(self._rows, values, strict=True)
+        )
+
     def service_probability_series(
         self,
         predictor_columns: Sequence[str],
@@ -1279,6 +1422,33 @@ class GeoPromptFrame:
             for row in self._rows
         ]
         return vectorized_service_probability(predictor_rows, coefficients, intercept=intercept)
+
+    def service_probability_table(
+        self,
+        predictor_columns: Sequence[str],
+        coefficients: dict[str, float],
+        intercept: float = 0.0,
+        *,
+        id_column: str = "site_id",
+    ) -> PromptTable:
+        self._require_column(id_column)
+        probabilities = self.service_probability_series(
+            predictor_columns,
+            coefficients,
+            intercept=intercept,
+        )
+        return PromptTable.from_records(
+            {
+                id_column: str(row[id_column]),
+                **{column: float(row[column]) for column in predictor_columns},
+                "service_probability": probability,
+            }
+            for row, probability in zip(self._rows, probabilities, strict=True)
+        )
+
+    def build_spatial_index(self, cell_size: float | None = None) -> GeoPromptSpatialIndex:
+        """Build a lightweight bounds index for repeated bounding-box queries."""
+        return GeoPromptSpatialIndex.from_frame(self, cell_size=cell_size)
 
     def _require_column(self, name: str) -> None:
         if name not in self.columns:
@@ -1521,4 +1691,4 @@ class GeoPromptFrame:
         return interactions
 
 
-__all__ = ["Bounds", "GeoPromptFrame"]
+__all__ = ["Bounds", "GeoPromptFrame", "GeoPromptSpatialIndex"]

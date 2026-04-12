@@ -336,6 +336,65 @@ def test_frame_batch_equation_wrappers() -> None:
     assert all(0.0 < value < 1.0 for value in service_probability)
 
 
+def test_frame_batch_tables_and_spatial_index() -> None:
+    frame = read_features(PROJECT_ROOT / "data" / "sample_features.json", crs="EPSG:4326")
+
+    indexed = frame.build_spatial_index()
+    direct = frame.query_bounds(-111.97, 40.68, -111.84, 40.79, mode="intersects")
+    indexed_result = frame.query_bounds_indexed(-111.97, 40.68, -111.84, 40.79, mode="intersects", spatial_index=indexed)
+
+    metric_frame = GeoPromptFrame.from_records(
+        [
+            {
+                "site_id": "a",
+                "supply_1": 100.0,
+                "supply_2": 40.0,
+                "cost_1": 0.5,
+                "cost_2": 1.2,
+                "origin_mass": 10.0,
+                "destination_mass": 5.0,
+                "generalized_cost": 1.5,
+                "pressure": 0.8,
+                "redundancy": 0.4,
+                "geometry": {"type": "Point", "coordinates": (-111.9, 40.7)},
+            },
+            {
+                "site_id": "b",
+                "supply_1": 80.0,
+                "supply_2": 25.0,
+                "cost_1": 0.4,
+                "cost_2": 0.9,
+                "origin_mass": 8.0,
+                "destination_mass": 4.0,
+                "generalized_cost": 2.0,
+                "pressure": 0.6,
+                "redundancy": 0.7,
+                "geometry": {"type": "Point", "coordinates": (-112.0, 40.8)},
+            },
+        ],
+        crs="EPSG:4326",
+    )
+
+    accessibility_table = metric_frame.batch_accessibility_table(
+        supply_columns=["supply_1", "supply_2"],
+        travel_cost_columns=["cost_1", "cost_2"],
+        decay_method="exponential",
+        rate=0.7,
+    )
+    gravity_table = metric_frame.gravity_interaction_table("origin_mass", "destination_mass", "generalized_cost")
+    service_table = metric_frame.service_probability_table(
+        predictor_columns=["pressure", "redundancy"],
+        coefficients={"pressure": 1.1, "redundancy": 0.6},
+        intercept=-0.4,
+    )
+
+    assert direct.to_records() == indexed_result.to_records()
+    assert indexed.query(-111.97, 40.68, -111.84, 40.79)
+    assert accessibility_table.head(1)[0]["site_id"] == "a"
+    assert "gravity_interaction" in gravity_table.columns
+    assert "service_probability" in service_table.columns
+
+
 @pytest.mark.skipif(os.environ.get("GEOPROMPT_RUN_GEO_IO") != "1", reason="requires optional geospatial IO stack")
 def test_geospatial_integration_parquet_round_trip(tmp_path: Path) -> None:
     gpd = pytest.importorskip("geopandas")

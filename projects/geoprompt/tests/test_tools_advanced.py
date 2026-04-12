@@ -9,11 +9,15 @@ from geoprompt import GeoPromptFrame
 from geoprompt.equations import prompt_decay
 from geoprompt.interop import geopandas_available
 from geoprompt.tools import (
+    batch_accessibility_table,
     batch_accessibility_scores,
     bootstrap_confidence_interval,
     build_scenario_report,
     export_scenario_report,
+    gravity_interaction_table,
     optimize_decay_parameters,
+    scenario_report_table,
+    service_probability_table,
     validate_numeric_series,
     vectorized_decay,
     vectorized_gravity_interaction,
@@ -48,6 +52,18 @@ def test_build_scenario_report_structure() -> None:
     assert report["metadata"]["scenario_id"] == "demo"
 
 
+def test_scenario_report_table_returns_tabular_rows() -> None:
+    report = build_scenario_report(
+        {"deficit": 0.2, "served": 100.0},
+        {"deficit": 0.1, "served": 110.0},
+        higher_is_better=["served"],
+    )
+    table = scenario_report_table(report)
+    assert len(table) == 2
+    assert "metric" in table.columns
+    assert table.sort_values("metric").head(1)[0]["metric"] == "deficit"
+
+
 def test_export_scenario_report_json_csv_markdown_html(tmp_path) -> None:
     report = build_scenario_report(
         {"deficit": 0.2, "served": 100.0},
@@ -73,7 +89,9 @@ def test_export_scenario_report_json_csv_markdown_html(tmp_path) -> None:
         rows = list(csv.DictReader(handle))
     assert rows[0]["metric"] in {"deficit", "served"}
     assert "| Metric | Baseline | Candidate |" in markdown_path.read_text(encoding="utf-8")
-    assert "Scenario Report" in html_path.read_text(encoding="utf-8")
+    html_text = html_path.read_text(encoding="utf-8")
+    assert "Scenario Report" in html_text
+    assert "<svg" in html_text
 
 
 def test_vectorized_decay_matches_scalar() -> None:
@@ -125,6 +143,32 @@ def test_batch_accessibility_scores_matches_scalar() -> None:
         for supplies, costs in zip(supply_rows, cost_rows)
     ]
     assert batch == pytest.approx(scalar)
+
+
+def test_batch_tables_return_prompt_tables() -> None:
+    accessibility_table = batch_accessibility_table(
+        [[100.0, 40.0], [80.0, 20.0]],
+        [[0.5, 1.0], [0.25, 0.75]],
+        decay_method="exponential",
+        rate=0.7,
+        row_ids=["a", "b"],
+    )
+    gravity_table = gravity_interaction_table(
+        [10.0, 15.0],
+        [5.0, 6.0],
+        [1.2, 2.0],
+        row_ids=["a", "b"],
+    )
+    service_table = service_probability_table(
+        [{"pressure": 0.8}, {"pressure": 0.5}],
+        {"pressure": 1.4},
+        intercept=-0.5,
+        row_ids=["a", "b"],
+    )
+
+    assert accessibility_table.head(1)[0]["row_id"] == "a"
+    assert "gravity_interaction" in gravity_table.columns
+    assert "service_probability" in service_table.columns
 
 
 def test_validate_numeric_series_rejects_nan() -> None:

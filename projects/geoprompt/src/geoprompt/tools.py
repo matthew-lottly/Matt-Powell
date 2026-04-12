@@ -18,6 +18,7 @@ from .equations import (
     prompt_decay,
     weighted_accessibility_score,
 )
+from .table import PromptTable
 
 try:
     import numpy as _np
@@ -396,6 +397,133 @@ def _scenario_report_rows(report: dict[str, Any]) -> list[dict[str, float | str]
     return rows
 
 
+def scenario_report_table(report: dict[str, Any]) -> PromptTable:
+    """Return the metric comparison section of a scenario report as a lightweight table."""
+    return PromptTable.from_records(_scenario_report_rows(report))
+
+
+def batch_accessibility_table(
+    supply_rows: Sequence[Sequence[float]],
+    travel_cost_rows: Sequence[Sequence[float]],
+    decay_method: str = "power",
+    *,
+    row_ids: Sequence[str] | None = None,
+    scale: float = 1.0,
+    power: float = 2.0,
+    rate: float = 1.0,
+    sigma: float = 1.0,
+) -> PromptTable:
+    scores = batch_accessibility_scores(
+        supply_rows,
+        travel_cost_rows,
+        decay_method=decay_method,
+        scale=scale,
+        power=power,
+        rate=rate,
+        sigma=sigma,
+    )
+    identifiers = list(row_ids) if row_ids is not None else [str(index) for index in range(len(scores))]
+    if len(identifiers) != len(scores):
+        raise ValueError("row_ids must match the number of score rows")
+    return PromptTable.from_records(
+        {
+            "row_id": row_id,
+            "accessibility_score": score,
+            "decay_method": decay_method,
+        }
+        for row_id, score in zip(identifiers, scores, strict=True)
+    )
+
+
+def gravity_interaction_table(
+    origin_masses: Sequence[float],
+    destination_masses: Sequence[float],
+    generalized_costs: Sequence[float],
+    *,
+    row_ids: Sequence[str] | None = None,
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    gamma: float = 1.0,
+    scale_factor: float = 1.0,
+) -> PromptTable:
+    values = vectorized_gravity_interaction(
+        origin_masses,
+        destination_masses,
+        generalized_costs,
+        alpha=alpha,
+        beta=beta,
+        gamma=gamma,
+        scale_factor=scale_factor,
+    )
+    identifiers = list(row_ids) if row_ids is not None else [str(index) for index in range(len(values))]
+    if len(identifiers) != len(values):
+        raise ValueError("row_ids must match the number of interaction rows")
+    return PromptTable.from_records(
+        {
+            "row_id": row_id,
+            "origin_mass": float(origin_mass),
+            "destination_mass": float(destination_mass),
+            "generalized_cost": float(cost),
+            "gravity_interaction": value,
+        }
+        for row_id, origin_mass, destination_mass, cost, value in zip(
+            identifiers,
+            origin_masses,
+            destination_masses,
+            generalized_costs,
+            values,
+            strict=True,
+        )
+    )
+
+
+def service_probability_table(
+    predictor_rows: Sequence[dict[str, float]],
+    coefficients: dict[str, float],
+    intercept: float = 0.0,
+    *,
+    row_ids: Sequence[str] | None = None,
+) -> PromptTable:
+    probabilities = vectorized_service_probability(predictor_rows, coefficients, intercept=intercept)
+    identifiers = list(row_ids) if row_ids is not None else [str(index) for index in range(len(probabilities))]
+    if len(identifiers) != len(probabilities):
+        raise ValueError("row_ids must match the number of predictor rows")
+    rows: list[dict[str, float | str]] = []
+    for row_id, predictors, probability in zip(identifiers, predictor_rows, probabilities, strict=True):
+        row: dict[str, float | str] = {"row_id": row_id, "service_probability": probability}
+        for key, value in predictors.items():
+            row[key] = float(value)
+        rows.append(row)
+    return PromptTable.from_records(rows)
+
+
+def _scenario_report_svg(rows: Sequence[dict[str, float | str]]) -> str:
+    if not rows:
+        return ""
+    max_magnitude = max(abs(float(row["delta_percent"])) for row in rows) or 1.0
+    bar_rows: list[str] = []
+    width = 560
+    height = 36 * len(rows) + 24
+    center_x = width / 2
+    for index, row in enumerate(rows):
+        delta_percent = float(row["delta_percent"])
+        bar_width = abs(delta_percent) / max_magnitude * 220.0
+        y = 18 + index * 32
+        color = "#1d8f6a" if str(row["direction"]) == "improved" else "#c75050"
+        x = center_x if delta_percent >= 0 else center_x - bar_width
+        bar_rows.append(
+            f"<text x=\"8\" y=\"{y + 12}\" font-size=\"12\" fill=\"#1f2937\">{escape(str(row['metric']))}</text>"
+            f"<rect x=\"{x:.1f}\" y=\"{y}\" width=\"{bar_width:.1f}\" height=\"18\" fill=\"{color}\" rx=\"4\" />"
+            f"<text x=\"{center_x + 228:.1f}\" y=\"{y + 12}\" font-size=\"12\" fill=\"#4b5563\">{delta_percent:.2f}%</text>"
+        )
+    return (
+        f"<svg viewBox=\"0 0 {width} {height}\" width=\"100%\" height=\"{height}\" role=\"img\" aria-label=\"Metric delta percent chart\">"
+        f"<line x1=\"{center_x:.1f}\" y1=\"0\" x2=\"{center_x:.1f}\" y2=\"{height}\" stroke=\"#9ca3af\" stroke-dasharray=\"4 4\" />"
+        + "".join(bar_rows)
+        + "</svg>"
+    )
+
+
 def export_scenario_report(
     report: dict[str, Any],
     output_path: str | Path,
@@ -455,6 +583,7 @@ def export_scenario_report(
         f"<li><strong>{escape(str(key))}</strong>: {escape(json.dumps(value, sort_keys=True))}</li>"
         for key, value in uncertainty.items()
     )
+    chart_html = _scenario_report_svg(rows)
     row_html = "".join(
         "<tr>"
         f"<td>{escape(str(row['metric']))}</td>"
@@ -486,6 +615,7 @@ def export_scenario_report(
     <span class=\"pill\">improved: {len(summary.get('improved_metrics', []))}</span>
     <span class=\"pill\">worsened: {len(summary.get('worsened_metrics', []))}</span></p>
   <h2>Metrics</h2>
+    {chart_html}
   <table>
     <thead>
       <tr><th>Metric</th><th>Baseline</th><th>Candidate</th><th>Delta</th><th>Delta %</th><th>Direction</th></tr>
@@ -746,6 +876,7 @@ def benchmark_function(
 
 
 __all__ = [
+    "batch_accessibility_table",
     "batch_accessibility_scores",
     "benchmark_function",
     "bootstrap_confidence_interval",
@@ -753,10 +884,13 @@ __all__ = [
     "calibrate_decay_parameters",
     "compare_scenarios",
     "export_scenario_report",
+    "gravity_interaction_table",
     "monte_carlo_interval",
     "normalize_units",
     "optimize_decay_parameters",
+    "scenario_report_table",
     "sensitivity_analysis",
+    "service_probability_table",
     "validate_numeric_series",
     "vectorized_decay",
     "vectorized_gravity_interaction",

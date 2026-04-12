@@ -56,7 +56,23 @@ gp.export_scenario_report(report, "outputs/scenario-report.md")
 gp.export_scenario_report(report, "outputs/scenario-report.html")
 ```
 
-The JSON export preserves the full structure. The CSV export flattens metric comparisons into one row per metric. The Markdown export is useful for issues, PRs, and docs. The HTML export produces a lightweight report page for quick review and sharing.
+The JSON export preserves the full structure. The CSV export flattens metric comparisons into one row per metric. The Markdown export is useful for issues, PRs, and docs. The HTML export now includes an inline metric delta chart for quick review and sharing.
+
+If you want a dataframe-like table object instead of a raw dict, convert the report directly:
+
+```python
+import geoprompt as gp
+
+report = gp.build_scenario_report(
+    baseline_metrics={"served_load": 180.0, "deficit": 0.12},
+    candidate_metrics={"served_load": 205.0, "deficit": 0.05},
+    higher_is_better=["served_load"],
+)
+
+table = gp.scenario_report_table(report)
+print(table.columns)
+print(table.to_markdown())
+```
 
 ## Batch Equation Helpers
 
@@ -70,8 +86,39 @@ GeoPrompt now includes broader NumPy-backed batch helpers for repeated modeling 
 `GeoPromptFrame` also exposes row-wise wrappers when your values already live in columns:
 
 - `frame.batch_accessibility_scores(...)`
+- `frame.batch_accessibility_table(...)`
 - `frame.gravity_interaction_series(...)`
+- `frame.gravity_interaction_table(...)`
 - `frame.service_probability_series(...)`
+- `frame.service_probability_table(...)`
+
+The package-level batch helpers also have table-returning companions:
+
+- `batch_accessibility_table(...)`
+- `gravity_interaction_table(...)`
+- `service_probability_table(...)`
+
+## Indexed Bounds Queries
+
+For repeated bounding-box filters, build a reusable spatial index once and pass it back into the frame.
+
+```python
+import geoprompt as gp
+
+frame = gp.read_features("data/sample_features.json", crs="EPSG:4326")
+index = frame.build_spatial_index()
+
+window = frame.query_bounds_indexed(
+    min_x=-111.97,
+    min_y=40.68,
+    max_x=-111.84,
+    max_y=40.79,
+    mode="intersects",
+    spatial_index=index,
+)
+
+print(len(window))
+```
 
 Example:
 

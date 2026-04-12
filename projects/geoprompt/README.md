@@ -27,7 +27,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Lane: Spatial package design
 - Domain: Reusable custom spatial analysis
 - Stack: Python, JSON fixtures, lightweight geometry frame, custom equations
-- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, buffer, buffer joins, coverage summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
+- Includes: GeoPromptFrame object, mixed-geometry helpers, GeoJSON I/O, CRS metadata and reprojection, Euclidean and haversine distance tools, bounding-box queries, reusable bounds indexing, radius queries, within-distance predicates, spatial joins, proximity joins, nearest joins, nearest assignment workflows, assignment summaries, buffer, buffer joins, coverage summaries, dissolve, clip and overlay intersections, nearest-neighbor analysis, PromptTable outputs for model/report workflows, comparison report tooling, custom influence equations, benchmark corpus, demo report, tests
 
 ## Overview
 
@@ -42,7 +42,7 @@ The initial version still stays intentionally simple, but it now goes beyond poi
 - GeoJSON FeatureCollection support so callers can use standard spatial data without reshaping it first
 - Custom equations for spatial decay, influence, interaction, corridor strength, and area similarity scoring
 - Basic nearest-neighbor analysis for point, line, and polygon centroids
-- Bounding-box queries for quick map-window style filtering
+- Bounding-box queries for quick map-window style filtering, with reusable spatial indexing for repeated windows
 - Radius queries for fast proximity filtering around a feature or coordinate anchor
 - Within-distance predicates for scoring or filtering without materializing a join
 - CRS assignment and reprojection through `GeoPromptFrame.to_crs(...)`
@@ -147,6 +147,7 @@ report = gp.build_scenario_report(
     higher_is_better=["served_load"],
 )
 gp.export_scenario_report(report, "outputs/scenario-report.html")
+report_table = gp.scenario_report_table(report)
 
 scores = gp.batch_accessibility_scores(
     supply_rows=[[200.0, 100.0, 30.0]],
@@ -154,6 +155,9 @@ scores = gp.batch_accessibility_scores(
     decay_method="exponential",
     rate=0.6,
 )
+
+index = frame.build_spatial_index()
+window = frame.query_bounds_indexed(-112.0, 40.6, -111.8, 40.8, spatial_index=index)
 ```
 
 ```python
