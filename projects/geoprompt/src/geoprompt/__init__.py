@@ -1,4 +1,12 @@
-from .equations import area_similarity, coordinate_distance, corridor_strength, directional_alignment, directional_bearing, euclidean_distance, haversine_distance, prompt_decay, prompt_influence, prompt_interaction
+from .equations import (accessibility_gini, age_adjusted_failure_rate, area_similarity,
+                        composite_resilience_index, coordinate_distance,
+                        corridor_strength, directional_alignment,
+                        directional_bearing, euclidean_distance,
+                        expected_outage_impact, exponential_decay,
+                        gaussian_decay, gravity_interaction,
+                        haversine_distance, logistic_service_probability,
+                        prompt_decay, prompt_influence, prompt_interaction,
+                        weighted_accessibility_score)
 from .frame import Bounds, GeoPromptFrame
 from .geometry import geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, transform_geometry
 from .overlay import buffer_geometries, dissolve_geometries, geometry_from_shapely, geometry_to_geojson, geometry_to_shapely
@@ -6,20 +14,32 @@ from .io import (WORKLOAD_PRESETS, frame_to_geojson, get_workload_preset, iter_c
                  iter_data_with_preset, read_csv_points, read_data, read_data_with_preset,
                  read_features, read_geojson, read_points, read_table, write_data,
                  write_geojson)
+from .tools import (benchmark_function, calibrate_decay_parameters,
+                    compare_scenarios, monte_carlo_interval, normalize_units,
+                    sensitivity_analysis)
 
 
 __all__ = [
     "Bounds",
     "GeoPromptFrame",
+    "accessibility_gini",
+    "age_adjusted_failure_rate",
     "area_similarity",
+    "benchmark_function",
     "buffer_geometries",
+    "calibrate_decay_parameters",
+    "compare_scenarios",
+    "composite_resilience_index",
     "coordinate_distance",
     "corridor_strength",
     "dissolve_geometries",
     "directional_alignment",
     "directional_bearing",
     "euclidean_distance",
+    "expected_outage_impact",
+    "exponential_decay",
     "frame_to_geojson",
+    "gaussian_decay",
     "geometry_from_shapely",
     "geometry_area",
     "geometry_bounds",
@@ -34,11 +54,15 @@ __all__ = [
     "geometry_type",
     "geometry_within",
     "geometry_within_bounds",
+    "gravity_interaction",
     "haversine_distance",
     "get_workload_preset",
     "iter_data",
     "iter_data_with_preset",
     "iter_csv_points",
+    "logistic_service_probability",
+    "monte_carlo_interval",
+    "normalize_units",
     "read_geojson",
     "prompt_decay",
     "prompt_influence",
@@ -49,8 +73,10 @@ __all__ = [
     "read_csv_points",
     "read_table",
     "read_data_with_preset",
+    "sensitivity_analysis",
     "transform_geometry",
     "WORKLOAD_PRESETS",
+    "weighted_accessibility_score",
     "write_data",
     "write_geojson",
 ]
