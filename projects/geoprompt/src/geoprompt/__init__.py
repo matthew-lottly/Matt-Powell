@@ -14,9 +14,12 @@ from .io import (WORKLOAD_PRESETS, frame_to_geojson, get_workload_preset, iter_c
                  iter_data_with_preset, read_csv_points, read_data, read_data_with_preset,
                  read_features, read_geojson, read_points, read_table, write_data,
                  write_geojson)
-from .tools import (benchmark_function, calibrate_decay_parameters,
+from .interop import from_geopandas, geopandas_available, to_geopandas
+from .tools import (benchmark_function, bootstrap_confidence_interval,
+                    build_scenario_report, calibrate_decay_parameters,
                     compare_scenarios, monte_carlo_interval, normalize_units,
-                    sensitivity_analysis)
+                    optimize_decay_parameters, sensitivity_analysis,
+                    validate_numeric_series, vectorized_decay)
 
 
 __all__ = [
@@ -26,7 +29,9 @@ __all__ = [
     "age_adjusted_failure_rate",
     "area_similarity",
     "benchmark_function",
+    "bootstrap_confidence_interval",
     "buffer_geometries",
+    "build_scenario_report",
     "calibrate_decay_parameters",
     "compare_scenarios",
     "composite_resilience_index",
@@ -54,8 +59,10 @@ __all__ = [
     "geometry_type",
     "geometry_within",
     "geometry_within_bounds",
+    "geopandas_available",
     "gravity_interaction",
     "haversine_distance",
+    "from_geopandas",
     "get_workload_preset",
     "iter_data",
     "iter_data_with_preset",
@@ -63,6 +70,7 @@ __all__ = [
     "logistic_service_probability",
     "monte_carlo_interval",
     "normalize_units",
+    "optimize_decay_parameters",
     "read_geojson",
     "prompt_decay",
     "prompt_influence",
@@ -74,7 +82,10 @@ __all__ = [
     "read_table",
     "read_data_with_preset",
     "sensitivity_analysis",
+    "to_geopandas",
     "transform_geometry",
+    "validate_numeric_series",
+    "vectorized_decay",
     "WORKLOAD_PRESETS",
     "weighted_accessibility_score",
     "write_data",
