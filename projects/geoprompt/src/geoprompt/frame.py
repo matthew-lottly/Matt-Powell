@@ -620,7 +620,7 @@ class GeoPromptFrame:
         how: SpatialJoinMode = "inner",
         lsuffix: str = "left",
         rsuffix: str = "right",
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> "GeoPromptFrame":
         """Join each left row to every right row within ``max_distance``.
 
@@ -1265,7 +1265,7 @@ class GeoPromptFrame:
         id_column: str = "site_id",
         scale: float = 1.0,
         power: float = 2.0,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> list[float]:
         """Compute how strongly each row influences (or is influenced by) a single anchor.
 
@@ -1307,7 +1307,7 @@ class GeoPromptFrame:
         id_column: str = "site_id",
         scale: float = 1.0,
         power: float = 2.0,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> list[float]:
         """Compute accessibility scores weighted by corridor length and decay from an anchor.
 
@@ -1396,7 +1396,7 @@ class GeoPromptFrame:
         scale: float = 1.0,
         power: float = 2.0,
         preferred_bearing: float | None = None,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> list[Record]:
         """Return a pairwise gravity-model interaction table.
 
