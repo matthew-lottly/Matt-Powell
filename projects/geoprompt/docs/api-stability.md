@@ -11,6 +11,27 @@ These are intended for long-term use with backward compatibility within minor re
 - Core frame access and geometry helpers in `geoprompt` package root
 - Core network routing: `build_network_graph`, `shortest_path`, `service_area`, `od_cost_matrix`
 
+## Network Module Stable APIs
+
+Core routing and analysis functions suitable for production use:
+
+- `built_network_graph()` — graph construction and validation
+- `shortest_path()` — single-origin, single-destination routing
+- `service_area()` — reachable nodes within cost threshold
+- `od_cost_matrix()` — origin-destination distance matrix
+- `allocate_demand_to_supply()` — assignment with capacity constraints
+- `analyze_network_topology()` — connectivity and centrality metrics
+
+## Network Module Advanced APIs
+
+Domain-specific utility functions subject to faster evolution:
+
+- Domain routing: `trace_electric_feeder()`, `trace_water_pressure_zones()`, `gas_shutdown_impact()` (utility-specific)
+- Catastrophic analysis: `criticality_ranking_by_node_removal()`, `n_minus_one_edge_contingency_screen()`, `pipe_break_isolation_zones()`
+- Infrastructure planning: `infrastructure_age_risk_weighted_routing()`, `co_location_conflict_scan()`, `interdependency_cascade_simulation()`
+- Streaming/batching: `iter_od_cost_matrix_batches()`, `utility_bottlenecks_stream()` (performance tuning patterns)
+- Presets: `od_cost_matrix_with_preset()`, `utility_bottlenecks_with_preset()` (convenience wrappers)
+
 ## Advanced APIs
 
 These APIs are powerful but may evolve faster.

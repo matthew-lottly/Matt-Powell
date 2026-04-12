@@ -1,3 +1,9 @@
+"""Spatial overlay operations: clip, buffer, and dissolve (Shapely-backed).
+
+Provides deferred imports for optional Shapely dependency. All functions
+accept geometry dicts as input and return geometry dicts, maintaining consistency
+with the core GeoPromptFrame API.
+"""
 from __future__ import annotations
 
 import importlib

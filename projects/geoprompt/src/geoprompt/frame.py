@@ -1,3 +1,10 @@
+"""Core spatial frame object and operations for geographic feature analysis.
+
+GeoPromptFrame provides a dataclass-like geospatial table structure supporting
+points, lines, and polygons. Built-in operations include spatial joins, network
+analysis, distance-based queries, and custom spatial equations without external
+dependencies (geometry engines like Shapely/GeoPandas are opt-in via methods).
+"""
 from __future__ import annotations
 
 import importlib
@@ -5,7 +12,7 @@ from dataclasses import dataclass
 from heapq import nsmallest
 from typing import Any, Iterable, Literal, Sequence
 
-from .equations import area_similarity, coordinate_distance, corridor_strength, directional_alignment, prompt_influence, prompt_interaction
+from .equations import DistanceMethod, area_similarity, coordinate_distance, corridor_strength, directional_alignment, prompt_influence, prompt_interaction
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections
 
@@ -106,6 +113,11 @@ class GeoPromptFrame:
         return len(self._rows)
 
     def __iter__(self):
+        """Iterate over rows as dictionaries.
+
+        Each row is a dict mapping column names to values (including the
+        geometry column).
+        """
         return iter(self._rows)
 
     @property
@@ -192,8 +204,13 @@ class GeoPromptFrame:
                 raise ValueError(f"unsupported aggregation: {operation}")
         return aggregate_values
 
-    def distance_matrix(self, distance_method: str = "euclidean") -> list[list[float]]:
-        """Return a full N\u00d7N pairwise distance matrix between all rows.
+    def distance_matrix(self, distance_method: DistanceMethod = "euclidean") -> list[list[float]]:
+        """Return a full NxN pairwise distance matrix between all rows.
+
+        **Note:** Computing distance matrices for large frames (100K+ rows) can
+        consume significant memory (e.g., 100K rows = 80GB for float64 matrix).
+        Consider using :meth:`nearest_neighbors` with a smaller ``k`` value or
+        streaming approaches for large datasets.
 
         Args:
             distance_method: ``"euclidean"`` (coordinate units) or
@@ -203,6 +220,11 @@ class GeoPromptFrame:
             List of N lists of N floats.  ``result[i][j]`` is the distance
             from row *i* to row *j*.
         """
+        if len(self._rows) > 100000:
+            raise MemoryError(
+                f"Distance matrix requires ~{(len(self._rows) ** 2 * 8) // (1024**3)}GB for {len(self._rows)} rows. "
+                "Consider nearest_neighbors() or streaming instead."
+            )
         return [
             [
                 geometry_distance(origin=row[self.geometry_column], destination=other[self.geometry_column], method=distance_method)
@@ -235,7 +257,7 @@ class GeoPromptFrame:
         self,
         id_column: str = "site_id",
         k: int = 1,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> list[Record]:
         """Find the *k* nearest neighbors for every row within the same frame.
 
@@ -292,7 +314,7 @@ class GeoPromptFrame:
         right_rows: Sequence[Record],
         right_centroids: Sequence[Coordinate],
         k: int,
-        distance_method: str,
+        distance_method: DistanceMethod,
         max_distance: float | None = None,
     ) -> list[tuple[Record, float]]:
         candidates: list[tuple[Record, float]] = []
@@ -313,7 +335,7 @@ class GeoPromptFrame:
         lsuffix: str = "left",
         rsuffix: str = "right",
         max_distance: float | None = None,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> "GeoPromptFrame":
         """Join each left row to its ``k`` nearest rows in ``other``.
 
@@ -390,7 +412,7 @@ class GeoPromptFrame:
         targets: "GeoPromptFrame",
         how: SpatialJoinMode = "inner",
         max_distance: float | None = None,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
         origin_suffix: str = "origin",
     ) -> "GeoPromptFrame":
         """Assign each target to its nearest origin in ``self``.
@@ -431,7 +453,7 @@ class GeoPromptFrame:
         aggregations: dict[str, AggregationName] | None = None,
         how: SpatialJoinMode = "left",
         max_distance: float | None = None,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
         assignment_suffix: str = "assigned",
     ) -> "GeoPromptFrame":
         """Summarise how many targets are assigned to each origin.
@@ -517,7 +539,7 @@ class GeoPromptFrame:
         max_distance: float,
         id_column: str = "site_id",
         include_anchor: bool = False,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> "GeoPromptFrame":
         """Return all rows within ``max_distance`` of an anchor, sorted by distance.
 
@@ -563,7 +585,7 @@ class GeoPromptFrame:
         max_distance: float,
         id_column: str = "site_id",
         include_anchor: bool = False,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> list[bool]:
         """Return a boolean mask indicating which rows are within ``max_distance`` of the anchor.
 
@@ -1201,7 +1223,7 @@ class GeoPromptFrame:
         scale: float = 1.0,
         power: float = 2.0,
         include_self: bool = False,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> list[float]:
         """Compute cumulative influence pressure on each row from all neighbors.
 
@@ -1327,7 +1349,7 @@ class GeoPromptFrame:
         id_column: str = "site_id",
         scale: float = 1.0,
         power: float = 1.0,
-        distance_method: str = "euclidean",
+        distance_method: DistanceMethod = "euclidean",
     ) -> list[Record]:
         """Return a pairwise table of area-weighted similarity scores.
 

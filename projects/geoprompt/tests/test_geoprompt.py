@@ -705,6 +705,174 @@ def test_stress_corpus_generators_create_mixed_geometries() -> None:
     assert {record["region_band"] for record in region_records} == {"north", "south"}
 
 
+# ---------------------[ Edge Case Tests ]---------------------
+
+def test_empty_frame_operations() -> None:
+    """Test frame operations on empty (zero-row) frames."""
+    empty = GeoPromptFrame(rows=[], geometry_column="geometry")
+    
+    assert len(empty) == 0
+    assert empty.columns == []
+    assert empty.geometry_types() == []
+    assert empty.geometry_lengths() == []
+    assert empty.geometry_areas() == []
+    assert empty.distance_matrix() == []
+    
+
+def test_single_row_frame_operations() -> None:
+    """Test frame operations on single-row frames."""
+    single = GeoPromptFrame(
+        rows=[{
+            "site_id": "point-a",
+            "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}
+        }],
+        geometry_column="geometry"
+    )
+    
+    assert len(single) == 1
+    assert single.centroid() == (0.0, 0.0)
+    bounds = single.bounds()
+    assert bounds.min_x == 0.0 and bounds.min_y == 0.0 and bounds.max_x == 0.0 and bounds.max_y == 0.0
+    assert single.distance_matrix() == [[0.0]]
+    assert single.nearest_neighbors() == []  # No neighbors to itself
+
+
+def test_none_geometry_raises_error() -> None:
+    """Test that None geometries are rejected during frame construction."""
+    try:
+        GeoPromptFrame(
+            rows=[
+                {"site_id": "a", "geometry": None},  # None not allowed
+            ],
+            geometry_column="geometry"
+        )
+        assert False, "Should raise TypeError"
+    except TypeError as e:
+        assert "geometry must be" in str(e)
+    
+
+def test_degenerate_geometries() -> None:
+    """Test frame with degenerate geometries (point as line, etc)."""
+    degenerate = GeoPromptFrame(
+        rows=[
+            {"site_id": "degen-line", "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [0.0, 0.0]]}},
+            {"site_id": "degen-poly", "geometry": {"type": "Polygon", "coordinates": [[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]]}},
+        ],
+        geometry_column="geometry"
+    )
+    
+    assert len(degenerate) == 2
+    lengths = degenerate.geometry_lengths()
+    assert all(length == 0.0 for length in lengths)
+    
+
+def test_join_with_no_matches() -> None:
+    """Test spatial joins where no rows match (empty result)."""
+    frame1 = GeoPromptFrame(
+        rows=[{"site_id": "a", "x": 0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}}],
+        geometry_column="geometry"
+    )
+    frame2 = GeoPromptFrame(
+        rows=[{"site_id": "b", "y": 1, "geometry": {"type": "Point", "coordinates": [100.0, 100.0]}}],
+        geometry_column="geometry"
+    )
+    
+    # Nearest join with very small max_distance should have no matches
+    result = frame1.nearest_join(frame2, max_distance=1.0, how="inner")
+    assert len(result) == 0
+    
+    # With how="left", should keep left rows with null right columns
+    result_left = frame1.nearest_join(frame2, max_distance=1.0, how="left")
+    assert len(result_left) == 1
+    assert result_left._rows[0]["site_id"] == "a"
+    assert result_left._rows[0]["y"] is None
+
+
+def test_with_column_mismatched_length() -> None:
+    """Test with_column validation for length mismatch."""
+    frame = GeoPromptFrame(
+        rows=[{"site_id": "a", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}}],
+        geometry_column="geometry"
+    )
+    
+    try:
+        frame.with_column("new_col", [1, 2, 3])  # Length mismatch
+        assert False, "Should raise ValueError"
+    except ValueError as e:
+        assert "column length must match" in str(e)
+
+
+def test_assign_with_scalar_and_callable() -> None:
+    """Test assign with scalar and callable column definitions."""
+    frame = GeoPromptFrame(
+        rows=[
+            {"site_id": "a", "value": 10, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "value": 20, "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}},
+        ],
+        geometry_column="geometry"
+    )
+    
+    # Mix of scalar broadcast and callable
+    result = frame.assign(
+        status="active",
+        double_value=lambda f: [row["value"] * 2 for row in f._rows],
+    )
+    
+    assert len(result) == 2
+    assert result._rows[0]["status"] == "active"
+    assert result._rows[0]["double_value"] == 20
+
+
+def test_neighborhood_pressure_no_self() -> None:
+    """Test neighborhood_pressure excludes self by default."""
+    frame = GeoPromptFrame(
+        rows=[
+            {"site_id": "a", "weight": 1.0, "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}},
+            {"site_id": "b", "weight": 1.0, "geometry": {"type": "Point", "coordinates": [1.0, 0.0]}},
+        ],
+        geometry_column="geometry"
+    )
+    
+    pressure = frame.neighborhood_pressure(weight_column="weight", scale=1.0, power=2.0)
+    
+    assert len(pressure) == 2
+    # Each point should have pressure only from the other point
+    assert pressure[0] > 0  # Point a influenced by point b
+    assert pressure[1] > 0  # Point b influenced by point a
+
+
+def test_distance_matrix_large_frame_guard() -> None:
+    """Test that distance_matrix raises MemoryError for huge frames."""
+    # Create a frame that would exceed the 100K limit
+    large_rows = [
+        {"id": i, "geometry": {"type": "Point", "coordinates": [float(i), float(i)]}}
+        for i in range(100001)
+    ]
+    large_frame = GeoPromptFrame(rows=large_rows, geometry_column="geometry")
+    
+    try:
+        large_frame.distance_matrix()
+        assert False, "Should raise MemoryError"
+    except MemoryError as e:
+        assert "Distance matrix requires" in str(e)
+
+
+def test_normalize_crs_parameter() -> None:
+    """Test frame CRS parameter preservation across operations."""
+    frame = GeoPromptFrame(
+        rows=[{"site_id": "a", "geometry": {"type": "Point", "coordinates": [-111.92, 40.78]}}],
+        geometry_column="geometry",
+        crs="EPSG:4326"
+    )
+    
+    assert frame.crs == "EPSG:4326"
+    
+    new_frame = frame.with_column("test", [1])
+    assert new_frame.crs == "EPSG:4326"
+
+
+# ---------------------[ End Edge Case Tests ]---------------------
+
 # ---------------------------------------------------------------------------
 # Edge case tests
 # ---------------------------------------------------------------------------

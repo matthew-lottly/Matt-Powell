@@ -1,3 +1,10 @@
+"""Unified spatial data I/O with workload presets and progress callbacks.
+
+Supports GeoJSON, CSV, GeoParquet, and other geographic data formats.
+Workload presets (small/medium/large/huge) provide sampling and batching tuning
+for different dataset sizes. Progress callbacks enable real-time monitoring of
+read/write operations.
+"""
 from __future__ import annotations
 
 import csv

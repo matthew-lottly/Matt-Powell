@@ -1,3 +1,9 @@
+"""Pure Python geometry predicates and transformations.
+
+Provides Point-in-Polygon, line/polygon intersection, area/length calculation,
+and centroid computation without external geometry libraries. All algorithms
+implement standard computational geometry patterns.
+"""
 from __future__ import annotations
 
 from typing import Any, Callable
