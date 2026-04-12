@@ -11,6 +11,7 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 - Quickstart: [docs/quickstart-cookbook.md](docs/quickstart-cookbook.md)
 - API guidance: [docs/api-stability.md](docs/api-stability.md)
 - Network recipes: [docs/network-scenario-recipes.md](docs/network-scenario-recipes.md)
+- Interop and reporting: [docs/geopandas-interop-and-reporting.md](docs/geopandas-interop-and-reporting.md)
 
 ## Install Profiles
 
@@ -123,6 +124,35 @@ bottlenecks = utility_bottlenecks_with_preset(
     graph,
     od_demands=((o, d, q) for o, d, q in huge_demands),
     preset="huge",
+)
+```
+
+GeoPandas interop and report export example:
+
+```python
+import geoprompt as gp
+
+frame = gp.GeoPromptFrame.from_records(
+    [{"site_id": "a", "geometry": {"type": "Point", "coordinates": (-111.9, 40.7)}}],
+    crs="EPSG:4326",
+)
+
+if gp.geopandas_available():
+    geodataframe = gp.to_geopandas(frame)
+    restored = gp.from_geopandas(geodataframe)
+
+report = gp.build_scenario_report(
+    baseline_metrics={"served_load": 180.0, "deficit": 0.12},
+    candidate_metrics={"served_load": 205.0, "deficit": 0.05},
+    higher_is_better=["served_load"],
+)
+gp.export_scenario_report(report, "outputs/scenario-report.html")
+
+scores = gp.batch_accessibility_scores(
+    supply_rows=[[200.0, 100.0, 30.0]],
+    travel_cost_rows=[[0.5, 1.0, 2.5]],
+    decay_method="exponential",
+    rate=0.6,
 )
 ```
 

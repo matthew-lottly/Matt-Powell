@@ -1,16 +1,23 @@
 from __future__ import annotations
 
+import csv
+import json
+
 import pytest
 
 from geoprompt import GeoPromptFrame
 from geoprompt.equations import prompt_decay
 from geoprompt.interop import geopandas_available
 from geoprompt.tools import (
+    batch_accessibility_scores,
     bootstrap_confidence_interval,
     build_scenario_report,
+    export_scenario_report,
     optimize_decay_parameters,
     validate_numeric_series,
     vectorized_decay,
+    vectorized_gravity_interaction,
+    vectorized_service_probability,
 )
 
 
@@ -41,11 +48,83 @@ def test_build_scenario_report_structure() -> None:
     assert report["metadata"]["scenario_id"] == "demo"
 
 
+def test_export_scenario_report_json_csv_markdown_html(tmp_path) -> None:
+    report = build_scenario_report(
+        {"deficit": 0.2, "served": 100.0},
+        {"deficit": 0.1, "served": 110.0},
+        higher_is_better=["served"],
+        metadata={"scenario_id": "demo"},
+    )
+
+    json_path = tmp_path / "report.json"
+    csv_path = tmp_path / "report.csv"
+    markdown_path = tmp_path / "report.md"
+    html_path = tmp_path / "report.html"
+
+    export_scenario_report(report, json_path)
+    export_scenario_report(report, csv_path)
+    export_scenario_report(report, markdown_path)
+    export_scenario_report(report, html_path)
+
+    loaded_json = json.loads(json_path.read_text(encoding="utf-8"))
+    assert loaded_json["metadata"]["scenario_id"] == "demo"
+
+    with csv_path.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows[0]["metric"] in {"deficit", "served"}
+    assert "| Metric | Baseline | Candidate |" in markdown_path.read_text(encoding="utf-8")
+    assert "Scenario Report" in html_path.read_text(encoding="utf-8")
+
+
 def test_vectorized_decay_matches_scalar() -> None:
     distances = [0.0, 0.5, 1.0, 2.0]
     vectorized = vectorized_decay(distances, method="exponential", rate=0.8)
     scalar = [__import__("geoprompt.equations", fromlist=["exponential_decay"]).exponential_decay(d, rate=0.8) for d in distances]
     assert vectorized == pytest.approx(scalar)
+
+
+def test_vectorized_gravity_interaction_matches_scalar() -> None:
+    origins = [10.0, 15.0, 20.0]
+    destinations = [5.0, 6.0, 7.0]
+    costs = [1.2, 2.0, 3.5]
+    vectorized = vectorized_gravity_interaction(origins, destinations, costs, gamma=1.4)
+
+    from geoprompt.equations import gravity_interaction
+
+    scalar = [
+        gravity_interaction(origin, destination, cost, gamma=1.4)
+        for origin, destination, cost in zip(origins, destinations, costs)
+    ]
+    assert vectorized == pytest.approx(scalar)
+
+
+def test_vectorized_service_probability_matches_scalar() -> None:
+    rows = [
+        {"pressure": 0.8, "redundancy": 1.0},
+        {"pressure": 0.5, "redundancy": 0.3},
+    ]
+    coefficients = {"pressure": 1.4, "redundancy": 0.7}
+
+    vectorized = vectorized_service_probability(rows, coefficients, intercept=-0.5)
+
+    from geoprompt.equations import logistic_service_probability
+
+    scalar = [logistic_service_probability(row, coefficients, intercept=-0.5) for row in rows]
+    assert vectorized == pytest.approx(scalar)
+
+
+def test_batch_accessibility_scores_matches_scalar() -> None:
+    supply_rows = [[100.0, 40.0, 10.0], [80.0, 20.0, 5.0]]
+    cost_rows = [[0.5, 1.0, 2.0], [0.25, 0.75, 1.5]]
+    batch = batch_accessibility_scores(supply_rows, cost_rows, decay_method="exponential", rate=0.7)
+
+    from geoprompt.equations import weighted_accessibility_score
+
+    scalar = [
+        weighted_accessibility_score(supplies, costs, decay_method="exponential", rate=0.7)
+        for supplies, costs in zip(supply_rows, cost_rows)
+    ]
+    assert batch == pytest.approx(scalar)
 
 
 def test_validate_numeric_series_rejects_nan() -> None:

@@ -283,6 +283,59 @@ def test_workload_preset_wrappers_and_validation(tmp_path: Path) -> None:
         get_workload_preset("not-a-real-preset")
 
 
+def test_frame_batch_equation_wrappers() -> None:
+    frame = GeoPromptFrame.from_records(
+        [
+            {
+                "site_id": "a",
+                "supply_1": 100.0,
+                "supply_2": 40.0,
+                "cost_1": 0.5,
+                "cost_2": 1.2,
+                "origin_mass": 10.0,
+                "destination_mass": 5.0,
+                "generalized_cost": 1.5,
+                "pressure": 0.8,
+                "redundancy": 0.4,
+                "geometry": {"type": "Point", "coordinates": (-111.9, 40.7)},
+            },
+            {
+                "site_id": "b",
+                "supply_1": 80.0,
+                "supply_2": 25.0,
+                "cost_1": 0.4,
+                "cost_2": 0.9,
+                "origin_mass": 8.0,
+                "destination_mass": 4.0,
+                "generalized_cost": 2.0,
+                "pressure": 0.6,
+                "redundancy": 0.7,
+                "geometry": {"type": "Point", "coordinates": (-112.0, 40.8)},
+            },
+        ],
+        crs="EPSG:4326",
+    )
+
+    accessibility = frame.batch_accessibility_scores(
+        supply_columns=["supply_1", "supply_2"],
+        travel_cost_columns=["cost_1", "cost_2"],
+        decay_method="exponential",
+        rate=0.7,
+    )
+    gravity = frame.gravity_interaction_series("origin_mass", "destination_mass", "generalized_cost", gamma=1.2)
+    service_probability = frame.service_probability_series(
+        predictor_columns=["pressure", "redundancy"],
+        coefficients={"pressure": 1.1, "redundancy": 0.6},
+        intercept=-0.4,
+    )
+
+    assert len(accessibility) == len(frame)
+    assert len(gravity) == len(frame)
+    assert len(service_probability) == len(frame)
+    assert all(value > 0 for value in accessibility)
+    assert all(0.0 < value < 1.0 for value in service_probability)
+
+
 @pytest.mark.skipif(os.environ.get("GEOPROMPT_RUN_GEO_IO") != "1", reason="requires optional geospatial IO stack")
 def test_geospatial_integration_parquet_round_trip(tmp_path: Path) -> None:
     gpd = pytest.importorskip("geopandas")

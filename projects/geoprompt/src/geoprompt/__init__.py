@@ -17,9 +17,13 @@ from .io import (WORKLOAD_PRESETS, frame_to_geojson, get_workload_preset, iter_c
 from .interop import from_geopandas, geopandas_available, to_geopandas
 from .tools import (benchmark_function, bootstrap_confidence_interval,
                     build_scenario_report, calibrate_decay_parameters,
-                    compare_scenarios, monte_carlo_interval, normalize_units,
+                    compare_scenarios, export_scenario_report,
+                    monte_carlo_interval, normalize_units,
                     optimize_decay_parameters, sensitivity_analysis,
-                    validate_numeric_series, vectorized_decay)
+                    validate_numeric_series, vectorized_decay,
+                    vectorized_gravity_interaction,
+                    vectorized_service_probability,
+                    batch_accessibility_scores)
 
 
 __all__ = [
@@ -29,6 +33,7 @@ __all__ = [
     "age_adjusted_failure_rate",
     "area_similarity",
     "benchmark_function",
+    "batch_accessibility_scores",
     "bootstrap_confidence_interval",
     "buffer_geometries",
     "build_scenario_report",
@@ -41,6 +46,7 @@ __all__ = [
     "directional_alignment",
     "directional_bearing",
     "euclidean_distance",
+    "export_scenario_report",
     "expected_outage_impact",
     "exponential_decay",
     "frame_to_geojson",
@@ -86,6 +92,8 @@ __all__ = [
     "transform_geometry",
     "validate_numeric_series",
     "vectorized_decay",
+    "vectorized_gravity_interaction",
+    "vectorized_service_probability",
     "WORKLOAD_PRESETS",
     "weighted_accessibility_score",
     "write_data",

@@ -15,6 +15,7 @@ from typing import Any, Iterable, Literal, Sequence
 from .equations import DistanceMethod, area_similarity, coordinate_distance, corridor_strength, directional_alignment, prompt_influence, prompt_interaction
 from .geometry import Geometry, geometry_area, geometry_bounds, geometry_centroid, geometry_contains, geometry_distance, geometry_intersects, geometry_intersects_bounds, geometry_length, geometry_type, geometry_within, geometry_within_bounds, normalize_geometry, transform_geometry
 from .overlay import buffer_geometries, clip_geometries, dissolve_geometries, overlay_intersections
+from .tools import batch_accessibility_scores, vectorized_gravity_interaction, vectorized_service_probability
 
 
 Record = dict[str, Any]
@@ -1212,6 +1213,72 @@ class GeoPromptFrame:
 
             frame = frame.with_column(name=name, values=values)
         return frame
+
+    def batch_accessibility_scores(
+        self,
+        supply_columns: Sequence[str],
+        travel_cost_columns: Sequence[str],
+        decay_method: str = "power",
+        *,
+        scale: float = 1.0,
+        power: float = 2.0,
+        rate: float = 1.0,
+        sigma: float = 1.0,
+    ) -> list[float]:
+        """Compute accessibility scores row-wise from aligned supply and travel cost columns."""
+        for column in [*supply_columns, *travel_cost_columns]:
+            self._require_column(column)
+        supply_rows = [[float(row[column]) for column in supply_columns] for row in self._rows]
+        travel_cost_rows = [[float(row[column]) for column in travel_cost_columns] for row in self._rows]
+        return batch_accessibility_scores(
+            supply_rows,
+            travel_cost_rows,
+            decay_method=decay_method,
+            scale=scale,
+            power=power,
+            rate=rate,
+            sigma=sigma,
+        )
+
+    def gravity_interaction_series(
+        self,
+        origin_mass_column: str,
+        destination_mass_column: str,
+        cost_column: str,
+        *,
+        alpha: float = 1.0,
+        beta: float = 1.0,
+        gamma: float = 1.0,
+        scale_factor: float = 1.0,
+    ) -> list[float]:
+        """Compute gravity-model interaction values row-wise from frame columns."""
+        self._require_column(origin_mass_column)
+        self._require_column(destination_mass_column)
+        self._require_column(cost_column)
+        return vectorized_gravity_interaction(
+            [float(row[origin_mass_column]) for row in self._rows],
+            [float(row[destination_mass_column]) for row in self._rows],
+            [float(row[cost_column]) for row in self._rows],
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+            scale_factor=scale_factor,
+        )
+
+    def service_probability_series(
+        self,
+        predictor_columns: Sequence[str],
+        coefficients: dict[str, float],
+        intercept: float = 0.0,
+    ) -> list[float]:
+        """Compute logistic service probabilities row-wise from named predictor columns."""
+        for column in predictor_columns:
+            self._require_column(column)
+        predictor_rows = [
+            {column: float(row[column]) for column in predictor_columns}
+            for row in self._rows
+        ]
+        return vectorized_service_probability(predictor_rows, coefficients, intercept=intercept)
 
     def _require_column(self, name: str) -> None:
         if name not in self.columns:

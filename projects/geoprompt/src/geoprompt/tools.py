@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+import csv
+import json
 import math
 import random
 import statistics
 import time
+from html import escape
+from pathlib import Path
 from typing import Any, Callable, Sequence
 
 from .equations import (
     exponential_decay,
     gaussian_decay,
+    gravity_interaction,
+    logistic_service_probability,
     prompt_decay,
+    weighted_accessibility_score,
 )
 
 try:
@@ -371,6 +378,131 @@ def build_scenario_report(
     }
 
 
+def _scenario_report_rows(report: dict[str, Any]) -> list[dict[str, float | str]]:
+    rows: list[dict[str, float | str]] = []
+    for metric_name, values in report.get("metrics", {}).items():
+        if not isinstance(values, dict):
+            continue
+        rows.append(
+            {
+                "metric": str(metric_name),
+                "baseline": float(values.get("baseline", 0.0)),
+                "candidate": float(values.get("candidate", 0.0)),
+                "delta": float(values.get("delta", 0.0)),
+                "delta_percent": float(values.get("delta_percent", 0.0)),
+                "direction": str(values.get("direction", "")),
+            }
+        )
+    return rows
+
+
+def export_scenario_report(
+    report: dict[str, Any],
+    output_path: str | Path,
+    format: str | None = None,
+) -> str:
+    """Write a scenario report to JSON, CSV, Markdown, or HTML."""
+    path = Path(output_path)
+    resolved_format = (format or path.suffix.lstrip(".")).lower()
+    if resolved_format == "md":
+        resolved_format = "markdown"
+    if resolved_format not in {"json", "csv", "html", "markdown"}:
+        raise ValueError("format must be one of: json, csv, markdown, html")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if resolved_format == "json":
+        path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+        return str(path)
+
+    rows = _scenario_report_rows(report)
+    if resolved_format == "csv":
+        with path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=["metric", "baseline", "candidate", "delta", "delta_percent", "direction"],
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+        return str(path)
+
+    if resolved_format == "markdown":
+        summary = report.get("summary", {})
+        lines = [
+            f"# Scenario Report: {report.get('baseline_name', 'baseline')} vs {report.get('candidate_name', 'candidate')}",
+            "",
+            f"Metrics compared: {int(summary.get('metric_count', 0))}",
+            "",
+            "| Metric | Baseline | Candidate | Delta | Delta % | Direction |",
+            "| --- | ---: | ---: | ---: | ---: | --- |",
+        ]
+        lines.extend(
+            f"| {row['metric']} | {row['baseline']:.6g} | {row['candidate']:.6g} | {row['delta']:.6g} | {row['delta_percent']:.3f} | {row['direction']} |"
+            for row in rows
+        )
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return str(path)
+
+    summary = report.get("summary", {})
+    metadata = report.get("metadata", {})
+    uncertainty = report.get("uncertainty", {})
+    baseline_name = escape(str(report.get("baseline_name", "baseline")))
+    candidate_name = escape(str(report.get("candidate_name", "candidate")))
+    title = escape(f"Scenario Report: {baseline_name} vs {candidate_name}")
+    metadata_items = "".join(
+        f"<li><strong>{escape(str(key))}</strong>: {escape(str(value))}</li>" for key, value in metadata.items()
+    )
+    uncertainty_items = "".join(
+        f"<li><strong>{escape(str(key))}</strong>: {escape(json.dumps(value, sort_keys=True))}</li>"
+        for key, value in uncertainty.items()
+    )
+    row_html = "".join(
+        "<tr>"
+        f"<td>{escape(str(row['metric']))}</td>"
+        f"<td>{row['baseline']:.6g}</td>"
+        f"<td>{row['candidate']:.6g}</td>"
+        f"<td>{row['delta']:.6g}</td>"
+        f"<td>{row['delta_percent']:.3f}</td>"
+        f"<td>{escape(str(row['direction']))}</td>"
+        "</tr>"
+        for row in rows
+    )
+    html = f"""<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <title>{title}</title>
+  <style>
+    body {{ font-family: Segoe UI, Arial, sans-serif; margin: 2rem; color: #1f2937; }}
+    h1, h2 {{ margin-bottom: 0.5rem; }}
+    table {{ border-collapse: collapse; width: 100%; margin-top: 1rem; }}
+    th, td {{ border: 1px solid #d1d5db; padding: 0.6rem; text-align: left; }}
+    th {{ background: #f3f4f6; }}
+    .pill {{ display: inline-block; padding: 0.2rem 0.55rem; margin-right: 0.4rem; border-radius: 999px; background: #e5f3ff; }}
+  </style>
+</head>
+<body>
+  <h1>{title}</h1>
+    <p><span class=\"pill\">metrics: {int(summary.get('metric_count', 0))}</span>
+    <span class=\"pill\">improved: {len(summary.get('improved_metrics', []))}</span>
+    <span class=\"pill\">worsened: {len(summary.get('worsened_metrics', []))}</span></p>
+  <h2>Metrics</h2>
+  <table>
+    <thead>
+      <tr><th>Metric</th><th>Baseline</th><th>Candidate</th><th>Delta</th><th>Delta %</th><th>Direction</th></tr>
+    </thead>
+    <tbody>{row_html}</tbody>
+  </table>
+  <h2>Metadata</h2>
+  <ul>{metadata_items}</ul>
+  <h2>Uncertainty</h2>
+  <ul>{uncertainty_items}</ul>
+</body>
+</html>
+"""
+    path.write_text(html, encoding="utf-8")
+    return str(path)
+
+
 def vectorized_decay(
     distance_values: Sequence[float],
     method: str = "power",
@@ -402,6 +534,131 @@ def vectorized_decay(
             raise ValueError("sigma must be greater than zero")
         return [float(value) for value in _np.exp(-(arr**2) / (2.0 * sigma**2)).tolist()]
     raise ValueError("method must be one of: power, exponential, gaussian")
+
+
+def vectorized_gravity_interaction(
+    origin_masses: Sequence[float],
+    destination_masses: Sequence[float],
+    generalized_costs: Sequence[float],
+    *,
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    gamma: float = 1.0,
+    scale_factor: float = 1.0,
+) -> list[float]:
+    """Evaluate gravity interaction across many OD pairs."""
+    if len(origin_masses) != len(destination_masses) or len(origin_masses) != len(generalized_costs):
+        raise ValueError("origin_masses, destination_masses, and generalized_costs must have the same length")
+
+    origins = [float(value) for value in origin_masses]
+    destinations = [float(value) for value in destination_masses]
+    costs = [float(value) for value in generalized_costs]
+    if any(value < 0 for value in origins) or any(value < 0 for value in destinations):
+        raise ValueError("origin_masses and destination_masses must be zero or greater")
+    if any(value <= 0 for value in costs):
+        raise ValueError("generalized_costs must be greater than zero")
+
+    if _np is None:
+        return [
+            gravity_interaction(
+                origin,
+                destination,
+                cost,
+                alpha=alpha,
+                beta=beta,
+                gamma=gamma,
+                scale_factor=scale_factor,
+            )
+            for origin, destination, cost in zip(origins, destinations, costs)
+        ]
+
+    origin_arr = _np.asarray(origins, dtype=float)
+    destination_arr = _np.asarray(destinations, dtype=float)
+    cost_arr = _np.asarray(costs, dtype=float)
+    values = scale_factor * _np.power(origin_arr, alpha) * _np.power(destination_arr, beta) / _np.power(cost_arr, gamma)
+    return [float(value) for value in values.tolist()]
+
+
+def vectorized_service_probability(
+    predictor_rows: Sequence[dict[str, float]],
+    coefficients: dict[str, float],
+    intercept: float = 0.0,
+) -> list[float]:
+    """Evaluate logistic service probability for many predictor rows."""
+    rows = [{key: float(value) for key, value in row.items()} for row in predictor_rows]
+    coefficient_items = [(name, float(value)) for name, value in coefficients.items()]
+
+    if _np is None:
+        return [logistic_service_probability(row, coefficients, intercept=intercept) for row in rows]
+
+    if not rows:
+        return []
+    coefficient_names = [name for name, _ in coefficient_items]
+    design = _np.asarray([[row.get(name, 0.0) for name in coefficient_names] for row in rows], dtype=float)
+    beta = _np.asarray([value for _, value in coefficient_items], dtype=float)
+    linear = design @ beta + float(intercept)
+    positive_mask = linear >= 0
+    probabilities = _np.empty_like(linear, dtype=float)
+    probabilities[positive_mask] = 1.0 / (1.0 + _np.exp(-linear[positive_mask]))
+    negative_linear = linear[~positive_mask]
+    negative_exp = _np.exp(negative_linear)
+    probabilities[~positive_mask] = negative_exp / (1.0 + negative_exp)
+    return [float(value) for value in probabilities.tolist()]
+
+
+def batch_accessibility_scores(
+    supply_rows: Sequence[Sequence[float]],
+    travel_cost_rows: Sequence[Sequence[float]],
+    decay_method: str = "power",
+    *,
+    scale: float = 1.0,
+    power: float = 2.0,
+    rate: float = 1.0,
+    sigma: float = 1.0,
+) -> list[float]:
+    """Evaluate accessibility scores for many origins against shared destination supplies."""
+    if len(supply_rows) != len(travel_cost_rows):
+        raise ValueError("supply_rows and travel_cost_rows must have the same length")
+
+    supplies = [[float(value) for value in row] for row in supply_rows]
+    costs = [[float(value) for value in row] for row in travel_cost_rows]
+    for supply_row, cost_row in zip(supplies, costs):
+        if len(supply_row) != len(cost_row):
+            raise ValueError("each supply row must match its travel cost row length")
+
+    if _np is None:
+        return [
+            weighted_accessibility_score(
+                supply_row,
+                cost_row,
+                decay_method=decay_method,
+                scale=scale,
+                power=power,
+                rate=rate,
+                sigma=sigma,
+            )
+            for supply_row, cost_row in zip(supplies, costs)
+        ]
+
+    supply_arr = _np.asarray(supplies, dtype=float)
+    cost_arr = _np.asarray(costs, dtype=float)
+    if _np.any(cost_arr < 0):
+        raise ValueError("travel_cost_rows must be zero or greater")
+    if decay_method == "power":
+        if scale <= 0 or power <= 0:
+            raise ValueError("scale and power must be greater than zero")
+        decay = _np.power(1.0 + cost_arr / scale, -power)
+    elif decay_method == "exponential":
+        if rate <= 0:
+            raise ValueError("rate must be greater than zero")
+        decay = _np.exp(-rate * cost_arr)
+    elif decay_method == "gaussian":
+        if sigma <= 0:
+            raise ValueError("sigma must be greater than zero")
+        decay = _np.exp(-(cost_arr**2) / (2.0 * sigma**2))
+    else:
+        raise ValueError("decay_method must be one of: power, exponential, gaussian")
+    return [float(value) for value in (supply_arr * decay).sum(axis=1).tolist()]
 
 
 def validate_numeric_series(
@@ -489,15 +746,19 @@ def benchmark_function(
 
 
 __all__ = [
+    "batch_accessibility_scores",
     "benchmark_function",
     "bootstrap_confidence_interval",
     "build_scenario_report",
     "calibrate_decay_parameters",
     "compare_scenarios",
+    "export_scenario_report",
     "monte_carlo_interval",
     "normalize_units",
     "optimize_decay_parameters",
     "sensitivity_analysis",
     "validate_numeric_series",
     "vectorized_decay",
+    "vectorized_gravity_interaction",
+    "vectorized_service_probability",
 ]
