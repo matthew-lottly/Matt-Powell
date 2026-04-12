@@ -5,7 +5,13 @@ import time
 
 import pytest
 
-from geoprompt.network import build_network_graph, shortest_path, utility_bottlenecks_stream
+from geoprompt.network import (
+    build_network_graph,
+    capacity_constrained_od_assignment,
+    od_cost_matrix_with_preset,
+    shortest_path,
+    utility_bottlenecks_stream,
+)
 
 
 def _grid_graph(rows: int, cols: int):
@@ -65,3 +71,41 @@ def test_stream_bottlenecks_regression_budget() -> None:
 
     assert rows
     assert elapsed < 8.0
+
+
+@pytest.mark.skipif(not BENCHMARK_ENABLED, reason="set GEOPROMPT_RUN_BENCHMARKS=1 to run benchmark regression checks")
+def test_od_cost_matrix_regression_budget() -> None:
+    graph = _grid_graph(35, 35)
+    origins = [f"n0_{i}" for i in range(20)]
+    destinations = [f"n34_{i}" for i in range(20)]
+
+    started = time.perf_counter()
+    rows = od_cost_matrix_with_preset(
+        graph,
+        origins=origins,
+        destinations=destinations,
+        preset="small",
+        origin_batch_size=8,
+    )
+    elapsed = time.perf_counter() - started
+
+    assert len(rows) == len(origins) * len(destinations)
+    assert elapsed < 10.0
+
+
+@pytest.mark.skipif(not BENCHMARK_ENABLED, reason="set GEOPROMPT_RUN_BENCHMARKS=1 to run benchmark regression checks")
+def test_capacity_assignment_regression_budget() -> None:
+    graph = _grid_graph(20, 20)
+    demands = [(f"n0_{i}", f"n19_{i}", 3.0) for i in range(20)] * 25
+
+    started = time.perf_counter()
+    result = capacity_constrained_od_assignment(
+        graph,
+        od_demands=demands,
+        max_rounds=4,
+    )
+    elapsed = time.perf_counter() - started
+
+    assert result["total_requested"] > 0
+    assert result["total_delivered"] >= 0
+    assert elapsed < 10.0

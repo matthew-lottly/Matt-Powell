@@ -27,6 +27,12 @@ dependencies = [
 dev = [
     "pytest>=8.2,<9.0",
 ]
+network = [
+    "numpy>=1.26,<3.0",
+]
+viz = [
+    "matplotlib>=3.9,<4.0",
+]
 io = [
     "pandas>=2.2,<3.0",
     "pyarrow>=16,<20",
@@ -42,6 +48,15 @@ overlay = [
 ]
 projection = [
     "pyproj>=3.6,<4.0",
+]
+all = [
+    "numpy>=1.26,<3.0",
+    "matplotlib>=3.9,<4.0",
+    "pandas>=2.2,<3.0",
+    "pyarrow>=16,<20",
+    "geopandas>=1.0,<2.0",
+    "pyproj>=3.6,<4.0",
+    "shapely>=2.0,<3.0",
 ]
 
 [project.scripts]

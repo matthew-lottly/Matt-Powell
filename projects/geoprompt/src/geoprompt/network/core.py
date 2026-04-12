@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, Required, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -21,28 +21,28 @@ class NetworkEdge(TypedDict, total=False):
     can be added as needed by analysis functions. All fields are optional
     and allow custom attributes to flow through the system.
     """
-    edge_id: str
-    from_node: str
-    to_node: str
-    cost: float
-    length: float
-    capacity: float
-    flow: float
-    load: float
-    device_type: str
-    state: str
-    bidirectional: bool
-    congestion: float
-    slope: float
-    failure_risk: float
-    condition: float
+    from_node: Required[str]
+    to_node: Required[str]
+    edge_id: NotRequired[str]
+    cost: NotRequired[float]
+    length: NotRequired[float]
+    capacity: NotRequired[float]
+    flow: NotRequired[float]
+    load: NotRequired[float]
+    device_type: NotRequired[str]
+    state: NotRequired[str]
+    bidirectional: NotRequired[bool]
+    congestion: NotRequired[float]
+    slope: NotRequired[float]
+    failure_risk: NotRequired[float]
+    condition: NotRequired[float]
     # Domain-specific utility fields
-    diameter: float
-    age: float
-    design_life: float
-    pressure: float
-    headloss: float
-    customers: int
+    diameter: NotRequired[float]
+    age: NotRequired[float]
+    design_life: NotRequired[float]
+    pressure: NotRequired[float]
+    headloss: NotRequired[float]
+    customers: NotRequired[int]
     # Reserved for additional field names passed at runtime
     # (users may add any other field name with Any value)
 
@@ -80,6 +80,8 @@ def _as_node(value: object, field: str) -> str:
 def _as_non_negative(value: Any, field: str) -> float:
     """Validate and convert a value to a non-negative float."""
     resolved = float(value)
+    if math.isnan(resolved):
+        raise ValueError(f"{field} must be a valid number")
     if resolved < 0:
         raise ValueError(f"{field} must be zero or greater")
     return resolved

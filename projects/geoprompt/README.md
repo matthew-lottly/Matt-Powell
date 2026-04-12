@@ -10,6 +10,16 @@ Custom spatial analysis package for point, line, and polygon workflows, GeoPanda
 
 - Quickstart: [docs/quickstart-cookbook.md](docs/quickstart-cookbook.md)
 - API guidance: [docs/api-stability.md](docs/api-stability.md)
+- Network recipes: [docs/network-scenario-recipes.md](docs/network-scenario-recipes.md)
+
+## Install Profiles
+
+- Core install: `pip install geoprompt`
+- Developer tooling: `pip install geoprompt[dev]`
+- Network-heavy workloads: `pip install geoprompt[network]`
+- Geospatial IO stack: `pip install geoprompt[io]`
+- Overlay and geometry operations: `pip install geoprompt[overlay]`
+- Full feature stack: `pip install geoprompt[all]`
 
 ## Snapshot
 

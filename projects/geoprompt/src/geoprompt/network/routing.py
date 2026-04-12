@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from heapq import heappop, heappush
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from .core import (
     NetworkEdge,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 def build_network_graph(
-    edges: list[NetworkEdge],
+    edges: Sequence[NetworkEdge],
     directed: bool = False,
     cost_field: str = "cost",
     capacity_field: str = "capacity",
@@ -46,7 +46,7 @@ def build_network_graph(
 
         capacity = _as_non_negative(edge.get(capacity_field, math.inf), capacity_field)
         edge_id = str(edge.get("edge_id", f"edge-{index}"))
-        resolved_edge: NetworkEdge = dict(edge)
+        resolved_edge = cast(NetworkEdge, dict(edge))
         resolved_edge["edge_id"] = edge_id
         resolved_edge["from_node"] = from_node
         resolved_edge["to_node"] = to_node
