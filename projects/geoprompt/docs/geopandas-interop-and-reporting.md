@@ -164,6 +164,15 @@ report = gp.build_multi_scenario_report(
 
 gp.export_multi_scenario_report(report, "outputs/multi-scenario.html")
 gp.export_multi_scenario_report(report, "outputs/multi-scenario.csv")
+
+table = gp.multi_scenario_report_table(report)
+ranking = gp.rank_scenarios(
+    report,
+    metric_weights={"served": 1.0, "deficit": 1.5},
+)
+
+print(table.to_markdown())
+print(ranking.to_markdown())
 ```
 
 ## PromptTable Operations

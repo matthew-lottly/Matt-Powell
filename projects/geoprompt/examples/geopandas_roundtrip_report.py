@@ -109,6 +109,32 @@ def main() -> None:
     indexed_proximity = metric_frame.proximity_join(metric_frame, max_distance=0.06)
     print(f"indexed proximity rows: {len(indexed_proximity)}")
 
+    baseline_proximity = metric_frame.proximity_join(
+        metric_frame,
+        max_distance=0.06,
+        use_spatial_index=False,
+    )
+    print(f"baseline proximity rows: {len(baseline_proximity)}")
+
+    multi_report = gp.build_multi_scenario_report(
+        {
+            "baseline": {"served_load": 180.0, "deficit": 0.12},
+            "reinforced": {"served_load": 205.0, "deficit": 0.05},
+            "distributed": {"served_load": 198.0, "deficit": 0.07},
+        },
+        baseline_name="baseline",
+        higher_is_better=["served_load"],
+    )
+
+    multi_table = gp.multi_scenario_report_table(multi_report)
+    ranking = gp.rank_scenarios(multi_report, metric_weights={"served_load": 1.0, "deficit": 2.0})
+    print(multi_table.to_markdown())
+    print(ranking.to_markdown())
+
+    gp.export_multi_scenario_report(multi_report, output_dir / "multi-scenario-report.md")
+    gp.export_multi_scenario_report(multi_report, output_dir / "multi-scenario-report.html")
+    print("wrote multi-scenario report exports")
+
 
 if __name__ == "__main__":
     main()

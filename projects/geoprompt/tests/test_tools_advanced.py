@@ -17,7 +17,9 @@ from geoprompt.tools import (
     export_multi_scenario_report,
     export_scenario_report,
     gravity_interaction_table,
+    multi_scenario_report_table,
     optimize_decay_parameters,
+    rank_scenarios,
     scenario_report_table,
     service_probability_table,
     validate_numeric_series,
@@ -123,6 +125,26 @@ def test_multi_scenario_report_export_formats(tmp_path) -> None:
     assert "Multi-Scenario Report" in markdown_path.read_text(encoding="utf-8")
     assert "Multi-Scenario Report" in html_path.read_text(encoding="utf-8")
     assert "svg" in chart_path.read_text(encoding="utf-8")
+
+
+def test_multi_scenario_table_and_ranking() -> None:
+    report = build_multi_scenario_report(
+        {
+            "baseline": {"deficit": 0.2, "served": 100.0, "cost": 10.0},
+            "candidate_a": {"deficit": 0.12, "served": 108.0, "cost": 11.0},
+            "candidate_b": {"deficit": 0.09, "served": 112.0, "cost": 9.5},
+        },
+        baseline_name="baseline",
+        higher_is_better=["served"],
+    )
+
+    table = multi_scenario_report_table(report)
+    ranking = rank_scenarios(report, metric_weights={"served": 2.0, "deficit": 1.5, "cost": 1.0})
+
+    assert len(table) == 6
+    assert set(table.columns) >= {"scenario", "metric", "delta_percent", "direction"}
+    assert ranking.head(1)[0]["scenario"] in {"candidate_a", "candidate_b"}
+    assert "weighted_score" in ranking.columns
 
 
 def test_vectorized_decay_matches_scalar() -> None:

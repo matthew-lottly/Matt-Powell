@@ -409,6 +409,69 @@ def build_multi_scenario_report(
     }
 
 
+def multi_scenario_report_table(report: dict[str, Any]) -> PromptTable:
+    """Flatten a multi-scenario report into one row per scenario/metric pair."""
+    comparisons = dict(report.get("comparisons", {}))
+    rows: list[dict[str, float | str]] = []
+    for scenario_name, scenario_metrics in comparisons.items():
+        for metric_name, values in scenario_metrics.items():
+            rows.append(
+                {
+                    "scenario": scenario_name,
+                    "metric": metric_name,
+                    "baseline": float(values.get("baseline", 0.0)),
+                    "candidate": float(values.get("candidate", 0.0)),
+                    "delta": float(values.get("delta", 0.0)),
+                    "delta_percent": float(values.get("delta_percent", 0.0)),
+                    "direction": str(values.get("direction", "")),
+                }
+            )
+    return PromptTable.from_records(rows)
+
+
+def rank_scenarios(
+    report: dict[str, Any],
+    metric_weights: dict[str, float] | None = None,
+) -> PromptTable:
+    """Rank candidate scenarios in a multi-scenario report by weighted improvement."""
+    comparisons = dict(report.get("comparisons", {}))
+    weights = {name: float(value) for name, value in (metric_weights or {}).items()}
+    rows: list[dict[str, float | str]] = []
+
+    for scenario_name, scenario_metrics in comparisons.items():
+        weighted_sum = 0.0
+        total_weight = 0.0
+        improved = 0
+        worsened = 0
+        for metric_name, values in scenario_metrics.items():
+            weight = max(0.0, float(weights.get(metric_name, 1.0)))
+            if weight == 0.0:
+                continue
+            direction = str(values.get("direction", ""))
+            sign = 1.0 if direction == "improved" else -1.0
+            delta_percent = abs(float(values.get("delta_percent", 0.0)))
+            weighted_sum += sign * delta_percent * weight
+            total_weight += weight
+            if direction == "improved":
+                improved += 1
+            elif direction == "worsened":
+                worsened += 1
+
+        score = 0.0 if total_weight == 0.0 else weighted_sum / total_weight
+        rows.append(
+            {
+                "scenario": scenario_name,
+                "weighted_score": score,
+                "improved_metrics": improved,
+                "worsened_metrics": worsened,
+                "metrics_count": len(scenario_metrics),
+            }
+        )
+
+    rows.sort(key=lambda row: float(row["weighted_score"]), reverse=True)
+    return PromptTable.from_records(rows)
+
+
 def _scenario_report_rows(report: dict[str, Any]) -> list[dict[str, float | str]]:
     rows: list[dict[str, float | str]] = []
     for metric_name, values in report.get("metrics", {}).items():
@@ -787,21 +850,8 @@ def export_multi_scenario_report(
     if resolved_format not in {"json", "csv", "markdown", "html"}:
         raise ValueError("format must be one of: json, csv, markdown, html")
 
-    comparisons: dict[str, dict[str, dict[str, float | str]]] = dict(report.get("comparisons", {}))
-    rows: list[dict[str, float | str]] = []
-    for scenario_name, scenario_metrics in comparisons.items():
-        for metric_name, values in scenario_metrics.items():
-            rows.append(
-                {
-                    "scenario": scenario_name,
-                    "metric": metric_name,
-                    "baseline": float(values.get("baseline", 0.0)),
-                    "candidate": float(values.get("candidate", 0.0)),
-                    "delta": float(values.get("delta", 0.0)),
-                    "delta_percent": float(values.get("delta_percent", 0.0)),
-                    "direction": str(values.get("direction", "")),
-                }
-            )
+    rows = multi_scenario_report_table(report).to_records()
+    ranking = rank_scenarios(report).to_records()
 
     path.parent.mkdir(parents=True, exist_ok=True)
     if resolved_format == "json":
@@ -829,6 +879,20 @@ def export_multi_scenario_report(
             f"| {row['scenario']} | {row['metric']} | {row['baseline']:.6g} | {row['candidate']:.6g} | {row['delta']:.6g} | {row['delta_percent']:.3f} | {row['direction']} |"
             for row in rows
         )
+        if ranking:
+            lines.extend(
+                [
+                    "",
+                    "## Scenario Ranking",
+                    "",
+                    "| Scenario | Weighted Score | Improved Metrics | Worsened Metrics |",
+                    "| --- | ---: | ---: | ---: |",
+                ]
+            )
+            lines.extend(
+                f"| {item['scenario']} | {float(item['weighted_score']):.3f} | {int(item['improved_metrics'])} | {int(item['worsened_metrics'])} |"
+                for item in ranking
+            )
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return str(path)
 
@@ -848,6 +912,17 @@ def export_multi_scenario_report(
         "</tr>"
         for row in rows
     )
+    ranking_rows = "".join(
+        "<tr>"
+        f"<td>{escape(str(item['scenario']))}</td>"
+        f"<td>{float(item['weighted_score']):.3f}</td>"
+        f"<td>{int(item['improved_metrics'])}</td>"
+        f"<td>{int(item['worsened_metrics'])}</td>"
+        "</tr>"
+        for item in ranking
+    )
+    top_scenario = ranking[0]["scenario"] if ranking else ""
+
     html = f"""<!doctype html>
 <html lang=\"en\">
 <head>
@@ -863,6 +938,7 @@ def export_multi_scenario_report(
 <body>
   <h1>Multi-Scenario Report</h1>
   <p>Baseline: <strong>{escape(str(report.get('baseline_name', '')))}</strong></p>
+    <p>Top scenario: <strong>{escape(str(top_scenario))}</strong></p>
   {chart_html}
   <table>
     <thead>
@@ -870,6 +946,13 @@ def export_multi_scenario_report(
     </thead>
     <tbody>{table_rows}</tbody>
   </table>
+    <h2>Scenario Ranking</h2>
+    <table>
+        <thead>
+            <tr><th>Scenario</th><th>Weighted Score</th><th>Improved Metrics</th><th>Worsened Metrics</th></tr>
+        </thead>
+        <tbody>{ranking_rows}</tbody>
+    </table>
 </body>
 </html>
 """
@@ -1130,10 +1213,12 @@ __all__ = [
     "compare_scenarios",
     "export_multi_scenario_report",
     "export_scenario_report",
+        "multi_scenario_report_table",
     "gravity_interaction_table",
     "monte_carlo_interval",
     "normalize_units",
     "optimize_decay_parameters",
+    "rank_scenarios",
     "scenario_report_table",
     "sensitivity_analysis",
     "service_probability_table",
