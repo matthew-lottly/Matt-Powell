@@ -1,0 +1,9 @@
+{
+  "cell_km2": 0.0625,
+  "study_cells": 74646,
+  "cells_valid_1938_and_2024": 74621,
+  "pct_study_area_comparable": 100.0,
+  "pct_cells_changed_class_1938_2024": 76.8,
+  "coarse_agreement_1985_pct": 72.3,
+  "detailed_agreement_1985_pct": 64.2
+}
