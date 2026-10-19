@@ -21,7 +21,7 @@ Showcase priority set
 | experience-builder-station-brief-widget | GIS Frontend | Supporting | Operational prototype | Yes | Yes | Yes | Yes | Yes | Live screenshot and browser-level tests added. Next: expand interaction coverage beyond the primary selection flow. |
 | geoprompt | Package Design | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | CI aligned. Ruff baseline added. Next: tighten public package framing. |
 | gulf-coast-inundation-lab | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Evaluation artifact and smoke coverage added. Next: add a short runbook for the Earth Engine handoff. |
-| Houston-Land-Cover-Change-1985---2024 | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | No | No | Harris County pilot published (1938-2024). Next: extend to the Gulf Coast, add smoke test and CI. |
+| Houston-Land-Cover-Change-1985---2024 | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | No | No | Harris County and 57-county Gulf Coast analysis published (1938-2024). Next: official NOAA county list, smoke test and CI. |
 | monitoring-anomaly-detection | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark context added. Next: strengthen evaluation narrative. |
 | monitoring-data-warehouse | Database Engineering | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Schema walkthrough added. README tightened. Next: audit generated artifacts. |
 | open-web-map-operations-dashboard | Web Mapping | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Live screenshot and browser-level tests added. Next: extend interaction coverage into additional review paths. |
