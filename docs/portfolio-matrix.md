@@ -22,6 +22,7 @@ Showcase priority set
 | geoprompt | Package Design | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | CI aligned. Ruff baseline added. Next: tighten public package framing. |
 | gulf-coast-inundation-lab | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Evaluation artifact and smoke coverage added. Next: add a short runbook for the Earth Engine handoff. |
 | Houston-Land-Cover-Change-1985---2024 | Remote Sensing | Supporting | Reviewable | Yes | Yes | No | No | No | Harris County and 57-county Gulf Coast analysis published (1938-2024). Next: official NOAA county list, smoke test and CI. |
+| Esri-Automation-and-Processing-Scripts | GIS Automation | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | First product (gas-electric leak response) published; 68 offline tests, Esri calls not yet verified on a live org. Next: verify against an ArcGIS org, add more products. |
 | monitoring-anomaly-detection | Data Science | Supporting | Reviewable | Yes | Yes | No | Yes | Yes | Benchmark context added. Next: strengthen evaluation narrative. |
 | monitoring-data-warehouse | Database Engineering | Showcase | Reviewable | Yes | Yes | No | Yes | Yes | Schema walkthrough added. README tightened. Next: audit generated artifacts. |
 | open-web-map-operations-dashboard | Web Mapping | Showcase | Operational prototype | Yes | Yes | Yes | Yes | Yes | Live screenshot and browser-level tests added. Next: extend interaction coverage into additional review paths. |
